@@ -38,23 +38,27 @@ SCALE_CODEC = {
              ["parachains", "AccountId"]
           ]
         },
+        "EthereumAddress": "H160",
+        "Address": "EthereumAddress",
+        "LookupSource": "GenericEthereumAccountId",
+        "AccountId": "GenericEthereumAccountId",
+        "ExtrinsicSignature": "EcdsaSignature",
+
+        ### ???
         "ContractExecResult": "ContractExecResultTo260",
         "ValidatorPrefs": "ValidatorPrefsWithBlocked",
         "AccountInfo": "AccountInfoWithTripleRefCount",
 
-        "EthereumAddress": "H160",
-        # "Address": "EthereumAddress",
         "EthAddress": "EthereumAddress",
-        "LookupSource": "EthereumAddress",
-        "AccountId": "GenericEthereumAccountId",
         "AuthorId": "GenericAccountId",
     }
 }
 
 def show_account(substrate, addr, out_str):
     result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}')
-    print(result)
+    print(f'{out_str} {addr}')
+    pp.pprint(result.value)
+    print('')
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
@@ -85,27 +89,20 @@ def evm_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url="ws://127.0.0.1:9944",
-                                # type_registry_preset = "moonriver",
                                 type_registry=SCALE_CODEC
                                ) as conn:
 
-            # pp.pprint(conn.get_type_definition('MultiAddress'))
-            # raise IOError
-
-            # print(mnemonic)
             # Sudo account
             kp_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
-            show_account(conn, kp_src.ss58_address, 'wow')
+            show_account(conn, kp_src.ss58_address, '=== Src === ')
 
-            # # New account
-            mnemonic = Keypair.generate_mnemonic()
-            kp_dst = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ECDSA)
-            show_account(conn, kp_dst.ss58_address, 'wow')
+            kp_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
+            show_account(conn, kp_dst.ss58_address, '=== Dst before === ')
 
-            transfer(conn, kp_src, kp_dst.ss58_address, 20)
+            transfer(conn, kp_src, kp_dst.ss58_address, 5)
 
-            # kp_dst = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ECDSA)
-            # show_account(conn, kp_dst.ss58_address, 'wow')
+            kp_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
+            show_account(conn, kp_dst.ss58_address, '=== Dst End === ')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
