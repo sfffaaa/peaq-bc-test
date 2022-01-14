@@ -59,6 +59,7 @@ def show_account(substrate, addr, out_str):
     print(f'{out_str} {addr}')
     pp.pprint(result.value)
     print('')
+    return result.value['data']['free']
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
@@ -92,17 +93,25 @@ def evm_test():
                                 type_registry=SCALE_CODEC
                                ) as conn:
 
-            # Sudo account
+            existential_deposit = conn.get_constant('Balances', 'ExistentialDeposit').value
+
             kp_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
-            show_account(conn, kp_src.ss58_address, '=== Src === ')
 
             kp_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
-            show_account(conn, kp_dst.ss58_address, '=== Dst before === ')
+            substrate_balance = show_account(conn, kp_dst.ss58_address, '=== Dst before === ')
+
+            eth_balance = int(conn.rpc_request("eth_getBalance", [kp_dst.ss58_address]).get('result'), 16)
+            if substrate_balance != eth_balance + existential_deposit:
+                raise IOError(f'sub({substrate_balance}) != eth({eth_balance}) + deposit({existential_deposit})')
 
             transfer(conn, kp_src, kp_dst.ss58_address, 5)
 
             kp_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
-            show_account(conn, kp_dst.ss58_address, '=== Dst End === ')
+            substrate_balance = show_account(conn, kp_dst.ss58_address, '=== Dst End === ')
+            eth_balance = int(conn.rpc_request("eth_getBalance", [kp_dst.ss58_address]).get('result'), 16)
+            if substrate_balance != eth_balance + existential_deposit:
+                raise IOError(f'sub({substrate_balance}) != eth({eth_balance}) + deposit({existential_deposit})')
+
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
