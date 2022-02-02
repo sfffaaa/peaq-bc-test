@@ -2,7 +2,7 @@ from substrateinterface import Keypair
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
-TOKEN_NUM_BASE = pow(10, 0)
+TOKEN_NUM_BASE = pow(10, 3)
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
