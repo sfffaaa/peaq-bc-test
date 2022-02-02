@@ -4,6 +4,7 @@ import time
 from substrateinterface import SubstrateInterface, Keypair
 from utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
 from utils import fund
+import random
 
 
 def show_account(substrate, addr, out_str):
@@ -72,7 +73,6 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
         raise IOError
 
 
-
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
@@ -98,22 +98,21 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
         raise IOError
 
 
-
 def multisig_test(substrate, kp_src, kp_dst):
     threshold = 2
     signators = [kp_src, kp_dst]
     multi_sig_addr = calculate_multi_sig(signators, threshold)
 
+    num = random.randint(1, 10000)
     # Deposit to wallet addr
-    transfer(substrate, kp_src, multi_sig_addr, 10000)
-
+    transfer(substrate, kp_src, multi_sig_addr, num)
 
     payload = substrate.compose_call(
         call_module='Balances',
         call_function='transfer',
         call_params={
             'dest': kp_src.ss58_address,
-            'value': 10000 * TOKEN_NUM_BASE
+            'value': num * TOKEN_NUM_BASE
         })
 
     # Send proposal
@@ -124,7 +123,7 @@ def multisig_test(substrate, kp_src, kp_dst):
                   threshold, payload, timepoint)
 
     post_multisig_token = show_account(substrate, multi_sig_addr, 'after transfer')
-    assert(post_multisig_token + 10000 * TOKEN_NUM_BASE == pre_multisig_token)
+    assert(post_multisig_token + num * TOKEN_NUM_BASE == pre_multisig_token)
 
 
 def service_request(substrate, kp_src, kp_dst, token_num):
@@ -269,8 +268,7 @@ def pallet_multisig_test():
 
     kp_src = Keypair.create_from_uri('//Alice')
     kp_dst = Keypair.create_from_uri('//Bob//stash')
-    # fund(substrate, kp_dst, 500)
-    # transfer(substrate, kp_src, kp_dst.ss58_address, 5 * pow(10, 5))
+    fund(substrate, kp_dst, 500000)
 
     multisig_test(substrate, kp_src, kp_dst)
 
