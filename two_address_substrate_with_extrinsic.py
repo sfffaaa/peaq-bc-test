@@ -3,19 +3,18 @@ import time
 
 from substrateinterface import SubstrateInterface, Keypair
 from utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
-# from utils import fund
+from utils import fund
 
 
 def show_account(substrate, addr, out_str):
     result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}')
-    print(result)
+    print(f'{addr} {out_str}: {result["data"]["free"]}')
+    return int(result['data']['free'].value)
 
 
 def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
-    # [TODO] Not sure why the codec fail...
     as_multi_call = substrate.compose_call(
         call_module='MultiSig',
         call_function='as_multi',
@@ -23,7 +22,7 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
             'threshold': threshold,
             'other_signatories': [kp_dst.ss58_address],
             'maybe_timepoint': None,
-            'call': str(payload.data),
+            'call': payload.value,
             'store_call': True,
             'max_weight': 1000000000,
         })
@@ -37,6 +36,10 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'as_multi')
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
     info = receipt.get_extrinsic_identifier().split('-')
     return {'height': int(info[0]), 'index': int(info[1])}
 
@@ -64,6 +67,10 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'approve_as_multi')
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
@@ -86,6 +93,10 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'transfer')
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
 
 
 def multisig_test(substrate, kp_src, kp_dst):
@@ -94,30 +105,26 @@ def multisig_test(substrate, kp_src, kp_dst):
     multi_sig_addr = calculate_multi_sig(signators, threshold)
 
     # Deposit to wallet addr
-    # transfer(substrate, kp_src, multi_sig_addr, 50)
+    transfer(substrate, kp_src, multi_sig_addr, 10000)
+
 
     payload = substrate.compose_call(
         call_module='Balances',
         call_function='transfer',
         call_params={
             'dest': kp_src.ss58_address,
-            'value': 10 * TOKEN_NUM_BASE
+            'value': 10000 * TOKEN_NUM_BASE
         })
 
     # Send proposal
-    show_account(substrate, multi_sig_addr, 'before transfer')
-    show_account(substrate, kp_src.ss58_address, 'before transfer')
+    pre_multisig_token = show_account(substrate, multi_sig_addr, 'before transfer')
 
-    # print(f'show me the call_hash {payload.call_hash}')
-    # print(f'show me the call_hash 0x{payload.call_hash.hex()}')
-    # raise IOError
     timepoint = send_proposal(substrate, kp_src, kp_dst, threshold, payload)
-
     send_approval(substrate, kp_dst, [kp_src],
                   threshold, payload, timepoint)
 
-    show_account(substrate, multi_sig_addr, 'after transfer')
-    show_account(substrate, kp_src.ss58_address, 'after transfer')
+    post_multisig_token = show_account(substrate, multi_sig_addr, 'after transfer')
+    assert(post_multisig_token + 10000 * TOKEN_NUM_BASE == pre_multisig_token)
 
 
 def service_request(substrate, kp_src, kp_dst, token_num):
@@ -189,6 +196,7 @@ def service_deliver(substrate, kp_src, kp_dst, receipt, call):
 
 
 def pallet_transaction_test():
+    print('---- pallet_transaction_test!! ----')
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
@@ -233,6 +241,7 @@ def did_add(substrate, kp_src, name, value):
 
 
 def pallet_did_test():
+    print('---- pallet_did_test!! ----')
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
@@ -247,6 +256,7 @@ def pallet_did_test():
 
 
 def pallet_multisig_test():
+    print('---- pallet_multisig_test!! ----')
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
@@ -259,12 +269,13 @@ def pallet_multisig_test():
 
     kp_src = Keypair.create_from_uri('//Alice')
     kp_dst = Keypair.create_from_uri('//Bob//stash')
+    # fund(substrate, kp_dst, 500)
     # transfer(substrate, kp_src, kp_dst.ss58_address, 5 * pow(10, 5))
 
     multisig_test(substrate, kp_src, kp_dst)
 
 
 if __name__ == '__main__':
-    # pallet_multisig_test()
+    pallet_multisig_test()
     pallet_transaction_test()
     pallet_did_test()
