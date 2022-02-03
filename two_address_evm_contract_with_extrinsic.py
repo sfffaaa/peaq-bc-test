@@ -1,7 +1,7 @@
 import sys
 
 from substrateinterface import SubstrateInterface, Keypair
-from utils import TOKEN_NUM_BASE, show_extrinsic
+from utils import TOKEN_NUM_BASE, show_extrinsic, SCALE_CODEC
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 
@@ -200,7 +200,7 @@ def evm_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944") as conn:
+        with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry=SCALE_CODEC) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
             eth_src = '0xd43593c715fdd31c61141abd04a99fd6822c8558'

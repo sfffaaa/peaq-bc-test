@@ -8,6 +8,30 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
+SCALE_CODEC = {
+    "Address": "MultiAddress",
+    "LookupSource": "MultiAddress",
+    "Account": {
+        "nonce": "U256",
+        "balance": "U256"
+    },
+    "Transaction": {
+        "nonce": "U256",
+        "action": "String",
+        "gas_price": "u64",
+        "gas_limit": "u64",
+        "value": "U256",
+        "input": "Vec<u8>",
+        "signature": "Signature"
+    },
+    "Signature": {
+        "v": "u64",
+        "r": "H256",
+        "s": "H256"
+    }
+}
+
+
 def show_extrinsic(receipt, info_type):
     if receipt.is_success:
         print(f'✅ {info_type}, Success: {receipt.get_extrinsic_identifier()}')
