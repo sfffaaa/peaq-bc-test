@@ -1,4 +1,5 @@
 from substrateinterface import Keypair
+from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
@@ -299,3 +300,38 @@ def approve_spent_token(substrate, kp_consumer, provider_addr, threshold, spent_
 def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refund_info):
     print('--- User approve refund token')
     _approve_token(substrate, kp_consumer, [provider_addr], threshold, refund_info)
+
+
+def transfer(substrate, kp_src, kp_dst_addr, token_num):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+
+    call = substrate.compose_call(
+        call_module='Balances',
+        call_function='transfer',
+        call_params={
+            'dest': kp_dst_addr,
+            'value': token_num * TOKEN_NUM_BASE
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'transfer')
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+
+def calculate_evm_account(addr):
+    evm_addr = b'evm:' + bytes.fromhex(addr[2:].upper())
+    hash_key = hasher.blake2_256(evm_addr)
+    return ss58.ss58_encode(hash_key)
+
+
+def calculate_evm_addr(addr):
+    return '0x' + ss58.ss58_decode(addr)[:40]

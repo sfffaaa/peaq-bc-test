@@ -2,7 +2,7 @@ import sys
 import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from utils import show_extrinsic, SCALE_CODEC
+from utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
 from web3 import Web3
 
 import pprint
@@ -33,7 +33,7 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'source': eth_src,
             'target': eth_dst,
             'input': '0x',
-            'value': '0xffffffffffffffffffffffffffffff0000000000000000000000000000000000',
+            'value': '0xffffffffffffffffff0000000000000000000000000000000000000000000000',
             'gas_limit': 4294967294,
             'max_fee_per_gas': "0xfffffff000000000000000000000000000000000000000000000000000000000",
             'max_priority_fee_per_gas': None,
@@ -143,7 +143,11 @@ def evm_test():
         with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry=SCALE_CODEC) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
-            eth_src = '0xd43593c715fdd31c61141abd04a99fd6822c8558'
+            eth_src = calculate_evm_addr(kp_src.ss58_address)
+
+            token_num = 10000 * pow(10, 15)
+            transfer(conn, kp_src, calculate_evm_account(eth_src), token_num)
+
             kp_eth_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
 
             call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())

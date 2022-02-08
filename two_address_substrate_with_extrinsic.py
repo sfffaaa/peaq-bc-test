@@ -3,7 +3,7 @@ import time
 
 from substrateinterface import SubstrateInterface, Keypair
 from utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
-from utils import fund
+from utils import fund, transfer
 import random
 
 
@@ -68,31 +68,6 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'approve_as_multi')
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
-
-
-def transfer(substrate, kp_src, kp_dst_addr, token_num):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
-        call_module='Balances',
-        call_function='transfer',
-        call_params={
-            'dest': kp_dst_addr,
-            'value': token_num * TOKEN_NUM_BASE
-        })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'transfer')
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError

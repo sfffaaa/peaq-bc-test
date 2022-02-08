@@ -2,6 +2,7 @@ import sys
 
 from substrateinterface import SubstrateInterface, Keypair
 from utils import show_extrinsic, SCALE_CODEC
+from utils import transfer, calculate_evm_account, calculate_evm_addr
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 
@@ -126,7 +127,12 @@ def evm_test():
         with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry=SCALE_CODEC) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
-            eth_src = '0xd43593c715fdd31c61141abd04a99fd6822c8558'
+            eth_src = calculate_evm_addr(kp_src.ss58_address)
+
+            # Transfer token to 0xd43593c715fdd31c61141abd04a99fd6822c8558
+            token_num = 10000 * pow(10, 15)
+            transfer(conn, kp_src, calculate_evm_account(eth_src), token_num)
+
             eth_balance = int(conn.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)
             print(f'src ETH balance: {eth_balance}')
             assert(0 != eth_balance)
