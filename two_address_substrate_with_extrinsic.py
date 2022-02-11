@@ -4,6 +4,7 @@ import time
 from substrateinterface import SubstrateInterface, Keypair
 from utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
 from utils import fund, transfer
+from tools.pallet_assets_test import pallet_assets_test
 import random
 
 
@@ -252,3 +253,4 @@ if __name__ == '__main__':
     pallet_multisig_test()
     pallet_transaction_test()
     pallet_did_test()
+    pallet_assets_test()
