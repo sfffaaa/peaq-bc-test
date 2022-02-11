@@ -1,9 +1,10 @@
 import sys
+sys.path.append('./')
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
-from utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
-from utils import fund, transfer
+from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
+from tools.utils import fund, transfer
 from tools.pallet_assets_test import pallet_assets_test
 import random
 

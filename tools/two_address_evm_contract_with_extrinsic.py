@@ -1,8 +1,9 @@
 import sys
+sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from utils import show_extrinsic, SCALE_CODEC
-from utils import transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import show_extrinsic, SCALE_CODEC
+from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 
@@ -120,7 +121,7 @@ def transfer_erc_token(substrate, kp_src, eth_src, eth_dst, contract_addr):
         #  return created_event.value['attributes']
 
 
-def evm_test():
+def evm_extrinsic_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
@@ -184,4 +185,4 @@ def evm_test():
 
 
 if __name__ == '__main__':
-    evm_test()
+    evm_extrinsic_test()

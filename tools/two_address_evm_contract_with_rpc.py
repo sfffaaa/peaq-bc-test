@@ -1,8 +1,9 @@
 import sys
+sys.path.append('./')
 import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
 from web3 import Web3
 
 import pprint
@@ -136,7 +137,7 @@ def call_copy(w3, address, kp_src):
     print('✅ call_copy, Success')
 
 
-def evm_test():
+def evm_rpc_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
@@ -181,4 +182,4 @@ def evm_test():
 
 
 if __name__ == '__main__':
-    evm_test()
+    evm_rpc_test()

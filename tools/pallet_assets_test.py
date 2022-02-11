@@ -1,6 +1,7 @@
 import sys
+sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
-from utils import show_extrinsic
+from tools.utils import show_extrinsic
 
 
 def get_valid_asset_id(conn):
