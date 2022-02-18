@@ -10,6 +10,7 @@ from utils import send_spent_token_service_delievered
 from utils import send_refund_token_service_delievered
 from utils import approve_spent_token
 from utils import approve_refund_token
+from utils import WS_URL
 
 
 def show_account(substrate, addr, out_str):
@@ -131,7 +132,7 @@ def charging_station_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         substrate = SubstrateInterface(
-            url="ws://127.0.0.1:9944",
+            url=WS_URL,
         )
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -178,7 +179,7 @@ def pallet_transaction_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         substrate = SubstrateInterface(
-            url="ws://127.0.0.1:9944",
+            url=WS_URL,
         )
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -249,7 +250,7 @@ def pallet_multisig_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         substrate = SubstrateInterface(
-            url="ws://127.0.0.1:9944",
+            url=WS_URL,
         )
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")

@@ -1,7 +1,7 @@
 import sys
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from utils import show_extrinsic
+from utils import show_extrinsic, WS_URL
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 
@@ -92,7 +92,7 @@ def upgrade_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944",
+        with SubstrateInterface(url=WS_URL,
                                 type_registry=SCALE_CODEC) as conn:
             kp_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
 

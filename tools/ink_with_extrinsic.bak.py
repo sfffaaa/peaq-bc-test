@@ -2,7 +2,7 @@ import sys
 
 from substrateinterface import SubstrateInterface, Keypair
 from substrateinterface.contracts import ContractCode
-from utils import TOKEN_NUM_BASE, show_extrinsic
+from utils import TOKEN_NUM_BASE, show_extrinsic, WS_URL
 
 
 def show_account(substrate, addr, out_str):
@@ -68,7 +68,7 @@ def ink_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry_preset='canvas') as substrate:
+        with SubstrateInterface(url=WS_URL, type_registry_preset='canvas') as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
 
             code = ContractCode.create_from_contract_files(

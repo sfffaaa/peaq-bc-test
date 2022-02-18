@@ -2,7 +2,7 @@ import sys
 import time
 import json
 from substrateinterface import SubstrateInterface, Keypair
-from utils import fund, send_service_request
+from utils import fund, send_service_request, WS_URL
 from utils import deposit_money_to_multsig_wallet
 from utils import _approve_token
 from threading import Thread
@@ -17,7 +17,7 @@ def user_simulation_test(kp_consumer):
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         substrate = SubstrateInterface(
-            url="ws://127.0.0.1:9944",
+            url=WS_URL,
         )
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -41,7 +41,7 @@ class SubstrateMonitor():
             # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
             # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
             self._substrate = SubstrateInterface(
-                url="ws://127.0.0.1:9944",
+                url=WS_URL,
             )
         except ConnectionRefusedError:
             print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")

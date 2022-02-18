@@ -2,7 +2,7 @@ import sys
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, SCALE_CODEC
+from tools.utils import show_extrinsic, SCALE_CODEC, WS_URL
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
@@ -125,7 +125,7 @@ def evm_extrinsic_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry=SCALE_CODEC) as conn:
+        with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
             eth_src = calculate_evm_addr(kp_src.ss58_address)

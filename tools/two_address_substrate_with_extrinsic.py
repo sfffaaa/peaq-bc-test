@@ -3,7 +3,7 @@ sys.path.append('./')
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig
+from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_URL
 from tools.utils import fund, transfer
 from tools.pallet_assets_test import pallet_assets_test
 import random
@@ -176,7 +176,7 @@ def pallet_transaction_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
+        with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
             kp_dst = Keypair.create_from_uri('//Bob//stash')
             # fund(substrate, kp_src, 500)
@@ -221,7 +221,7 @@ def pallet_did_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944") as substrate:
+        with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
             name = int(time.time())
             did_add(substrate, kp_src, f'0x{name}', '0x02')
@@ -236,7 +236,7 @@ def pallet_multisig_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        substrate = SubstrateInterface(url="ws://127.0.0.1:9944",)
+        substrate = SubstrateInterface(url=WS_URL,)
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
         sys.exit()
@@ -245,7 +245,7 @@ def pallet_multisig_test():
 
     kp_src = Keypair.create_from_uri('//Alice')
     kp_dst = Keypair.create_from_uri('//Bob//stash')
-    fund(substrate, kp_dst, 500000)
+    # fund(substrate, kp_dst, 500000)
 
     multisig_test(substrate, kp_src, kp_dst)
 
@@ -254,4 +254,4 @@ if __name__ == '__main__':
     pallet_multisig_test()
     pallet_transaction_test()
     pallet_did_test()
-    pallet_assets_test()
+    # pallet_assets_test()

@@ -4,6 +4,8 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 TOKEN_NUM_BASE = pow(10, 3)
+WS_URL = "wss://wss.test.peaq.network"
+ETH_URL = "https://erpc.test.peaq.network:443"
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)

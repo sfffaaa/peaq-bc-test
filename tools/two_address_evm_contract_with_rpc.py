@@ -4,6 +4,7 @@ import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import WS_URL, ETH_URL
 from web3 import Web3
 
 import pprint
@@ -141,7 +142,7 @@ def evm_rpc_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url="ws://127.0.0.1:9944", type_registry=SCALE_CODEC) as conn:
+        with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
             eth_src = calculate_evm_addr(kp_src.ss58_address)
@@ -155,7 +156,7 @@ def evm_rpc_test():
             eth_after_balance = int(conn.rpc_request("eth_getBalance", [kp_eth_src.ss58_address]).get('result'), 16)
             print(f'dst ETH balance: {eth_after_balance}')
 
-            w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:9933'))
+            w3 = Web3(Web3.HTTPProvider(ETH_URL))
             block = w3.eth.get_block('latest')
             assert(block['number'] != 0)
 
