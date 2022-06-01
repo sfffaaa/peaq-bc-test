@@ -1,0 +1,7 @@
+eth_utils==1.10.0
+eventlet==0.33.0
+requests==2.26.0
+scalecodec==1.0.35
+substrate_interface==1.2.4
+substrateinterface==1.0.0
+web3==5.26.0
