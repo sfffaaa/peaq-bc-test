@@ -103,6 +103,7 @@ def deploy_contract(w3, kp_src):
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    print(f'create_contract: {tx_hash.hex()}')
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
 
     address = tx_receipt['contractAddress']
@@ -131,6 +132,7 @@ def call_copy(w3, address, kp_src):
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    print(f'call: {tx_hash.hex()}')
     w3.eth.waitForTransactionReceipt(tx_hash)
 
     data = contract.functions.memoryStored().call()

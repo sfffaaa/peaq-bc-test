@@ -4,8 +4,16 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 TOKEN_NUM_BASE = pow(10, 3)
-WS_URL = "wss://wss.test.peaq.network"
-ETH_URL = "https://erpc.test.peaq.network:443"
+PARACHAIN_WS_URL = 'ws://192.168.178.31:8844'
+PARACHAIN_ETH_URL = "http://192.168.178.31:8833"
+# WS_URL = 'ws://127.0.0.1:9944'
+# ETH_URL = "http://127.0.0.1:9933"
+WS_URL = PARACHAIN_WS_URL
+ETH_URL = PARACHAIN_ETH_URL
+# WS_URL = 'ws://192.168.178.23:9944'
+# ETH_URL = "http://192.168.178.23:9933"
+# WS_URL = "wss://wss.test.peaq.network"
+# ETH_URL = "https://erpc.test.peaq.network:443"
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -50,7 +58,8 @@ def calculate_multi_sig(kps, threshold):
     multi_account_id = RuntimeConfiguration().get_decoder_class("MultiAccountId")
 
     multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
-    return ss58_encode(multi_sig_account.value.replace('0x', ''), 2)
+    print(multi_sig_account)
+    return ss58_encode(multi_sig_account.value.replace('0x', ''), 42)
 
 
 def fund(substrate, kp_dst, token_num):

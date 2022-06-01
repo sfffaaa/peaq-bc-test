@@ -4,8 +4,8 @@ import time
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_URL
-from tools.utils import fund, transfer
-from tools.pallet_assets_test import pallet_assets_test
+from tools.utils import transfer
+# from tools.pallet_assets_test import pallet_assets_test
 import random
 
 
@@ -251,7 +251,13 @@ def pallet_multisig_test():
 
 
 if __name__ == '__main__':
-    pallet_multisig_test()
-    pallet_transaction_test()
-    pallet_did_test()
+    kp_src = Keypair.create_from_mnemonic('nature exchange gasp toy result bacon coin broccoli rule oyster believe lyrics')
+    print(kp_src.ss58_address)
+    kp_dst = Keypair.create_from_mnemonic('oak salt spring reason nephew awake track income tissue inner book any')
+    print(kp_dst.ss58_address)
+    print(calculate_multi_sig([kp_src, kp_dst], 2))
+
+    # pallet_multisig_test()
+    # pallet_transaction_test()
+    # pallet_did_test()
     # pallet_assets_test()
