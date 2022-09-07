@@ -13,6 +13,7 @@ pp = pprint.PrettyPrinter(indent=4)
 ERC_TOKEN_TRANSFER = 34
 CHAIN_ID = 9999
 HEX_STR = '1111'
+GAS_LIMIT = 4294967
 
 
 MNEMONIC = [
@@ -36,7 +37,7 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'target': eth_dst,
             'input': '0x',
             'value': '0xffffffffffffffffff0000000000000000000000000000000000000000000000',
-            'gas_limit': 4294967294,
+            'gas_limit': GAS_LIMIT,
             'max_fee_per_gas': "0xfffffff000000000000000000000000000000000000000000000000000000000",
             'max_priority_fee_per_gas': None,
             'nonce': None,
@@ -61,7 +62,7 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
 def send_eth_token(w3, kp_src, kp_dst, token_num):
     nonce = w3.eth.getTransactionCount(kp_src.ss58_address)
     # gas = web3.toWei(Decimal('0.000000005'), 'ether')
-    gas = 4294967294
+    gas = GAS_LIMIT
     price = 1000
     print(token_num + gas * price)
     tx = {
@@ -95,7 +96,7 @@ def deploy_contract(w3, kp_src):
         abi=abi,
         bytecode=bytecode).constructor().buildTransaction({
             'from': kp_src.ss58_address,
-            'gas': 4294967294,
+            'gas': 429496,
             'maxFeePerGas': w3.toWei(250, 'gwei'),
             'maxPriorityFeePerGas': w3.toWei(2, 'gwei'),
             'nonce': nonce,
@@ -124,7 +125,7 @@ def call_copy(w3, address, kp_src):
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
     tx = contract.functions.callDatacopy(HEX_STR).buildTransaction({
         'from': kp_src.ss58_address,
-        'gas': 4294967294,
+        'gas': GAS_LIMIT,
         'maxFeePerGas': w3.toWei(250, 'gwei'),
         'maxPriorityFeePerGas': w3.toWei(2, 'gwei'),
         'nonce': nonce,
