@@ -4,8 +4,8 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 TOKEN_NUM_BASE = pow(10, 3)
-PARACHAIN_WS_URL = 'ws://192.168.178.31:8844'
-PARACHAIN_ETH_URL = "http://192.168.178.31:8833"
+PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
+PARACHAIN_ETH_URL = "http://127.0.0.1:9937"
 # WS_URL = 'ws://127.0.0.1:9944'
 # ETH_URL = "http://127.0.0.1:9933"
 WS_URL = PARACHAIN_WS_URL
