@@ -126,13 +126,13 @@ def evm_extrinsic_test():
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC) as conn:
+        with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC, ws_options={'timeout': 300}) as conn:
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
             eth_src = calculate_evm_addr(kp_src.ss58_address)
 
             # Transfer token to 0xd43593c715fdd31c61141abd04a99fd6822c8558
-            token_num = 10000 * pow(10, 15)
+            token_num = 10000 * pow(10, 2)
             transfer(conn, kp_src, calculate_evm_account(eth_src), token_num)
 
             eth_balance = int(conn.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)

@@ -6,6 +6,8 @@ from scalecodec.utils.ss58 import ss58_encode
 TOKEN_NUM_BASE = pow(10, 3)
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
 PARACHAIN_ETH_URL = "http://127.0.0.1:9937"
+PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
+PARACHAIN_ETH_URL = "https://rpcpc1.agung.peaq.network"
 # WS_URL = 'ws://127.0.0.1:9944'
 # ETH_URL = "http://127.0.0.1:9933"
 WS_URL = PARACHAIN_WS_URL
