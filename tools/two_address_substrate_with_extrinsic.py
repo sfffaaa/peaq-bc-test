@@ -216,6 +216,12 @@ def did_add(substrate, kp_src, name, value):
         raise IOError
 
 
+def did_rpc_read(substrate, kp_src, name, value):
+    data = substrate.rpc_request('peaqdid_readAttributes', [kp_src.ss58_address, name])
+    assert(data['result']['name'] == name)
+    assert(data['result']['value'] == value)
+
+
 def pallet_did_test():
     print('---- pallet_did_test!! ----')
     try:
@@ -225,6 +231,7 @@ def pallet_did_test():
             kp_src = Keypair.create_from_uri('//Alice')
             name = int(time.time())
             did_add(substrate, kp_src, f'0x{name}', '0x02')
+            did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -372,8 +379,8 @@ if __name__ == '__main__':
     # print(kp_dst.ss58_address)
     # print(calculate_multi_sig([kp_src, kp_dst], 2))
 
-    pallet_batchall_test()
+    # pallet_batchall_test()
     # pallet_multisig_test()
     # pallet_transaction_test()
-    # pallet_did_test()
+    pallet_did_test()
     # pallet_assets_test()
