@@ -217,7 +217,7 @@ def did_add(substrate, kp_src, name, value):
 
 
 def did_rpc_read(substrate, kp_src, name, value):
-    data = substrate.rpc_request('peaqdid_readAttributes', [kp_src.ss58_address, name])
+    data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, name])
     assert(data['result']['name'] == name)
     assert(data['result']['value'] == value)
 
