@@ -231,7 +231,7 @@ def pallet_did_test():
             kp_src = Keypair.create_from_uri('//Alice')
             name = int(time.time())
             did_add(substrate, kp_src, f'0x{name}', '0x02')
-            # did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
+            did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
