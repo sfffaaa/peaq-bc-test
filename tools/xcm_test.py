@@ -3,19 +3,17 @@ sys.path.append('./')
 
 import time
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL as PEAQ_WS_URL
+from tools.utils import show_extrinsic, WS_URL as PEAQ_WS_URL, ACA_WS_URL, ROCOCO_WS_URL
+from tools.utils import PEAQ_PARACHAIN_ID, ACA_PARACHAIN_ID
 from tools.two_address_substrate_with_extrinsic import show_account
 
-ACA_WS_URL = 'ws://127.0.0.1:10047'
-ROCOCO_WS_URL = 'ws://127.0.0.1:9944'
 
-
-LOCATION = {
+ACA_LOCATION = {
     'V1': {
         'parents': 1,
         'interior': {
             'X2': [{
-                'Parachain': 3000
+                'Parachain': ACA_PARACHAIN_ID
             }, {
                 'GeneralKey': '0x0000'
             }]
@@ -24,7 +22,7 @@ LOCATION = {
 }
 
 
-METADATA = {
+ACA_METADATA = {
     'name': 'ACA',
     'symbol': 'ACA',
     'decimals': 15,
@@ -32,15 +30,40 @@ METADATA = {
 }
 
 
-def setup_aca_asset(substrate, kp_src):
+PEAQ_LOCATION = {
+    'V1': {
+        'parents': 1,
+        'interior': {
+            'X2': [{
+                'Parachain': PEAQ_PARACHAIN_ID
+            }, {
+                'GeneralKey': '0x0000'
+            }]
+        }
+    }
+}
+
+
+PEAQ_METADATA = {
+    'name': 'PEAQ',
+    'symbol': 'PEAQ',
+    'decimals': 18,
+    'minimal_balance': 0
+}
+
+WAIT_BLOCK_TIME = 3
+SLEEP_TIME = WAIT_BLOCK_TIME * 12
+
+
+def setup_foreign_asset(substrate, kp_src, location, metadata):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     payload = substrate.compose_call(
         call_module='AssetRegistry',
         call_function='register_foreign_asset',
         call_params={
-            'location': LOCATION,
-            'metadata': METADATA,
+            'location': location,
+            'metadata': metadata,
         })
 
     sudo = substrate.compose_call(
@@ -72,26 +95,31 @@ def asset_aca_get(substrate, kp_src):
     return result
 
 
+def asset_peaq_get(substrate, kp_src):
+    result = substrate.query("Tokens", "Accounts", [kp_src.ss58_address, {'ForeignAsset': 0}])
+    return result
+
+
 def asset_dot_get(substrate, kp_src):
     result = substrate.query("Tokens", "Accounts", [kp_src.ss58_address, {'Token': 'DOT'}])
     return result
 
 
-def transfer_xcm_token(substrate, kp_src, token_num):
+def transfer_xcm_token(substrate, kp_src, token_num, token, parachain_id):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     xcm_transfer = substrate.compose_call(
         call_module='XTokens',
         call_function='transfer',
         call_params={
-            'currency_id': {'Token': 'ACA'},
+            'currency_id': {'Token': token},
             'amount': token_num,
             'dest': {
                 'V1': {
                     'parents': 1,
                     'interior': {
                         'X2': [{
-                            'Parachain': 2000
+                            'Parachain': parachain_id
                         }, {
                             'AccountId32': [
                                 'Any',
@@ -124,21 +152,46 @@ def acala_to_peaq_test():
     print('---- acala to peaq !! ----')
     try:
         current_balance = 0
+        latest_balance = 0
         token_num = 100000
         kp_src = Keypair.create_from_uri('//Alice')
         with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
-            setup_aca_asset(peaq_substrate, kp_src)
+            setup_foreign_asset(peaq_substrate, kp_src, ACA_LOCATION, ACA_METADATA)
             current_balance = asset_aca_get(peaq_substrate, kp_src)['free']
 
         with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
-            transfer_xcm_token(aca_substrate, kp_src, token_num)
+            transfer_xcm_token(aca_substrate, kp_src, token_num, 'ACA', PEAQ_PARACHAIN_ID)
+
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            latest_balance = asset_aca_get(peaq_substrate, kp_src)['free']
+
+        assert(int(str(latest_balance)) == int(str(current_balance)) + int(str(token_num)))
+
+    except ConnectionRefusedError:
+        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
+        sys.exit()
+
+
+def peaq_to_acala_test():
+    print('---- peaq to acala !! ----')
+    try:
+        current_balance = 0
+        token_num = 100000
+        kp_src = Keypair.create_from_uri('//Bob')
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            setup_foreign_asset(aca_substrate, kp_src, PEAQ_LOCATION, PEAQ_METADATA)
+            current_balance = asset_peaq_get(aca_substrate, kp_src)['free']
+
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            transfer_xcm_token(peaq_substrate, kp_src, token_num, 'PEAQ', ACA_PARACHAIN_ID)
 
         latest_balance = 0
-        print('Wait for two blocks')
-        time.sleep(24)
-        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
-            # setup_aca_asset(peaq_substrate, kp_src)
-            latest_balance = asset_aca_get(peaq_substrate, kp_src)['free']
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            latest_balance = asset_peaq_get(aca_substrate, kp_src)['free']
 
         assert(int(str(latest_balance)) == int(str(current_balance)) + int(str(token_num)))
 
@@ -159,7 +212,7 @@ def transfer_dot_to_para(substrate, kp_src, token_num):
                     'parents': 0,
                     'interior': {
                         'X1': {
-                            'Parachain': 2000
+                            'Parachain': PEAQ_PARACHAIN_ID
                         }
                     }
                 }
@@ -264,8 +317,8 @@ def dot_to_peaq_test():
         with SubstrateInterface(url=ROCOCO_WS_URL) as rococo_substrate:
             transfer_dot_to_para(rococo_substrate, kp_src, token_num)
 
-        print('Wait for two blocks')
-        time.sleep(24)
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
 
         with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
             latest_balance = asset_dot_get(peaq_substrate, kp_src)['free']
@@ -291,8 +344,8 @@ def peaq_to_dot_test():
         with SubstrateInterface(url=ROCOCO_WS_URL) as rococo_substrate:
             transfer_dot_to_para(rococo_substrate, kp_src, prepare_token_num)
 
-        print('Wait for two blocks')
-        time.sleep(24)
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
 
         with SubstrateInterface(url=ROCOCO_WS_URL) as rococo_substrate:
             current_balance = show_account(rococo_substrate, kp_src.ss58_address, 'before')
@@ -300,8 +353,8 @@ def peaq_to_dot_test():
         with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
             transfer_dot_to_relay(peaq_substrate, kp_src, token_num)
 
-        print('Wait for two blocks')
-        time.sleep(24)
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
 
         with SubstrateInterface(url=ROCOCO_WS_URL) as rococo_substrate:
             latest_balance = show_account(rococo_substrate, kp_src.ss58_address, 'before')
@@ -315,6 +368,7 @@ def peaq_to_dot_test():
 
 
 if __name__ == '__main__':
+    peaq_to_acala_test()
     acala_to_peaq_test()
     dot_to_peaq_test()
     peaq_to_dot_test()

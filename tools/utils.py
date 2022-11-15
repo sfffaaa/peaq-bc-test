@@ -16,6 +16,12 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = "http://192.168.178.23:9933"
 # WS_URL = "wss://wss.test.peaq.network"
 # ETH_URL = "https://erpc.test.peaq.network:443"
+ACA_WS_URL = 'ws://127.0.0.1:10047'
+ROCOCO_WS_URL = 'ws://127.0.0.1:9944'
+
+
+PEAQ_PARACHAIN_ID = 2000
+ACA_PARACHAIN_ID = 3000
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
