@@ -8,6 +8,13 @@ from tools.utils import PEAQ_PARACHAIN_ID, ACA_PARACHAIN_ID
 from tools.two_address_substrate_with_extrinsic import show_account
 
 
+ACA_TOKEN = {'Token': 'ACA'}
+ACA_FORIGN_ASSET = {'ForeignAsset': 0}
+PEAQ_TOKEN = {'Token': 'PEAQ'}
+PEAQ_FORIGN_ASSET = {'ForeignAsset': 0}
+
+WEIGHT_LIMIT_RATE = 0.99
+
 ACA_LOCATION = {
     'V1': {
         'parents': 1,
@@ -112,7 +119,7 @@ def transfer_xcm_token(substrate, kp_src, token_num, token, parachain_id):
         call_module='XTokens',
         call_function='transfer',
         call_params={
-            'currency_id': {'Token': token},
+            'currency_id': token,
             'amount': token_num,
             'dest': {
                 'V1': {
@@ -160,7 +167,7 @@ def acala_to_peaq_test():
             current_balance = asset_aca_get(peaq_substrate, kp_src)['free']
 
         with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
-            transfer_xcm_token(aca_substrate, kp_src, token_num, 'ACA', PEAQ_PARACHAIN_ID)
+            transfer_xcm_token(aca_substrate, kp_src, token_num, ACA_TOKEN, PEAQ_PARACHAIN_ID)
 
         print(f'Wait for {WAIT_BLOCK_TIME} blocks')
         time.sleep(SLEEP_TIME)
@@ -168,6 +175,86 @@ def acala_to_peaq_test():
             latest_balance = asset_aca_get(peaq_substrate, kp_src)['free']
 
         assert(int(str(latest_balance)) == int(str(current_balance)) + int(str(token_num)))
+
+    except ConnectionRefusedError:
+        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
+        sys.exit()
+
+
+def acala_to_peaq_to_acala_test():
+    print('---- acala to peaq to acala !! ----')
+    try:
+        current_balance = 0
+        latest_balance = 0
+        token_num = 2 * 10 ** 12
+        prepare_token_num = 2 * token_num
+        kp_src = Keypair.create_from_uri('//Alice')
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            setup_foreign_asset(peaq_substrate, kp_src, ACA_LOCATION, ACA_METADATA)
+            current_balance = asset_aca_get(peaq_substrate, kp_src)['free']
+
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            transfer_xcm_token(aca_substrate, kp_src, prepare_token_num, ACA_TOKEN, PEAQ_PARACHAIN_ID)
+
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            current_balance = show_account(aca_substrate, kp_src.ss58_address, 'aca before')
+
+        # Execute
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            transfer_xcm_token(peaq_substrate, kp_src, token_num, ACA_FORIGN_ASSET, ACA_PARACHAIN_ID)
+
+        # Check
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            latest_balance = show_account(aca_substrate, kp_src.ss58_address, 'aca after')
+
+        weight_percentage = float(int(str(latest_balance)) - int(str(current_balance))) / float(token_num)
+        assert(weight_percentage > WEIGHT_LIMIT_RATE)
+
+    except ConnectionRefusedError:
+        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
+        sys.exit()
+
+
+def peaq_to_acala_to_peaq_test():
+    print('---- peaq to acala to peaq !! ----')
+    try:
+        current_balance = 0
+        latest_balance = 0
+        token_num = 2 * 10 ** 18
+        prepare_token_num = 2 * token_num
+        kp_src = Keypair.create_from_uri('//Bob')
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            setup_foreign_asset(aca_substrate, kp_src, PEAQ_LOCATION, PEAQ_METADATA)
+            current_balance = asset_peaq_get(aca_substrate, kp_src)['free']
+
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            transfer_xcm_token(peaq_substrate, kp_src, prepare_token_num, PEAQ_TOKEN, ACA_PARACHAIN_ID)
+
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            current_balance = show_account(peaq_substrate, kp_src.ss58_address, 'peaq before')
+
+        # Execute
+        with SubstrateInterface(url=ACA_WS_URL) as aca_substrate:
+            transfer_xcm_token(aca_substrate, kp_src, token_num, PEAQ_FORIGN_ASSET, PEAQ_PARACHAIN_ID)
+
+        # Check
+        print(f'Wait for {WAIT_BLOCK_TIME} blocks')
+        time.sleep(SLEEP_TIME)
+
+        with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
+            latest_balance = show_account(peaq_substrate, kp_src.ss58_address, 'peaq after')
+
+        weight_percentage = float(int(str(latest_balance)) - int(str(current_balance))) / float(token_num)
+        assert(weight_percentage > WEIGHT_LIMIT_RATE)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -185,7 +272,7 @@ def peaq_to_acala_test():
             current_balance = asset_peaq_get(aca_substrate, kp_src)['free']
 
         with SubstrateInterface(url=PEAQ_WS_URL) as peaq_substrate:
-            transfer_xcm_token(peaq_substrate, kp_src, token_num, 'PEAQ', ACA_PARACHAIN_ID)
+            transfer_xcm_token(peaq_substrate, kp_src, token_num, PEAQ_TOKEN, ACA_PARACHAIN_ID)
 
         latest_balance = 0
         print(f'Wait for {WAIT_BLOCK_TIME} blocks')
@@ -324,7 +411,7 @@ def dot_to_peaq_test():
             latest_balance = asset_dot_get(peaq_substrate, kp_src)['free']
 
         weight_percentage = float(int(str(latest_balance)) - int(str(current_balance))) / float(token_num)
-        assert(weight_percentage > 0.99)
+        assert(weight_percentage > WEIGHT_LIMIT_RATE)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -360,7 +447,7 @@ def peaq_to_dot_test():
             latest_balance = show_account(rococo_substrate, kp_src.ss58_address, 'before')
 
         weight_percentage = float(int(str(latest_balance)) - int(str(current_balance))) / float(token_num)
-        assert(weight_percentage > 0.99)
+        assert(weight_percentage > WEIGHT_LIMIT_RATE)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -369,6 +456,8 @@ def peaq_to_dot_test():
 
 if __name__ == '__main__':
     peaq_to_acala_test()
+    peaq_to_acala_to_peaq_test()
     acala_to_peaq_test()
+    acala_to_peaq_to_acala_test()
     dot_to_peaq_test()
     peaq_to_dot_test()
