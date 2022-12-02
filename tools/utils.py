@@ -17,6 +17,11 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = "http://192.168.178.23:9933"
 # WS_URL = "wss://wss.test.peaq.network"
 # ETH_URL = "https://erpc.test.peaq.network:443"
+PEAQ_DEV_CHAIN_ID = 9999
+AGUNG_CHAIN_ID = 9999
+KREST_CHAIN_ID = 424242
+
+ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
