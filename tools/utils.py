@@ -11,12 +11,17 @@ PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 PARACHAIN_ETH_URL = "https://rpcpc1.agung.peaq.network"
 # WS_URL = 'ws://127.0.0.1:9944'
 # ETH_URL = "http://127.0.0.1:9933"
-WS_URL =  STANDALONE_WS_URL
+WS_URL = STANDALONE_WS_URL
 ETH_URL = PARACHAIN_ETH_URL
 # WS_URL = 'ws://192.168.178.23:9944'
 # ETH_URL = "http://192.168.178.23:9933"
 # WS_URL = "wss://wss.test.peaq.network"
 # ETH_URL = "https://erpc.test.peaq.network:443"
+PEAQ_DEV_CHAIN_ID = 9999
+AGUNG_CHAIN_ID = 9999
+KREST_CHAIN_ID = 424242
+
+ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -163,7 +168,7 @@ def send_spent_token_from_multisig_wallet(substrate, kp_consumer, kp_provider, t
             'maybe_timepoint': None,
             'call': str(payload.data),
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -205,7 +210,7 @@ def send_refund_token_from_multisig_wallet(substrate, kp_consumer, kp_provider, 
             'maybe_timepoint': None,
             'call': str(payload.data),
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -292,7 +297,7 @@ def _approve_token(substrate, kp_sign, other_signatories, threshold, info):
             'other_signatories': other_signatories,
             'maybe_timepoint': info['timepoint'],
             'call_hash': info['call_hash'],
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(

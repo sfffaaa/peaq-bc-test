@@ -31,7 +31,7 @@ def send_proposal(substrate, kp_src, kps, threshold, payload):
             'maybe_timepoint': None,
             'call': str(payload.data),
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -58,7 +58,7 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'other_signatories': [kp.ss58_address for kp in kps],
             'maybe_timepoint': timepoint,
             'call_hash': f'0x{payload.call_hash.hex()}',
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(

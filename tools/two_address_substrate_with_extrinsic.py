@@ -27,7 +27,7 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
             'maybe_timepoint': None,
             'call': payload.value,
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -58,7 +58,7 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'other_signatories': [kp.ss58_address for kp in kps],
             'maybe_timepoint': timepoint,
             'call_hash': f'0x{payload.call_hash.hex()}',
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -217,7 +217,7 @@ def did_add(substrate, kp_src, name, value):
 
 
 def did_rpc_read(substrate, kp_src, name, value):
-    data = substrate.rpc_request('peaqdid_readAttributes', [kp_src.ss58_address, name])
+    data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, name])
     assert(data['result']['name'] == name)
     assert(data['result']['value'] == value)
 
@@ -276,7 +276,7 @@ def create_as_approve(substrate, kp_provider, kp_consumer, kp_target, token_num,
             'maybe_timepoint': None,
             'call': payload_spent.value,
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
     return payload_spent, as_multi_call
 
