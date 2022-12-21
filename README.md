@@ -41,7 +41,7 @@ python3 test.py
 # Limitation
 1. In the peaq network, the standalone chain and parachain have different features and parameters; therefore, some tests may not pass, for example, the block creation time test and DID RPC test.
 2. This project requires the dependent libraries whose version is higher than 0.9.29 because of the weight structure.
-3. In the current implementation, the related account (Alice/Bob/Alice//stash/Bob//stash) should have enough tokens; otherwise, the test cases will fail. It means we can only directly run the integration test for Agung/Krest network in the production stage after we change the genesis settings.
+3. In the current implementation, the related account (Alice/Bob/Alice//stash/Bob//stash) should have enough tokens; otherwise, the test cases will fail. It means we can only directly run the integration test for Agung/Krest network in the local environment after we change the genesis settings, but not in the production environment.
 4. This project can only test the peaq related chain. If we run for the rococo chain, some runtime errors happen.
 5. In the future, we should refine these integration tests.
 
