@@ -3,20 +3,50 @@
 - [Introduction](#introduction)
 - [Preparation](#preparation)
 - [Limitation](#limitation)
+- [QA](#QA)
 
 # Introduction
 
-This project is used for the integration test on the peaq's parachain/standalone chain. Therefore, several fundemental functionilities testings are included.
+This project is used for the integration test on the peaq's parachain/standalone chain. Therefore, several fundamental functionalities tests are included.
 
 # Preparation
 
-1. Install the related library. If you want you can use the virtualenv to install your libraries.
+1. Install the related library. If you want, you can use the virtual environment to install your libraries.
+
 ```
 python3 -m venv ~/venv.test
 source ~/venv.test/bin/activate
 pip3 install -r requirements.txt
 ```
-Note: if you encounter below errors, you can use another way to solve it.
+2. Please run the peaq parachain/standalone on your local machine if you want. You can follow the [parachain-launch](https://github.com/peaqnetwork/parachain-launch) to launch the parachain.
+3. Change the related URL in the tools/utils.py.
+
+3.1. Please change the WS URL for the targeted parachain/standalone chain. For example:
+```
+WS_URL =  'ws://127.0.0.1:9947'
+```
+3.2. Please change the RPC URL for your targeted parachain/standalone chain.
+```
+ETH_URL = 'http://127.0.0.1:9936'
+```
+3.3. Please change the Ethereum chain ID for your targeted parachain/standalone chain.
+```
+ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
+```
+4. Run the integration test
+```
+python3 test.py
+```
+
+# Limitation
+1. In the peaq network, the standalone chain and parachain have different features and parameters; therefore, some tests may not pass, for example, the block creation time test and DID RPC test.
+2. This project requires the dependent libraries whose version is higher than 0.9.29 because of the weight structure.
+3. In the current implementation, the related account (Alice/Bob/Alice//stash/Bob//stash) should have enough tokens; otherwise, the test cases will fail. It means we can only directly run the integration test for Agung/Krest network in the production stage after we change the genesis settings.
+4. This project can only test the peaq related chain. If we run for the rococo chain, some runtime errors happen.
+5. In the future, we should refine these integration tests.
+
+# QA
+1. If you enounter the issue when installing the dependant library
 ```
   ERROR: Command errored out with exit status 1:
    command: /home/jaypan/venv.test/bin/python3 -u -c 'import sys, setuptools, tokenize; sys.argv[0] = '"'"'/tmp/pip-install-6gjnxc
@@ -31,32 +61,12 @@ dist_wheel -d /tmp/pip-wheel-dolzicpn
   ERROR: Failed building wheel for parsimonious
 ```
 
-Please install the wheel and reinstall the dependency library again. [Ref](https://stackoverflow.com/questions/34819221/why-is-python-setup-py-saying-invalid-command-bdist-wheel-on-travis-ci)
+Solution: Please install the wheel and reinstall the dependency library again. [Ref](https://stackoverflow.com/questions/34819221/why-is-python-setup-py-saying-invalid-command-bdist-wheel-on-travis-ci)
 ```
 pip3 install wheel
 pip3 install -r requirements.txt
 ```
-2. If you want, please run the peaq parchain/standalone on your local machine. You can follow the [parachain-launch](https://github.com/peaqnetwork/parachain-launch) to launch the parachain.
-3. Change the related URL in the `tools/utils.py`
-3.1. Please change the WS URL for the targeted parchain/standalone chain. For example:
-```
-WS_URL =  'ws://127.0.0.1:9947'
-```
-3.2. Please change the RPC URL for your targeted parchain/standalone chain
-```
-ETH_URL = 'http://127.0.0.1:9936'
-```
-3.3. Please change the Ethereum chain ID for your targeted parachain/standalone chain
-```
-ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
-```
-4. Run the integration test
-```
-python3 test.py
-```
-
-Note: if you encounter the below error, please follow below way to solve it.
-
+2. If you encounter the issue when testing the EVM related functionalities.
 ```
 Traceback (most recent call last):
   File "test.py", line 18, in <module>
@@ -82,10 +92,3 @@ Traceback (most recent call last):
 ValueError: Given value is not a list
 ```
 Solution: Apply this [commit](https://github.com/sfffaaa/py-scale-codec/commit/7da7fbe6c8c0a18fb7b825c12ff37edd206df4b8) to your py-scale-codec python library (/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/types.py).
-
-# Limitation
-1. In peaq network, the standalone chain and parachain don't have the the same features and parameters, therefore, some tests may not pass, for example, block creation time test and DID RPC test.
-2. This project requires the dependent libraries whose version is higher than 0.9.29 because the weight structure.
-3. In current implmentation, the related account (Alice/Bob/Alice//stash/Bob//stash) should have enough tokens otherwise, the test cases fail. It means, we cannot run the integration test for Agung/Krest network in the production stage direcly.
-4. Not sure why, but this project can only test the peaq related chain. If we run for the rococo chain, some runtime errors happen.
-5. In the future, we should refine this integration tests.
