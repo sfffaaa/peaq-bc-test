@@ -14,7 +14,7 @@ if __name__ == '__main__':
     # pallet_batchall_test()
     # pallet_multisig_test()
     # pallet_transaction_test()
-    pallet_did_test()
+    # pallet_did_test()
     pallet_rbac_test()
     # pallet_assets_test()
     # evm_rpc_test()
@@ -22,4 +22,3 @@ if __name__ == '__main__':
     # pallet_asset_evm_test()
     # block_creation_time_test()
     # pallet_utility_test()
-    
