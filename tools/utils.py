@@ -5,8 +5,8 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 TOKEN_NUM_BASE = pow(10, 3)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
-PARACHAIN_WS_URL = 'ws://127.0.0.1:9948'
-PARACHAIN_ETH_URL = "http://127.0.0.1:9937"
+PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
+PARACHAIN_ETH_URL = "http://127.0.0.1:9936"
 PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 PARACHAIN_ETH_URL = "https://rpcpc1.agung.peaq.network"
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -17,7 +17,7 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = "http://192.168.178.23:9933"
 # WS_URL = "wss://wss.test.peaq.network"
 # ETH_URL = "https://erpc.test.peaq.network:443"
-PEAQ_DEV_CHAIN_ID = 9999
+PEAQ_DEV_CHAIN_ID = 2000
 AGUNG_CHAIN_ID = 9999
 KREST_CHAIN_ID = 424242
 
