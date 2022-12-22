@@ -1,6 +1,7 @@
 import sys
 sys.path.append('./')
 import time
+import binascii
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_URL
@@ -276,12 +277,11 @@ def pallet_rbac_test():
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
-            # did_add(substrate, kp_src, f'0x{name}', '0x02')
-            # did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
-            entity_id = 'abcdefgh01234567abcdefgh01234567abcdefgh01234567abcdefgh01234567'
-            name = '0123abcd'
-            rbac_add_role(substrate, kp_src, f'0x{entity_id}', name)
-            rbac_rpc_fetch_role(substrate, kp_src, f'0x{entity_id}', name)
+            id = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
+            id_str = [int(id[i:i+2],16) for i in range(0,len(id),2)]
+            name = 'abcd0123'
+            rbac_add_role(substrate, kp_src, f'0x{id}', f'0x{name}')
+            rbac_rpc_fetch_role(substrate, kp_src, id_str, f'0x{name}')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
