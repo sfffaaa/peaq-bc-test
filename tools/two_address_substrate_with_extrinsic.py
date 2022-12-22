@@ -238,6 +238,56 @@ def pallet_did_test():
         sys.exit()
 
 
+def rbac_add_role(substrate, kp_src, entity_id, name):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+    call = substrate.compose_call(
+        call_module='PeaqRbac',
+        call_function='add_role',
+        call_params={
+            'role_id': entity_id,
+            'name': name,
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'rbac_add_role')
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+
+def rbac_rpc_fetch_role(substrate, kp_src, entity_id, name):
+    data = substrate.rpc_request('peaqrbac_fetchRole', [kp_src.ss58_address, entity_id])
+    assert(data['result']['id'] == entity_id)
+    assert(data['result']['name'] == name)
+
+
+def pallet_rbac_test():
+    print('---- pallet_rbac_test!! ----')
+    try:
+        # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
+        # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
+        with SubstrateInterface(url=WS_URL) as substrate:
+            kp_src = Keypair.create_from_uri('//Alice')
+            # did_add(substrate, kp_src, f'0x{name}', '0x02')
+            # did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
+            entity_id = 'abcdefgh01234567abcdefgh01234567abcdefgh01234567abcdefgh01234567'
+            name = '0123abcd'
+            rbac_add_role(substrate, kp_src, f'0x{entity_id}', name)
+            rbac_rpc_fetch_role(substrate, kp_src, f'0x{entity_id}', name)
+
+    except ConnectionRefusedError:
+        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
+        sys.exit()
+
+
 def pallet_multisig_test():
     print('---- pallet_multisig_test!! ----')
     try:
