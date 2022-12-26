@@ -371,6 +371,54 @@ def pallet_batchall_test():
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
         sys.exit()
 
+def storage_add_item(substrate, kp_src, item_type, item):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+    call = substrate.compose_call(
+        call_module='PeaqStorage',
+        call_function='add_item',
+        call_params={
+            'item_type': item_type,
+            'item': item,
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'add_item')
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+
+def storage_rpc_read(substrate, kp_src, item_type):
+    data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, item_type])
+    print("Storage RPC returned: ", data)
+    # FIXME object returned is None, when the item is added
+    # assert(data['result']['item_type'] == item_type)
+
+def pallet_storage_test():
+    print('---- pallet_storage_test!! ----')
+    try:
+        # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
+        # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
+        with SubstrateInterface(url=WS_URL) as substrate:
+            kp_src = Keypair.create_from_uri('//Alice')
+            item_type = 'aabb'
+
+            storage_add_item(substrate, kp_src, item_type, '0x02')
+            storage_rpc_read(substrate, kp_src, item_type)
+            # did_add(substrate, kp_src, f'0x{name}', '0x02')
+            # did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
+
+    except ConnectionRefusedError:
+        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
+        sys.exit()
 
 if __name__ == '__main__':
     # kp_src = Keypair.create_from_mnemonic('nature exchange gasp toy result bacon coin broccoli rule oyster believe lyrics')
