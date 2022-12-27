@@ -10,16 +10,14 @@ from tools.utils import transfer
 import random
 
 
-
+#########################################################################################################
 # #### Constants for global test-setup defaults ####
 ROLE_ID1 = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
 ROLE_ID2 = 'bcdefa1234567890bcdefa1234567890bcdefa1234567890bcdefa1234567890'
 ROLE_ID3 = 'cdefab2345678901cdefab2345678901cdefab2345678901cdefab2345678901'
-# ROLE_ID4 = 'defabc3456789012defabc3456789012defabc3456789012defabc3456789012'
 ROLE_NM1 = 'RoleA'
 ROLE_NM2 = 'RoleB'
 ROLE_NM3 = 'RoleC'
-# ROLE_NM4 = 'RoleD'
 
 GROUP_ID1 = 'abcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcd'
 GROUP_ID2 = 'bcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcde'
@@ -36,6 +34,7 @@ PERM_NM3 = 'PermissionC'
 PERM_NM4 = 'PermissionD'
 
 
+#########################################################################################################
 # Generic extrinsic call: pass module & function to be called with params and an id for show_extrinsic-method
 # Example:
 #   cl_mod = 'PeaqRbac'
@@ -71,13 +70,7 @@ def do_rbac_extrinsics(substrate, kp_src, cl_fcn, cl_par):
     do_extrinsics(substrate, kp_src, 'PeaqRbac', cl_fcn, cl_par)
 
 
-# def show_rpc_call(receipt, info_type):
-#     if receipt.is_success:
-#         print(f'✅ {info_type}, Success: {receipt.get_extrinsic_identifier()}')
-#     else:
-#         print(f'⚠️  {info_type}, Extrinsic Failed: {receipt.error_message} {receipt.get_extrinsic_identifier()}')
-
-
+#########################################################################################################
 # Adds a new role to the RBAC-pallet via extrinsic call
 def rbac_add_role(substrate, kp_src, entity_id, name):
     do_rbac_extrinsics(substrate, kp_src, 'add_role', 
@@ -141,7 +134,7 @@ def rbac_user2group(substrate, kp_src, user_id, group_id):
         }
     )
 
-
+#########################################################################################################
 # Does a generic test-setup on the parachain
 def rbac_rpc_test_setup(substrate, kp_src):
     #   |u1|u2|u3|r1|r2|r3|g1|g2|
@@ -159,7 +152,6 @@ def rbac_rpc_test_setup(substrate, kp_src):
     rbac_add_role(substrate, kp_src, f'0x{ROLE_ID1}', ROLE_NM1)
     rbac_add_role(substrate, kp_src, f'0x{ROLE_ID2}', ROLE_NM2)
     rbac_add_role(substrate, kp_src, f'0x{ROLE_ID3}', ROLE_NM3)
-    # rbac_add_role(substrate, kp_src, f'0x{ROLE_ID4}', ROLE_NM4)
 
     # Add some groups
     rbac_add_group(substrate, kp_src, f'0x{GROUP_ID1}', GROUP_NM1)
@@ -182,37 +174,146 @@ def rbac_rpc_test_setup(substrate, kp_src):
     rbac_role2group(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}')
     rbac_role2group(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}')
 
+    # Assign users to groups (assign roles to users)
+    user_id = substrate.
+    rbac_user2group(substrate, kp_src, kp_src, f'0x{GROUP_ID1}')
 
+
+#########################################################################################################
 # Converts a HEX-string without 0x into ASCII-string
-def id_str(entity_id):
+def rpc_id(entity_id):
     return [int(entity_id[i:i+2],16) for i in range(0,len(entity_id),2)]
 
+def test_success_msg(msg):
+    print(f'✅ Test/{msg}, Success')
+
+#########################################################################################################
 def rbac_rpc_fetch_entity(substrate, kp_src, entity, entity_id, name):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}', [kp_src.ss58_address, entity_id])
     assert(data['result']['id'] == entity_id)
     assert(binascii.unhexlify(data['result']['name'][2:]) == bytes(name, 'utf-8'))
 
+def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
+    assert(len(entity_ids) == len(names), 'Layer-8 error')
+    data = substrate.rpc_request(f'peaqrbac_fetch{entity}s', [kp_src.ss58_address])
+    for i in range(0, len(names)):
+        assert(data['result'][i]['id'] == entity_ids[i])
+        assert(binascii.unhexlify(data['result'][i]['name'][2:]) == bytes(names[i], 'utf-8'))
+
+def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
+    data = substrate.rpc_request(f'peaqrbac_fetchGroupRoles', [kp_src.ss58_address, group_id])
+    for i in range(0, len(role_ids)):
+        assert(data['result'][i]['role'] == role_ids[i])
+        assert(data['result'][i]['group'] == group_id)
+
+def rbac_rpc_fetch_group_permissions(substrate, kp_src, group_id, perm_ids, names):
+    data = substrate.rpc_request(f'peaqrbac_fetchGroupPermissions', [kp_src.ss58_address, group_id])
+    for i in range(0, len(perm_ids)):
+        assert(data['result'][i]['id'] == perm_ids[i])
+        assert(binascii.unhexlify(data['result'][i]['name'][2:]) == bytes(names[i], 'utf-8'))
+
+def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
+    data = substrate.rpc_request(f'peaqrbac_fetchRolePermissions', [kp_src.ss58_address, role_id])
+    for i in range(0, len(perm_ids)):
+        assert(data['result'][i]['permission'] == perm_ids[i])
+        assert(data['result'][i]['role'] == role_id)
+
+def rbac_rpc_fetch_user_roles(substrate, kp_src):
+    data = substrate.rpc_request(f'peaqrbac_fetchUserRoles', [kp_src.ss58_address, role_id])
+    print(data)
 
 
+#########################################################################################################
 # Single, simple test for RPC fetchRole
 def test_rpc_fetch_role(substrate, kp_src):
-    rbac_rpc_fetch_entity(substrate, kp_src, 'Role', id_str(ROLE_ID1), ROLE_NM1)
-    rbac_rpc_fetch_entity(substrate, kp_src, 'Role', id_str(ROLE_ID3), ROLE_NM3)
-    print(f'✅ test_rpc_fetch_role, Success')
+    rbac_rpc_fetch_entity(substrate, kp_src, 'Role', rpc_id(ROLE_ID1), ROLE_NM1)
+    rbac_rpc_fetch_entity(substrate, kp_src, 'Role', rpc_id(ROLE_ID3), ROLE_NM3)
+    test_success_msg('rpc_fetch_role')
 
+# Single, simple test for RPC fetchRoles
+def test_rpc_fetch_roles(substrate, kp_src):
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Role', 
+        [rpc_id(ROLE_ID1), rpc_id(ROLE_ID2), rpc_id(ROLE_ID3)],
+        [ROLE_NM1, ROLE_NM2, ROLE_NM3]
+    )
+    test_success_msg('rpc_fetch_roles')
 
 # Single, simple test for RPC fetchPermission
 def test_rpc_fetch_permission(substrate, kp_src):
-    rbac_rpc_fetch_entity(substrate, kp_src, 'Permission', id_str(PERM_ID2), PERM_NM2)
-    rbac_rpc_fetch_entity(substrate, kp_src, 'Permission', id_str(PERM_ID4), PERM_NM4)
-    print(f'✅ test_rpc_fetch_permission, Success')
+    rbac_rpc_fetch_entity(substrate, kp_src, 'Permission', rpc_id(PERM_ID2), PERM_NM2)
+    rbac_rpc_fetch_entity(substrate, kp_src, 'Permission', rpc_id(PERM_ID4), PERM_NM4)
+    test_success_msg('rpc_fetch_permission')
+
+# Single, simple test for RPC fetchRoles
+def test_rpc_fetch_permissions(substrate, kp_src):
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Permission', 
+        [rpc_id(PERM_ID1), rpc_id(PERM_ID2), rpc_id(PERM_ID3), rpc_id(PERM_ID4)],
+        [PERM_NM1, PERM_NM2, PERM_NM3, PERM_NM4]
+    )
+    test_success_msg('test_rpc_fetch_permissions')
 
 # Single, simple test for RPC fetchGroup
 def test_rpc_fetch_group(substrate, kp_src):
-    rbac_rpc_fetch_entity(substrate, kp_src, 'Group', id_str(GROUP_ID2), GROUP_NM2)
-    print(f'✅ test_rpc_fetch_group, Success')
+    rbac_rpc_fetch_entity(substrate, kp_src, 'Group', rpc_id(GROUP_ID2), GROUP_NM2)
+    test_success_msg('rpc_fetch_group')
+
+# Single, simple test for RPC fetchRoles
+def test_rpc_fetch_groups(substrate, kp_src):
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Group', 
+        [rpc_id(GROUP_ID1), rpc_id(GROUP_ID2)],
+        [GROUP_NM1, GROUP_NM2]
+    )
+    test_success_msg('test_rpc_fetch_groups')
+
+# Single test for RPC fetchGroupRoles
+def test_rpc_fetch_group_roles(substrate, kp_src):
+    rbac_rpc_fetch_group_roles(substrate, kp_src, 
+        rpc_id(GROUP_ID1),
+        [rpc_id(ROLE_ID1), rpc_id(ROLE_ID2)]
+    )
+    rbac_rpc_fetch_group_roles(substrate, kp_src, 
+        rpc_id(GROUP_ID2),
+        [rpc_id(ROLE_ID3)]
+    )
+    test_success_msg('test_rpc_fetch_group_roles')
+
+# Single test for RPC fetchRolePermissions
+def test_rpc_fetch_role_permissions(substrate, kp_src):
+    rbac_rpc_fetch_role_permissions(substrate, kp_src,
+        rpc_id(ROLE_ID1),
+        [rpc_id(PERM_ID1), rpc_id(PERM_ID2)]
+    )
+    rbac_rpc_fetch_role_permissions(substrate, kp_src,
+        rpc_id(ROLE_ID2),
+        [rpc_id(PERM_ID3)]
+    )
+    rbac_rpc_fetch_role_permissions(substrate, kp_src,
+        rpc_id(ROLE_ID3),
+        [rpc_id(PERM_ID4)]
+    )
+    test_success_msg('test_rpc_fetch_role_permissions')
+
+# Single, simple test for RPC fetchGroupPermissions
+def test_rpc_fetch_group_permissions(substrate, kp_src):
+    rbac_rpc_fetch_group_permissions(substrate, kp_src,
+        rpc_id(GROUP_ID1),
+        [rpc_id(PERM_ID1), rpc_id(PERM_ID2), rpc_id(PERM_ID3)],
+        [PERM_NM1, PERM_NM2, PERM_NM3]
+    )
+    rbac_rpc_fetch_group_permissions(substrate, kp_src,
+        rpc_id(GROUP_ID2),
+        [rpc_id(PERM_ID4)],
+        [PERM_NM4]
+    )
+    test_success_msg('test_rpc_fetch_group_permissions')
+
+# Single test for RPC fetchUserroles
+def test_rpc_fetch_user_roles(substrate, kp_src):
+    rbac_rpc_fetch_user_roles(substrate, kp_src)
+    test_success_msg('test_rpc_fetch_user_roles')
 
 
+#########################################################################################################
 # Entry function to do all RBAC-RPC tests
 def pallet_rbac_rpc_test():
     print('---- pallet_rbac_rpc_test!! ----')
@@ -224,8 +325,21 @@ def pallet_rbac_rpc_test():
             rbac_rpc_test_setup(substrate, kp_src)
 
             test_rpc_fetch_role(substrate, kp_src)
+            test_rpc_fetch_roles(substrate, kp_src)
             test_rpc_fetch_permission(substrate, kp_src)
+            test_rpc_fetch_permissions(substrate, kp_src)
             test_rpc_fetch_group(substrate, kp_src)
+            test_rpc_fetch_groups(substrate, kp_src)
+
+            test_rpc_fetch_group_roles(substrate, kp_src)
+            test_rpc_fetch_group_permissions(substrate, kp_src)
+            test_rpc_fetch_role_permissions(substrate, kp_src)
+
+            test_rpc_fetch_user_roles(substrate, kp_src)
+            # TODO test_rpc_fetch_user_groups(substrate, kp_src)
+            # TODO test_rpc_fetch_user_permissions(substrate, kp_src)
+
+            # test_rpc_fail_x TODO
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
