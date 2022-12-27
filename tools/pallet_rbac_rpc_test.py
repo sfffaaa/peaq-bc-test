@@ -42,7 +42,7 @@ PERM_NM4 = 'PermissionD'
 #   cl_fcn = 'add_role'
 #   cl_par = {'role_id': entity_id, 'name': name }
 #   ext_id = 'rbac_add_role'
-def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par, ext_id):
+def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
     call = substrate.compose_call(
         call_module=cl_mod,
@@ -58,6 +58,7 @@ def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par, ext_id):
     )
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    ext_id = f'{cl_mod}/{cl_fcn}({cl_par})'
     show_extrinsic(receipt, ext_id)
 
     if not receipt.is_success:
@@ -66,8 +67,8 @@ def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par, ext_id):
 
 
 # Simplification for all RBAC-related calls
-def do_rbac_extrinsics(substrate, kp_src, cl_fcn, cl_par, ext_id):
-    do_extrinsics(substrate, kp_src, 'PeaqRbac', cl_fcn, cl_par, ext_id)
+def do_rbac_extrinsics(substrate, kp_src, cl_fcn, cl_par):
+    do_extrinsics(substrate, kp_src, 'PeaqRbac', cl_fcn, cl_par)
 
 
 # def show_rpc_call(receipt, info_type):
@@ -83,8 +84,7 @@ def rbac_add_role(substrate, kp_src, entity_id, name):
         {
             'role_id': entity_id,
             'name': name,
-        },
-        'rbac_add_role'
+        }
     )
 
 # Adds a group to the RBAC-pallet via extrinsic call
@@ -93,8 +93,7 @@ def rbac_add_group(substrate, kp_src, group_id, name):
         {
             'group_id': group_id,
             'name': name,
-        },
-        'rbac_add_group'
+        }
     )
 
 # Adds a permission to the RBAC-pallet via extrinsic call
@@ -103,8 +102,7 @@ def rbac_add_permission(substrate, kp_src, permission_id, name):
         {
             'permission_id': permission_id,
             'name': name,
-        },
-        'rbac_add_permission'
+        }
     )
 
 # Assigns a permission to a role...
@@ -113,8 +111,7 @@ def rbac_permission2role(substrate, kp_src, permission_id, role_id):
         {
             'permission_id': permission_id,
             'role_id': role_id,
-        },
-        'rbac_assign_permission_to_role'
+        }
     )
 
 # Assigns a role to a group...
@@ -123,8 +120,7 @@ def rbac_role2group(substrate, kp_src, role_id, group_id):
         {
             'role_id': role_id,
             'group_id': group_id,
-        },
-        'rbac-assign-role-to-group(...)'
+        }
     )
 
 # Assigns a role to a user...
@@ -133,8 +129,7 @@ def rbac_role2user(substrate, kp_src, role_id, user_id):
         {
             'role_id': role_id,
             'user_id': user_id,
-        },
-        'rbac_assign_role_to_user'
+        }
     )
 
 # Assigns a user to a group...
@@ -143,8 +138,7 @@ def rbac_user2group(substrate, kp_src, user_id, group_id):
         {
             'user_id': user_id,
             'group_id': group_id,
-        },
-        'rbac_assign_user_to_group'
+        }
     )
 
 
