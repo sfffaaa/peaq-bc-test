@@ -395,12 +395,14 @@ def storage_add_item(substrate, kp_src, item_type, item):
         print(substrate.get_events(receipt.block_hash))
         raise IOError
 
+def utf8_to_ascii(utf8str):
+    return [int(utf8str[i:i+2],16) for i in range(0,len(utf8str),2)]
 
-def storage_rpc_read(substrate, kp_src, item_type):
-    data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, item_type])
-    print("Storage RPC returned: ", data)
-    # FIXME object returned is None, when the item is added
-    # assert(data['result']['item_type'] == item_type)
+from ast import literal_eval
+def storage_rpc_read(substrate, kp_src, item_type, item):
+    data = substrate.rpc_request('peaqstorage_readAttribute', [kp_src.ss58_address, item_type])
+    # TODO RPC returns an array containing the value, not key-value struct as it should.
+    assert(data['result'][0] == literal_eval(item))
 
 def pallet_storage_test():
     print('---- pallet_storage_test!! ----')
@@ -408,13 +410,12 @@ def pallet_storage_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL) as substrate:
-            kp_src = Keypair.create_from_uri('//Alice')
-            item_type = 'aabb'
+            kp_src = Keypair.create_from_uri('//Alice') 
+            item_type = utf8_to_ascii("aa")
+            item = '0x02'
 
-            storage_add_item(substrate, kp_src, item_type, '0x02')
-            storage_rpc_read(substrate, kp_src, item_type)
-            # did_add(substrate, kp_src, f'0x{name}', '0x02')
-            # did_rpc_read(substrate, kp_src, f'0x{name}', '0x02')
+            storage_add_item(substrate, kp_src, item_type, item)
+            storage_rpc_read(substrate, kp_src, item_type, item)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
