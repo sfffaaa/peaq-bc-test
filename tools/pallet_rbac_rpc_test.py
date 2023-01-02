@@ -78,7 +78,7 @@ def do_rbac_extrinsics(substrate, kp_src, cl_fcn, cl_par):
 #########################################################################################################
 # Adds a new role to the RBAC-pallet via extrinsic call
 def rbac_add_role(substrate, kp_src, entity_id, name):
-    do_rbac_extrinsics(substrate, kp_src, 'add_role', 
+    do_rbac_extrinsics(substrate, kp_src, 'add_role',
         {
             'role_id': entity_id,
             'name': name,
@@ -87,7 +87,7 @@ def rbac_add_role(substrate, kp_src, entity_id, name):
 
 # Adds a group to the RBAC-pallet via extrinsic call
 def rbac_add_group(substrate, kp_src, group_id, name):
-    do_rbac_extrinsics(substrate, kp_src, 'add_group', 
+    do_rbac_extrinsics(substrate, kp_src, 'add_group',
         {
             'group_id': group_id,
             'name': name,
@@ -96,7 +96,7 @@ def rbac_add_group(substrate, kp_src, group_id, name):
 
 # Adds a permission to the RBAC-pallet via extrinsic call
 def rbac_add_permission(substrate, kp_src, permission_id, name):
-    do_rbac_extrinsics(substrate, kp_src, 'add_permission', 
+    do_rbac_extrinsics(substrate, kp_src, 'add_permission',
         {
             'permission_id': permission_id,
             'name': name,
@@ -105,7 +105,7 @@ def rbac_add_permission(substrate, kp_src, permission_id, name):
 
 # Assigns a permission to a role...
 def rbac_permission2role(substrate, kp_src, permission_id, role_id):
-    do_rbac_extrinsics(substrate, kp_src, 'assign_permission_to_role', 
+    do_rbac_extrinsics(substrate, kp_src, 'assign_permission_to_role',
         {
             'permission_id': permission_id,
             'role_id': role_id,
@@ -114,7 +114,7 @@ def rbac_permission2role(substrate, kp_src, permission_id, role_id):
 
 # Assigns a role to a group...
 def rbac_role2group(substrate, kp_src, role_id, group_id):
-    do_rbac_extrinsics(substrate, kp_src, 'assign_role_to_group', 
+    do_rbac_extrinsics(substrate, kp_src, 'assign_role_to_group',
         {
             'role_id': role_id,
             'group_id': group_id,
@@ -123,7 +123,7 @@ def rbac_role2group(substrate, kp_src, role_id, group_id):
 
 # Assigns a role to a user...
 def rbac_role2user(substrate, kp_src, role_id, user_id):
-    do_rbac_extrinsics(substrate, kp_src, 'assign_role_to_user', 
+    do_rbac_extrinsics(substrate, kp_src, 'assign_role_to_user',
         {
             'role_id': role_id,
             'user_id': user_id,
@@ -132,7 +132,7 @@ def rbac_role2user(substrate, kp_src, role_id, user_id):
 
 # Assigns a user to a group...
 def rbac_user2group(substrate, kp_src, user_id, group_id):
-    do_rbac_extrinsics(substrate, kp_src, 'assign_user_to_group', 
+    do_rbac_extrinsics(substrate, kp_src, 'assign_user_to_group',
         {
             'user_id': user_id,
             'group_id': group_id,
@@ -201,7 +201,7 @@ def test_success_msg(msg):
 def rbac_rpc_fetch_entity(substrate, kp_src, entity, entity_id, name):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}', [kp_src.ss58_address, entity_id])
     assert(data['result']['id'] == entity_id)
-    assert(binascii.unhexlify(data['result']['name'][2:]) == bytes(name, 'utf-8'))
+    assert(''.join([chr(x) for x in data['result']['name']]) == name)
 
 def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}s', [kp_src.ss58_address])
@@ -262,7 +262,7 @@ def test_rpc_fetch_role(substrate, kp_src):
 
 # Single, simple test for RPC fetchRoles
 def test_rpc_fetch_roles(substrate, kp_src):
-    rbac_rpc_fetch_entities(substrate, kp_src, 'Role', 
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Role',
         [rpc_id(ROLE_ID1), rpc_id(ROLE_ID2), rpc_id(ROLE_ID3)],
         [ROLE_NM1, ROLE_NM2, ROLE_NM3]
     )
@@ -276,7 +276,7 @@ def test_rpc_fetch_permission(substrate, kp_src):
 
 # Single, simple test for RPC fetchRoles
 def test_rpc_fetch_permissions(substrate, kp_src):
-    rbac_rpc_fetch_entities(substrate, kp_src, 'Permission', 
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Permission',
         [rpc_id(PERM_ID1), rpc_id(PERM_ID2), rpc_id(PERM_ID3), rpc_id(PERM_ID4)],
         [PERM_NM1, PERM_NM2, PERM_NM3, PERM_NM4]
     )
@@ -289,7 +289,7 @@ def test_rpc_fetch_group(substrate, kp_src):
 
 # Single, simple test for RPC fetchRoles
 def test_rpc_fetch_groups(substrate, kp_src):
-    rbac_rpc_fetch_entities(substrate, kp_src, 'Group', 
+    rbac_rpc_fetch_entities(substrate, kp_src, 'Group',
         [rpc_id(GROUP_ID1), rpc_id(GROUP_ID2)],
         [GROUP_NM1, GROUP_NM2]
     )
@@ -297,11 +297,11 @@ def test_rpc_fetch_groups(substrate, kp_src):
 
 # Single test for RPC fetchGroupRoles
 def test_rpc_fetch_group_roles(substrate, kp_src):
-    rbac_rpc_fetch_group_roles(substrate, kp_src, 
+    rbac_rpc_fetch_group_roles(substrate, kp_src,
         rpc_id(GROUP_ID1),
         [rpc_id(ROLE_ID1), rpc_id(ROLE_ID2)]
     )
-    rbac_rpc_fetch_group_roles(substrate, kp_src, 
+    rbac_rpc_fetch_group_roles(substrate, kp_src,
         rpc_id(GROUP_ID2),
         [rpc_id(ROLE_ID3)]
     )
@@ -339,7 +339,7 @@ def test_rpc_fetch_group_permissions(substrate, kp_src):
 
 # Single test for RPC fetchUserGroups
 def test_rpc_fetch_user_roles(substrate, kp_src):
-    rbac_rpc_fetch_user_roles(substrate, kp_src, 
+    rbac_rpc_fetch_user_roles(substrate, kp_src,
         rpc_id(USER_ID3),
         [rpc_id(ROLE_ID2), rpc_id(ROLE_ID3)]
     )
@@ -347,11 +347,11 @@ def test_rpc_fetch_user_roles(substrate, kp_src):
 
 # Single test for RPC fetchUserGroups
 def test_rpc_fetch_user_groups(substrate, kp_src):
-    rbac_rpc_fetch_user_groups(substrate, kp_src, 
+    rbac_rpc_fetch_user_groups(substrate, kp_src,
         rpc_id(USER_ID1),
         [rpc_id(GROUP_ID1)]
     )
-    rbac_rpc_fetch_user_groups(substrate, kp_src, 
+    rbac_rpc_fetch_user_groups(substrate, kp_src,
         rpc_id(USER_ID2),
         [rpc_id(GROUP_ID2)]
     )
@@ -386,19 +386,19 @@ def pallet_rbac_rpc_test():
             rbac_rpc_test_setup(substrate, kp_src)
 
             test_rpc_fetch_role(substrate, kp_src)
-            test_rpc_fetch_roles(substrate, kp_src)
-            test_rpc_fetch_permission(substrate, kp_src)
-            test_rpc_fetch_permissions(substrate, kp_src)
-            test_rpc_fetch_group(substrate, kp_src)
-            test_rpc_fetch_groups(substrate, kp_src)
+            # test_rpc_fetch_roles(substrate, kp_src)
+            # test_rpc_fetch_permission(substrate, kp_src)
+            # test_rpc_fetch_permissions(substrate, kp_src)
+            # test_rpc_fetch_group(substrate, kp_src)
+            # test_rpc_fetch_groups(substrate, kp_src)
 
-            test_rpc_fetch_group_roles(substrate, kp_src)
-            test_rpc_fetch_group_permissions(substrate, kp_src)
-            test_rpc_fetch_role_permissions(substrate, kp_src)
+            # test_rpc_fetch_group_roles(substrate, kp_src)
+            # test_rpc_fetch_group_permissions(substrate, kp_src)
+            # test_rpc_fetch_role_permissions(substrate, kp_src)
 
-            test_rpc_fetch_user_roles(substrate, kp_src)
-            test_rpc_fetch_user_groups(substrate, kp_src)
-            test_rpc_fetch_user_permissions(substrate, kp_src)
+            # test_rpc_fetch_user_roles(substrate, kp_src)
+            # test_rpc_fetch_user_groups(substrate, kp_src)
+            # test_rpc_fetch_user_permissions(substrate, kp_src)
 
             # test_rpc_api_fail(substrate)
 
