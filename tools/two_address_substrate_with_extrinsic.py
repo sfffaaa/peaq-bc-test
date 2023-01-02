@@ -7,6 +7,7 @@ from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_
 from tools.utils import transfer
 # from tools.pallet_assets_test import pallet_assets_test
 import random
+import binascii
 
 
 def show_account(substrate, addr, out_str):
@@ -398,11 +399,10 @@ def storage_add_item(substrate, kp_src, item_type, item):
 def utf8_to_ascii(utf8str):
     return [int(utf8str[i:i+2],16) for i in range(0,len(utf8str),2)]
 
-from ast import literal_eval
 def storage_rpc_read(substrate, kp_src, item_type, item):
     data = substrate.rpc_request('peaqstorage_readAttribute', [kp_src.ss58_address, item_type])
-    # TODO RPC returns an array containing the value, not key-value struct as it should.
-    assert(data['result'][0] == literal_eval(item))
+    # TODO RPC returns an array of bytes, not key-value struct as is expected.
+    assert(binascii.hexlify(bytes(data["result"])) == bytes(item, 'utf-8')[2:])
 
 def pallet_storage_test():
     print('---- pallet_storage_test!! ----')
@@ -411,8 +411,8 @@ def pallet_storage_test():
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice') 
-            item_type = utf8_to_ascii("aa")
-            item = '0x02'
+            item_type = utf8_to_ascii("abcc")
+            item = '0x032132'
 
             storage_add_item(substrate, kp_src, item_type, item)
             storage_rpc_read(substrate, kp_src, item_type, item)
