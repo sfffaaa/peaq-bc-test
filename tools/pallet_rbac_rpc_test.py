@@ -34,9 +34,10 @@ PERM_NM2 = 'PermissionB'
 PERM_NM3 = 'PermissionC'
 PERM_NM4 = 'PermissionD'
 
-USER_ID1 = 'ab012cd345ef5678ab012cd345ef5678ab012cd345ef5678ab012cd345ef5678'
-USER_ID2 = 'bc012de345fa5678ab012cd345ef5678ab012cd345ef5678ab012cd345ef5678'
-USER_ID3 = 'cd012ef345ab5678cd012ef345ab5678cd012ef345ab5678cd012ef345ab5678'
+USER_ID1 = 'ab012cd345ef6789ab012cd345ef6789ab012cd345ef6789ab012cd345ef6789'
+USER_ID2 = 'bc012de345fa6789bc012de345fa6789bc012de345fa6789bc012de345fa6789'
+USER_ID3 = 'cd012ef345ab6789cd012ef345ab6789cd012ef345ab6789cd012ef345ab6789'
+USER_IDE = 'de012fa345bc6789de012fa345bc6789de012fa345bc6789de012fa345bc6789' # does not exist -> error
 
 
 #########################################################################################################
@@ -139,6 +140,13 @@ def rbac_user2group(substrate, kp_src, user_id, group_id):
         }
     )
 
+# 
+def rbac_disable_group(substrate, kp_src, group_id):
+    do_rbac_extrinsics(substrate, kp_src, 'disable_group', 
+        {
+            'group_id': group_id,
+        }
+    )
 
 #########################################################################################################
 # Does a generic test-setup on the parachain
@@ -189,6 +197,11 @@ def rbac_rpc_test_setup(substrate, kp_src):
     rbac_role2user(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
 
 
+# Modifies the test setup for second row of tests
+def rbac_rpc_test_setup_mod(substrate, kp_src):
+    rbac_disable_group(substrate, kp_src, f'0x{GROUP_ID1}')
+
+
 #########################################################################################################
 # Converts a HEX-string without 0x into ASCII-string
 def rpc_id(entity_id):
@@ -197,60 +210,68 @@ def rpc_id(entity_id):
 def test_success_msg(msg):
     print(f'✅ Test/{msg}, Success')
 
+def check_ok_and_return(data, cnt=1):
+    assert('Ok' in data['result'])
+    if type(data['result']['Ok']) == 'list':
+        assert(len(data['result']['Ok']) == cnt)
+    return data['result']['Ok']
+
 #########################################################################################################
 def rbac_rpc_fetch_entity(substrate, kp_src, entity, entity_id, name):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}', [kp_src.ss58_address, entity_id])
-    assert(data['result']['id'] == entity_id)
-    assert(binascii.unhexlify(data['result']['name'][2:]) == bytes(name, 'utf-8'))
+    data = check_ok_and_return(data)
+    assert(data['id'] == entity_id)
+    # assert(binascii.unhexlify(data['name'][2:]) == bytes(name, 'utf-8'))
+    assert(bytes(data['name']) == bytes(name, 'utf-8'))
 
 def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}s', [kp_src.ss58_address])
-    assert(len(data['result']) == len(entity_ids))
+    data = check_ok_and_return(data, len(entity_ids))
     for i in range(0, len(names)):
-        assert(data['result'][i]['id'] == entity_ids[i])
-        assert(binascii.unhexlify(data['result'][i]['name'][2:]) == bytes(names[i], 'utf-8'))
+        assert(data[i]['id'] == entity_ids[i])
+        assert(bytes(data[i]['name']) == bytes(names[i], 'utf-8'))
 
 def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
     data = substrate.rpc_request(f'peaqrbac_fetchGroupRoles', [kp_src.ss58_address, group_id])
-    assert(len(data['result']) == len(role_ids))
+    data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        assert(data['result'][i]['role'] == role_ids[i])
-        assert(data['result'][i]['group'] == group_id)
+        assert(data[i]['role'] == role_ids[i])
+        assert(data[i]['group'] == group_id)
 
 def rbac_rpc_fetch_group_permissions(substrate, kp_src, group_id, perm_ids, names):
     data = substrate.rpc_request(f'peaqrbac_fetchGroupPermissions', [kp_src.ss58_address, group_id])
-    assert(len(data['result']) == len(perm_ids))
+    data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert(data['result'][i]['id'] == perm_ids[i])
-        assert(binascii.unhexlify(data['result'][i]['name'][2:]) == bytes(names[i], 'utf-8'))
+        assert(data[i]['id'] == perm_ids[i])
+        assert(bytes(data[i]['name']) == bytes(names[i], 'utf-8'))
 
 def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
     data = substrate.rpc_request(f'peaqrbac_fetchRolePermissions', [kp_src.ss58_address, role_id])
-    assert(len(data['result']) == len(perm_ids))
+    data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert(data['result'][i]['permission'] == perm_ids[i])
-        assert(data['result'][i]['role'] == role_id)
+        assert(data[i]['permission'] == perm_ids[i])
+        assert(data[i]['role'] == role_id)
 
 def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
     data = substrate.rpc_request(f'peaqrbac_fetchUserRoles', [kp_src.ss58_address, user_id])
-    assert(len(data['result']) == len(role_ids))
+    data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        assert(data['result'][i]['role'] == role_ids[i])
-        assert(data['result'][i]['user'] == user_id)
+        assert(data[i]['role'] == role_ids[i])
+        assert(data[i]['user'] == user_id)
 
 def rbac_rpc_fetch_user_groups(substrate, kp_src, user_id, group_ids):
     data = substrate.rpc_request(f'peaqrbac_fetchUserGroups', [kp_src.ss58_address, user_id])
-    assert(len(data['result']) == len(group_ids))
+    data = check_ok_and_return(data, len(group_ids))
     for i in range(0, len(group_ids)):
-        assert(data['result'][i]['group'] == group_ids[i])
-        assert(data['result'][i]['user'] == user_id)
+        assert(data[i]['group'] == group_ids[i])
+        assert(data[i]['user'] == user_id)
 
 def rbac_rpc_fetch_user_permissions(substrate, kp_src, user_id, perm_ids, names):
     data = substrate.rpc_request(f'peaqrbac_fetchUserPermissions', [kp_src.ss58_address, user_id])
-    assert(len(data['result']) == len(perm_ids))
+    data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert(data['result'][i]['id'] == perm_ids[i])
-        assert(binascii.unhexlify(data['result'][i]['name'][2:]) == bytes(names[i], 'utf-8'))
+        assert(data[i]['id'] == perm_ids[i])
+        assert(bytes(data[i]['name']) == bytes(names[i], 'utf-8'))
 
 
 #########################################################################################################
@@ -366,12 +387,21 @@ def test_rpc_fetch_user_permissions(substrate, kp_src):
     )
     test_success_msg('test_rpc_fetch_user_permissions')
 
-# Simple test for API-fail
-def test_rpc_api_fail(substrate):
-    kp_src = Keypair.create_from_uri('//Bob')
-    user_id = rpc_id(USER_ID1)
+# Simple test for RBAC-fail (request entity, which does not exist)
+def test_rpc_fail_wrong_id(substrate, kp_src):
+    user_id = rpc_id(USER_IDE)
     data = substrate.rpc_request(f'peaqrbac_fetchUserGroups', [kp_src.ss58_address, user_id])
-    print(data)
+    assert('Err' in data['result'])
+    assert(data['result']['Err'] == 'EntityDoesNotExist')
+    test_success_msg('test_rpc_fail_wrong_id')
+
+# Simple test for RBAC-fail (request entity, which is disabled)
+def test_rpc_fail_disabled_id(substrate, kp_src):
+    group_id = rpc_id(GROUP_ID1)
+    data = substrate.rpc_request(f'peaqrbac_fetchGroup', [kp_src.ss58_address, group_id])
+    assert('Err' in data['result'])
+    assert(data['result']['Err'] == 'EntityDisabled')
+    test_success_msg('test_rpc_fail_disabled_id')
 
 
 #########################################################################################################
@@ -382,6 +412,7 @@ def pallet_rbac_rpc_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL) as substrate:
+            # Success tests, default test setup
             kp_src = Keypair.create_from_uri('//Alice')
             rbac_rpc_test_setup(substrate, kp_src)
 
@@ -400,7 +431,10 @@ def pallet_rbac_rpc_test():
             test_rpc_fetch_user_groups(substrate, kp_src)
             test_rpc_fetch_user_permissions(substrate, kp_src)
 
-            # test_rpc_api_fail(substrate)
+            # Failure tests, setup modification required
+            rbac_rpc_test_setup_mod(substrate, kp_src)
+            test_rpc_fail_wrong_id(substrate, kp_src)
+            test_rpc_fail_disabled_id(substrate, kp_src)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
