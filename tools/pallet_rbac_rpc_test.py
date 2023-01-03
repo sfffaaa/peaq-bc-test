@@ -216,6 +216,10 @@ def check_ok_and_return(data, cnt=1):
         assert(len(data['result']['Ok']) == cnt)
     return data['result']['Ok']
 
+def check_err_and_return(data):
+    assert('Err' in data['result'])
+    return data['result']['Err']
+
 #########################################################################################################
 def rbac_rpc_fetch_entity(substrate, kp_src, entity, entity_id, name):
     data = substrate.rpc_request(f'peaqrbac_fetch{entity}', [kp_src.ss58_address, entity_id])
@@ -391,16 +395,18 @@ def test_rpc_fetch_user_permissions(substrate, kp_src):
 def test_rpc_fail_wrong_id(substrate, kp_src):
     user_id = rpc_id(USER_IDE)
     data = substrate.rpc_request(f'peaqrbac_fetchUserGroups', [kp_src.ss58_address, user_id])
-    assert('Err' in data['result'])
-    assert(data['result']['Err'] == 'EntityDoesNotExist')
+    data = check_err_and_return(data)
+    assert('EntityDoesNotExist' in data)
+    assert(data['EntityDoesNotExist'] == user_id)
     test_success_msg('test_rpc_fail_wrong_id')
 
 # Simple test for RBAC-fail (request entity, which is disabled)
 def test_rpc_fail_disabled_id(substrate, kp_src):
     group_id = rpc_id(GROUP_ID1)
     data = substrate.rpc_request(f'peaqrbac_fetchGroup', [kp_src.ss58_address, group_id])
-    assert('Err' in data['result'])
-    assert(data['result']['Err'] == 'EntityDisabled')
+    data = check_err_and_return(data)
+    assert('EntityDisabled' in data)
+    assert(data['EntityDisabled'] == group_id)
     test_success_msg('test_rpc_fail_disabled_id')
 
 
@@ -414,7 +420,7 @@ def pallet_rbac_rpc_test():
         with SubstrateInterface(url=WS_URL) as substrate:
             # Success tests, default test setup
             kp_src = Keypair.create_from_uri('//Alice')
-            rbac_rpc_test_setup(substrate, kp_src)
+            # rbac_rpc_test_setup(substrate, kp_src)
 
             test_rpc_fetch_role(substrate, kp_src)
             test_rpc_fetch_roles(substrate, kp_src)
@@ -432,7 +438,7 @@ def pallet_rbac_rpc_test():
             test_rpc_fetch_user_permissions(substrate, kp_src)
 
             # Failure tests, setup modification required
-            rbac_rpc_test_setup_mod(substrate, kp_src)
+            # rbac_rpc_test_setup_mod(substrate, kp_src)
             test_rpc_fail_wrong_id(substrate, kp_src)
             test_rpc_fail_disabled_id(substrate, kp_src)
 
