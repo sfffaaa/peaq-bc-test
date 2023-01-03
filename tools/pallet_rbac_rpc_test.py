@@ -420,7 +420,7 @@ def pallet_rbac_rpc_test():
         with SubstrateInterface(url=WS_URL) as substrate:
             # Success tests, default test setup
             kp_src = Keypair.create_from_uri('//Alice')
-            # rbac_rpc_test_setup(substrate, kp_src)
+            rbac_rpc_test_setup(substrate, kp_src)
 
             test_rpc_fetch_role(substrate, kp_src)
             test_rpc_fetch_roles(substrate, kp_src)
@@ -438,7 +438,7 @@ def pallet_rbac_rpc_test():
             test_rpc_fetch_user_permissions(substrate, kp_src)
 
             # Failure tests, setup modification required
-            # rbac_rpc_test_setup_mod(substrate, kp_src)
+            rbac_rpc_test_setup_mod(substrate, kp_src)
             test_rpc_fail_wrong_id(substrate, kp_src)
             test_rpc_fail_disabled_id(substrate, kp_src)
 
