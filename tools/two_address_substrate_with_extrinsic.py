@@ -1,7 +1,6 @@
 import sys
 sys.path.append('./')
 import time
-import binascii
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_URL
