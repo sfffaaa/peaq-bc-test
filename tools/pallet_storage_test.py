@@ -1,7 +1,6 @@
-import binascii
+import time
 from tools.utils import show_extrinsic, WS_URL
 from substrateinterface import SubstrateInterface, Keypair
-import random
 import sys
 sys.path.append('./')
 
@@ -15,9 +14,7 @@ def utf8_to_ascii(utf8str):
 def storage_rpc_read(substrate, kp_src, item_type, item):
     data = substrate.rpc_request('peaqstorage_readAttribute', [
                                  kp_src.ss58_address, item_type])
-    # TODO RPC returns an array of bytes, not key-value struct as is expected.
-    assert (binascii.hexlify(
-        bytes(data["result"])) == bytes(item, 'utf-8')[2:])
+    assert (data["result"]["item"] == item)
 
 
 def storage_add_item(substrate, kp_src, item_type, item):
@@ -52,8 +49,7 @@ def pallet_storage_test():
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
-            item_type_str = str(random.randint(0, 1024))
-            item_type = utf8_to_ascii(item_type_str)
+            item_type = f'0x{int(time.time())}'
             item = '0x032132'
 
             storage_add_item(substrate, kp_src, item_type, item)
