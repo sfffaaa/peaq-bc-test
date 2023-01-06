@@ -2,7 +2,7 @@ import sys
 import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import show_extrinsic, WS_URL, SKIP_SETUP
 
 sys.path.append('./')
 
@@ -184,7 +184,7 @@ def rbac_rpc_test_setup(substrate, kp_src):
     # g2|
 
     # Test-progress will marked as group and users within parachain
-    if not check_setup(substrate):
+    if not SKIP_SETUP:
         # Add some roles
         rbac_add_role(substrate, kp_src, f'0x{ROLE_ID1}', ROLE_NM1)
         rbac_add_role(substrate, kp_src, f'0x{ROLE_ID2}', ROLE_NM2)
@@ -203,10 +203,14 @@ def rbac_rpc_test_setup(substrate, kp_src):
         rbac_add_permission(substrate, kp_src, f'0x{PERM_ID4}', PERM_NM4)
 
         # Assign permissions to roles
-        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID1}', f'0x{ROLE_ID1}')
-        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID2}', f'0x{ROLE_ID1}')
-        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID3}', f'0x{ROLE_ID2}')
-        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID4}', f'0x{ROLE_ID3}')
+        rbac_permission2role(
+            substrate, kp_src, f'0x{PERM_ID1}', f'0x{ROLE_ID1}')
+        rbac_permission2role(
+            substrate, kp_src, f'0x{PERM_ID2}', f'0x{ROLE_ID1}')
+        rbac_permission2role(
+            substrate, kp_src, f'0x{PERM_ID3}', f'0x{ROLE_ID2}')
+        rbac_permission2role(
+            substrate, kp_src, f'0x{PERM_ID4}', f'0x{ROLE_ID3}')
 
         # Assign roles to groups
         rbac_role2group(substrate, kp_src, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}')
@@ -220,41 +224,8 @@ def rbac_rpc_test_setup(substrate, kp_src):
         # Assign roles to users
         rbac_role2user(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{USER_ID3}')
         rbac_role2user(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
-
-        # Mark initial setup as finished
-        set_marker(substrate)
-
-
-# Modifies the test setup for failure tests
-def rbac_rpc_test_setup_mod(substrate, kp_src):
-    rbac_disable_group(substrate, kp_src, f'0x{GROUP_ID1}')
-
-
-# This is a workarround for test-progress. Pseudo-users will be added to the
-# parachain, to mark milestones of test-progress. USER_MK1 will be added,
-# after the initial test setup has been done. USER_MK2 will be added, after
-# the advanced setup-modification has been done.
-def set_marker(substrate):
-    kp_src = get_marker_account(substrate)
-    rbac_add_group(substrate, kp_src, f'0x{GROUP_MK1}', GROUP_MK1N)
-
-
-def check_setup(substrate):
-    kp_src = get_marker_account(substrate)
-    extrinsic = prepare_extrinsics(
-        substrate, kp_src,
-        'PeaqRbac', 'fetch_group',
-        {
-            'owner': kp_src.ss58_address,
-            'group_id': f'0x{GROUP_MK1}',
-        })
-    receipt = substrate.submit_extrinsic(
-        extrinsic, wait_for_inclusion=True)
-    return receipt.is_success
-
-
-def get_marker_account(substrate):
-    return Keypair.create_from_uri('//Bob')
+    else:
+        print("Note: skipped test setup for pallet_rbac_rpc_test")
 
 
 ##############################################################################
@@ -548,8 +519,8 @@ def pallet_rbac_rpc_test():
             test_rpc_fetch_user_roles(substrate, kp_src)
             test_rpc_fetch_user_groups(substrate, kp_src)
             test_rpc_fetch_user_permissions(substrate, kp_src)
-            
-            # Failure tests, setup modification required
+
+            # Failure tests
             test_rpc_fail_wrong_id(substrate, kp_src)
             test_rpc_fail_disabled_id(substrate, kp_src)
 
