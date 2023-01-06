@@ -497,8 +497,8 @@ def test_rpc_fail_disabled_id(substrate, kp_src):
 # Check before:
 # type_registry_preset_dict = load_type_registry_preset(type_registry_name)
 # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-def pallet_rbac_rpc_test():
-    print('---- pallet_rbac_rpc_test!! ----')
+def pallet_rbac_test():
+    print('---- pallet_rbac_test!! ----')
     try:
         with SubstrateInterface(url=WS_URL) as substrate:
             # Success tests, default test setup
