@@ -1,6 +1,5 @@
 import sys
 import traceback
-# import random
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
@@ -18,8 +17,13 @@ ROLE_NM3 = 'RoleC'
 
 GROUP_ID1 = 'abcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcd'
 GROUP_ID2 = 'bcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcde'
+GROUP_ID3 = 'cdefabcdefabcdefcdefabcdefabcdefcdefabcdefabcdefcdefabcdefabcdef'
 GROUP_NM1 = 'GroupA'
 GROUP_NM2 = 'GroupB'
+GROUP_NM3 = 'DisabledGroup'
+# GROUP_MK is only a marker group for test-interal-logic, see set_test_mk1/2()
+GROUP_MK1 = 'defabcdefabcdefadefabcdefabcdefadefabcdefabcdefadefabcdefabcdefa'
+GROUP_MK1N = 'MarkerGroup'
 
 PERM_ID1 = '0123456789012345012345678901234501234567890123450123456789012345'
 PERM_ID2 = '1234567890123456123456789012345612345678901234561234567890123456'
@@ -44,8 +48,19 @@ USER_IDE = 'de012fa345bc6789de012fa345bc6789de012fa345bc6789de012fa345bc6789'
 #   cl_mod = 'PeaqRbac'
 #   cl_fcn = 'add_role'
 #   cl_par = {'role_id': entity_id, 'name': name }
-#   ext_id = 'rbac_add_role'
 def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par):
+    extrinsic = prepare_extrinsics(
+        substrate, kp_src, cl_mod, cl_fcn, cl_par)
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, f'{cl_mod}/{cl_fcn}({cl_par})')
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+
+def prepare_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
     call = substrate.compose_call(
         call_module=cl_mod,
@@ -53,20 +68,12 @@ def do_extrinsics(substrate, kp_src, cl_mod, cl_fcn, cl_par):
         call_params=cl_par
     )
 
-    extrinsic = substrate.create_signed_extrinsic(
+    return substrate.create_signed_extrinsic(
         call=call,
         keypair=kp_src,
         era={'period': 64},
         nonce=nonce
     )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    ext_id = f'{cl_mod}/{cl_fcn}({cl_par})'
-    show_extrinsic(receipt, ext_id)
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
 
 
 # Simplification for all RBAC-related calls
@@ -83,8 +90,7 @@ def rbac_add_role(substrate, kp_src, entity_id, name):
         {
             'role_id': entity_id,
             'name': name,
-        }
-    )
+        })
 
 
 # Adds a group to the RBAC-pallet via extrinsic call
@@ -95,8 +101,7 @@ def rbac_add_group(substrate, kp_src, group_id, name):
         {
             'group_id': group_id,
             'name': name,
-        }
-    )
+        })
 
 
 # Adds a permission to the RBAC-pallet via extrinsic call
@@ -107,8 +112,7 @@ def rbac_add_permission(substrate, kp_src, permission_id, name):
         {
             'permission_id': permission_id,
             'name': name,
-        }
-    )
+        })
 
 
 # Assigns a permission to a role...
@@ -119,8 +123,7 @@ def rbac_permission2role(substrate, kp_src, permission_id, role_id):
         {
             'permission_id': permission_id,
             'role_id': role_id,
-        }
-    )
+        })
 
 
 # Assigns a role to a group...
@@ -131,8 +134,7 @@ def rbac_role2group(substrate, kp_src, role_id, group_id):
         {
             'role_id': role_id,
             'group_id': group_id,
-        }
-    )
+        })
 
 
 # Assigns a role to a user...
@@ -143,8 +145,7 @@ def rbac_role2user(substrate, kp_src, role_id, user_id):
         {
             'role_id': role_id,
             'user_id': user_id,
-        }
-    )
+        })
 
 
 # Assigns a user to a group...
@@ -155,8 +156,7 @@ def rbac_user2group(substrate, kp_src, user_id, group_id):
         {
             'user_id': user_id,
             'group_id': group_id,
-        }
-    )
+        })
 
 
 # Disable an existing group...
@@ -166,8 +166,7 @@ def rbac_disable_group(substrate, kp_src, group_id):
         'disable_group',
         {
             'group_id': group_id,
-        }
-    )
+        })
 
 
 ##############################################################################
@@ -184,44 +183,78 @@ def rbac_rpc_test_setup(substrate, kp_src):
     # g1|
     # g2|
 
-    # Add some roles
-    rbac_add_role(substrate, kp_src, f'0x{ROLE_ID1}', ROLE_NM1)
-    rbac_add_role(substrate, kp_src, f'0x{ROLE_ID2}', ROLE_NM2)
-    rbac_add_role(substrate, kp_src, f'0x{ROLE_ID3}', ROLE_NM3)
+    # Test-progress will marked as group and users within parachain
+    if not check_setup(substrate):
+        # Add some roles
+        rbac_add_role(substrate, kp_src, f'0x{ROLE_ID1}', ROLE_NM1)
+        rbac_add_role(substrate, kp_src, f'0x{ROLE_ID2}', ROLE_NM2)
+        rbac_add_role(substrate, kp_src, f'0x{ROLE_ID3}', ROLE_NM3)
 
-    # Add some groups
-    rbac_add_group(substrate, kp_src, f'0x{GROUP_ID1}', GROUP_NM1)
-    rbac_add_group(substrate, kp_src, f'0x{GROUP_ID2}', GROUP_NM2)
+        # Add some groups
+        rbac_add_group(substrate, kp_src, f'0x{GROUP_ID1}', GROUP_NM1)
+        rbac_add_group(substrate, kp_src, f'0x{GROUP_ID2}', GROUP_NM2)
+        rbac_add_group(substrate, kp_src, f'0x{GROUP_ID3}', GROUP_NM3)
+        rbac_disable_group(substrate, kp_src, f'0x{GROUP_ID3}')
 
-    # Add some permissions
-    rbac_add_permission(substrate, kp_src, f'0x{PERM_ID1}', PERM_NM1)
-    rbac_add_permission(substrate, kp_src, f'0x{PERM_ID2}', PERM_NM2)
-    rbac_add_permission(substrate, kp_src, f'0x{PERM_ID3}', PERM_NM3)
-    rbac_add_permission(substrate, kp_src, f'0x{PERM_ID4}', PERM_NM4)
+        # Add some permissions
+        rbac_add_permission(substrate, kp_src, f'0x{PERM_ID1}', PERM_NM1)
+        rbac_add_permission(substrate, kp_src, f'0x{PERM_ID2}', PERM_NM2)
+        rbac_add_permission(substrate, kp_src, f'0x{PERM_ID3}', PERM_NM3)
+        rbac_add_permission(substrate, kp_src, f'0x{PERM_ID4}', PERM_NM4)
 
-    # Assign permissions to roles
-    rbac_permission2role(substrate, kp_src, f'0x{PERM_ID1}', f'0x{ROLE_ID1}')
-    rbac_permission2role(substrate, kp_src, f'0x{PERM_ID2}', f'0x{ROLE_ID1}')
-    rbac_permission2role(substrate, kp_src, f'0x{PERM_ID3}', f'0x{ROLE_ID2}')
-    rbac_permission2role(substrate, kp_src, f'0x{PERM_ID4}', f'0x{ROLE_ID3}')
+        # Assign permissions to roles
+        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID1}', f'0x{ROLE_ID1}')
+        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID2}', f'0x{ROLE_ID1}')
+        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID3}', f'0x{ROLE_ID2}')
+        rbac_permission2role(substrate, kp_src, f'0x{PERM_ID4}', f'0x{ROLE_ID3}')
 
-    # Assign roles to groups
-    rbac_role2group(substrate, kp_src, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}')
-    rbac_role2group(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}')
-    rbac_role2group(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}')
+        # Assign roles to groups
+        rbac_role2group(substrate, kp_src, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}')
+        rbac_role2group(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}')
+        rbac_role2group(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}')
 
-    # Assign users to groups
-    rbac_user2group(substrate, kp_src, f'0x{USER_ID1}', f'0x{GROUP_ID1}')
-    rbac_user2group(substrate, kp_src, f'0x{USER_ID2}', f'0x{GROUP_ID2}')
+        # Assign users to groups
+        rbac_user2group(substrate, kp_src, f'0x{USER_ID1}', f'0x{GROUP_ID1}')
+        rbac_user2group(substrate, kp_src, f'0x{USER_ID2}', f'0x{GROUP_ID2}')
 
-    # Assign roles to users
-    rbac_role2user(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{USER_ID3}')
-    rbac_role2user(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
+        # Assign roles to users
+        rbac_role2user(substrate, kp_src, f'0x{ROLE_ID2}', f'0x{USER_ID3}')
+        rbac_role2user(substrate, kp_src, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
+
+        # Mark initial setup as finished
+        set_marker(substrate)
 
 
-# Modifies the test setup for second row of tests
+# Modifies the test setup for failure tests
 def rbac_rpc_test_setup_mod(substrate, kp_src):
     rbac_disable_group(substrate, kp_src, f'0x{GROUP_ID1}')
+
+
+# This is a workarround for test-progress. Pseudo-users will be added to the
+# parachain, to mark milestones of test-progress. USER_MK1 will be added,
+# after the initial test setup has been done. USER_MK2 will be added, after
+# the advanced setup-modification has been done.
+def set_marker(substrate):
+    kp_src = get_marker_account(substrate)
+    rbac_add_group(substrate, kp_src, f'0x{GROUP_MK1}', GROUP_MK1N)
+
+
+def check_setup(substrate):
+    kp_src = get_marker_account(substrate)
+    extrinsic = prepare_extrinsics(
+        substrate, kp_src,
+        'PeaqRbac', 'fetch_group',
+        {
+            'owner': kp_src.ss58_address,
+            'group_id': f'0x{GROUP_MK1}',
+        })
+    receipt = substrate.submit_extrinsic(
+        extrinsic, wait_for_inclusion=True)
+    return receipt.is_success
+
+
+def get_marker_account(substrate):
+    return Keypair.create_from_uri('//Bob')
 
 
 ##############################################################################
@@ -478,7 +511,7 @@ def test_rpc_fail_wrong_id(substrate, kp_src):
 
 # Simple test for RBAC-fail (request entity, which is disabled)
 def test_rpc_fail_disabled_id(substrate, kp_src):
-    group_id = rpc_id(GROUP_ID1)
+    group_id = rpc_id(GROUP_ID3)
     data = substrate.rpc_request(
         'peaqrbac_fetchGroup',
         [kp_src.ss58_address, group_id])
@@ -515,9 +548,8 @@ def pallet_rbac_rpc_test():
             test_rpc_fetch_user_roles(substrate, kp_src)
             test_rpc_fetch_user_groups(substrate, kp_src)
             test_rpc_fetch_user_permissions(substrate, kp_src)
-
+            
             # Failure tests, setup modification required
-            rbac_rpc_test_setup_mod(substrate, kp_src)
             test_rpc_fail_wrong_id(substrate, kp_src)
             test_rpc_fail_disabled_id(substrate, kp_src)
 
