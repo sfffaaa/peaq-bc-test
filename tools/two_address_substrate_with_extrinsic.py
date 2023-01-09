@@ -7,6 +7,7 @@ from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_
 from tools.utils import transfer
 # from tools.pallet_assets_test import pallet_assets_test
 import random
+import binascii
 
 
 def show_account(substrate, addr, out_str):
@@ -370,7 +371,6 @@ def pallet_batchall_test():
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
         sys.exit()
-
 
 if __name__ == '__main__':
     # kp_src = Keypair.create_from_mnemonic('nature exchange gasp toy result bacon coin broccoli rule oyster believe lyrics')
