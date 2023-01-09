@@ -3,7 +3,6 @@ from tools.utils import show_extrinsic, WS_URL
 from substrateinterface import SubstrateInterface, Keypair
 import sys
 sys.path.append('./')
-
 # from tools.pallet_assets_test import pallet_assets_test
 
 
@@ -42,6 +41,56 @@ def storage_add_item(substrate, kp_src, item_type, item):
         raise IOError
 
 
+def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+
+    payload_first = substrate.compose_call(
+        call_module='PeaqStorage',
+        call_function='add_item',
+        call_params={
+            'item_type': item_type,
+            'item': item,
+        })
+
+    payload_second = substrate.compose_call(
+        call_module='PeaqStorage',
+        call_function='get_item',
+        call_params={
+            'item_type': item_type,
+        })
+
+    payload_third = substrate.compose_call(
+        call_module='PeaqStorage',
+        call_function='update_item',
+        call_params={
+            'item_type': item_type,
+            'item': '0x0123',
+        })
+
+    # Wrape payload into a utility batch cal
+    call = substrate.compose_call(
+        call_module='Utility',
+        call_function='batch_all',
+        call_params={
+            'calls': [payload_first.value,
+                      payload_second.value, payload_third.value],
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'batch_transaction')
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+
 def pallet_storage_test():
     print('---- pallet_storage_test!! ----')
     try:
@@ -54,6 +103,10 @@ def pallet_storage_test():
 
             storage_add_item(substrate, kp_src, item_type, item)
             storage_rpc_read(substrate, kp_src, item_type, item)
+
+            item_type = f'0x{int(time.time()) + 1}'
+            item = '0x032133'
+            storage_batch_transaction_ok(substrate, kp_src, item_type, item)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
