@@ -1,30 +1,30 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
 
+
+# Global Constants
+
 # deinfe a conneciton with a peaq-network node
 substrate = SubstrateInterface(
         url=WS_URL
     )
 
+# accounts to carty out diffirent transactions
+KP_SUDO = Keypair.create_from_uri('//Alice')
+KP_COUNCIL_FIRST_MEMBER = Keypair.create_from_uri('//Bob')
+KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
+KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
+
+WEIGHT_BOND = 10000000000
+LENGTH_BOND = 1000000
+AMOUNT = 10
+
+# Global variables
 proposal_index = None
 proposal_hash = None
-weight_bond = 10000000000
-length_bond = 1000000
-amount = 10
-
-# accounts to carty out diffirent transactions
-kp_council_first_member = Keypair.create_from_uri('//Alice')
-kp_council_second_member = Keypair.create_from_uri('//Bob')
-kp_council_third_member = Keypair.create_from_uri('//Charlie')
-kp_beneficiary = Keypair.create_from_uri('//Dave')
-
-council_members = [kp_council_first_member.ss58_address,
-                   kp_council_second_member.ss58_address,
-                   kp_council_third_member.ss58_address]
-
 
 # To set members of the council
-def set_members():
+def set_members(members, kp_prime_member, old_count, kp_sudo):
 
     print("set_members function called")
 
@@ -33,9 +33,9 @@ def set_members():
         call_module='Council',
         call_function='set_members',
         call_params={
-            'new_members': council_members,
-            'prime': None,
-            'old_count': len(council_members)
+            'new_members': members,
+            'prime': kp_sudo,
+            'old_count': len(members)
         })
 
     call = substrate.compose_call(
@@ -48,7 +48,7 @@ def set_members():
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
-        keypair=kp_council_first_member,
+        keypair=KP_SUDO,
         era={'period': 64},
     )
 
@@ -61,7 +61,7 @@ def set_members():
     show_extrinsic(receipt, 'setMembers')
 
 
-def propose_spend(p_value, p_beneficiary, p_kp_member):
+def propose_spend(value, beneficiary, kp_member):
 
     print("propose spend function called")
 
@@ -69,8 +69,8 @@ def propose_spend(p_value, p_beneficiary, p_kp_member):
         call_module='Treasury',
         call_function='propose_spend',
         call_params={
-            'value': p_value,
-            'beneficiary': p_beneficiary.ss58_address
+            'value': value,
+            'beneficiary': beneficiary.ss58_address
         })
 
     call = substrate.compose_call(
@@ -79,13 +79,13 @@ def propose_spend(p_value, p_beneficiary, p_kp_member):
         call_params={
             'threshold': 2,
             'proposal': treasury_payload.value,
-            'length_bound': length_bond
+            'length_bound': LENGTH_BOND
         })
 
-    nonce = substrate.get_account_nonce(p_kp_member.ss58_address)
+    nonce = substrate.get_account_nonce(kp_member.ss58_address)
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
-        keypair=p_kp_member,
+        keypair=kp_member,
         era={'period': 64},
         nonce=nonce
     )
@@ -105,7 +105,7 @@ def propose_spend(p_value, p_beneficiary, p_kp_member):
     return (pi, ph)
 
 
-def cast_vote(p_proposal_hash, p_proposal_index, p_vote, kp_member):
+def cast_vote(proposal_hash, proposal_index, vote, kp_member):
 
     print("vote function called")
 
@@ -113,9 +113,9 @@ def cast_vote(p_proposal_hash, p_proposal_index, p_vote, kp_member):
         call_module='Council',
         call_function='vote',
         call_params={
-            'proposal': p_proposal_hash,
-            'index': p_proposal_index,
-            'approve': p_vote
+            'proposal': proposal_hash,
+            'index': proposal_index,
+            'approve': vote
         })
 
     nonce = substrate.get_account_nonce(kp_member.ss58_address)
@@ -135,8 +135,8 @@ def cast_vote(p_proposal_hash, p_proposal_index, p_vote, kp_member):
     show_extrinsic(receipt, 'vote casted')
 
 
-def close_vote(p_proposal_hash, p_proposal_index, p_weight_bond,
-               p_length_bond, kp_member):
+def close_vote(proposal_hash, proposal_index, weight_bond,
+               length_bond, kp_member):
 
     print("close_vote function called")
 
@@ -144,10 +144,10 @@ def close_vote(p_proposal_hash, p_proposal_index, p_weight_bond,
         call_module='Council',
         call_function='close',
         call_params={
-            'proposal_hash': p_proposal_hash,
-            'index': p_proposal_index,
-            'proposal_weight_bound': p_weight_bond,
-            'length_bound': p_length_bond
+            'proposal_hash': proposal_hash,
+            'index': proposal_index,
+            'proposal_weight_bound': weight_bond,
+            'length_bound': length_bond
 
         })
 
@@ -169,7 +169,7 @@ def close_vote(p_proposal_hash, p_proposal_index, p_weight_bond,
 
 
 # To directly spend funds from treasury
-def spend(p_value, p_beneficiary, p_kp_member):
+def spend(value, beneficiary, kp_sudo):
 
     print("spend function called")
 
@@ -178,8 +178,8 @@ def spend(p_value, p_beneficiary, p_kp_member):
         call_module='Treasury',
         call_function='spend',
         call_params={
-            'amount': p_value,
-            'beneficiary': p_beneficiary.ss58_address
+            'amount': value,
+            'beneficiary': beneficiary.ss58_address
         })
 
     call = substrate.compose_call(
@@ -192,7 +192,7 @@ def spend(p_value, p_beneficiary, p_kp_member):
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
-        keypair=kp_council_first_member,
+        keypair=kp_sudo,
         era={'period': 64}
     )
 
@@ -207,38 +207,42 @@ def spend(p_value, p_beneficiary, p_kp_member):
 
 def pallet_treasury_test():
 
-    # To set members of council
-    set_members()
+    # To set members of council    
+    council_members = [KP_SUDO.ss58_address, KP_COUNCIL_FIRST_MEMBER.ss58_address,
+                       KP_COUNCIL_SECOND_MEMBER.ss58_address]
+
+    set_members(council_members,  KP_SUDO.ss58_address,
+                0, KP_SUDO.ss58_address)
 
     # To submit a proposal
-    proposal_index, proposal_hash = propose_spend(amount, kp_beneficiary,
-                                                  kp_council_first_member)
+    proposal_index, proposal_hash = propose_spend(AMOUNT, KP_BENEFICIARY,
+                                                   KP_SUDO)
     print(proposal_index)
     print(proposal_hash)
 
     # To submit votes by all council member to APPORVE the motion with majority
-    cast_vote(proposal_hash, proposal_index, True, kp_council_first_member)
-    cast_vote(proposal_hash, proposal_index, True, kp_council_second_member)
-    cast_vote(proposal_hash, proposal_index, False, kp_council_third_member)
+    cast_vote(proposal_hash, proposal_index, True, KP_SUDO)
+    cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_FIRST_MEMBER)
+    cast_vote(proposal_hash, proposal_index, False, KP_COUNCIL_SECOND_MEMBER)
 
     # To close voting processes
-    close_vote(proposal_hash, proposal_index, weight_bond,
-               length_bond, kp_council_first_member)
+    close_vote(proposal_hash, proposal_index, WEIGHT_BOND,
+                LENGTH_BOND, KP_COUNCIL_FIRST_MEMBER)
 
     # To submit second proposal
-    proposal_index, proposal_hash = propose_spend(amount, kp_beneficiary,
-                                                  kp_council_second_member)
+    proposal_index, proposal_hash = propose_spend(AMOUNT, KP_BENEFICIARY,
+                                                  KP_COUNCIL_SECOND_MEMBER)
     print(proposal_index)
     print(proposal_hash)
 
     # To submit votes by all council member to REJECT the motion
-    cast_vote(proposal_hash, proposal_index, False, kp_council_first_member)
-    cast_vote(proposal_hash, proposal_index, False, kp_council_second_member)
-    cast_vote(proposal_hash, proposal_index, True, kp_council_third_member)
+    cast_vote(proposal_hash, proposal_index, False, KP_SUDO)
+    cast_vote(proposal_hash, proposal_index, False, KP_COUNCIL_FIRST_MEMBER)
+    cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_SECOND_MEMBER)
 
     # To close voting processes
     close_vote(proposal_hash, proposal_index,
-               weight_bond, length_bond, kp_council_first_member)
+            WEIGHT_BOND, LENGTH_BOND, KP_COUNCIL_SECOND_MEMBER)
 
     # To cal treasury spend from root to spend some amount withput approval
-    spend(amount, kp_beneficiary, kp_council_third_member)
+    spend(AMOUNT, KP_BENEFICIARY, KP_SUDO)
