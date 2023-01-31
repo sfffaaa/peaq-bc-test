@@ -23,6 +23,7 @@ AMOUNT = 10
 proposal_index = None
 proposal_hash = None
 
+
 # To set members of the council
 def set_members(members, kp_prime_member, old_count, kp_sudo):
 
@@ -207,16 +208,18 @@ def spend(value, beneficiary, kp_sudo):
 
 def pallet_treasury_test():
 
-    # To set members of council    
-    council_members = [KP_SUDO.ss58_address, KP_COUNCIL_FIRST_MEMBER.ss58_address,
+    # To set members of council
+    council_members = [KP_SUDO.ss58_address,
+                       KP_COUNCIL_FIRST_MEMBER.ss58_address,
                        KP_COUNCIL_SECOND_MEMBER.ss58_address]
 
     set_members(council_members,  KP_SUDO.ss58_address,
                 0, KP_SUDO.ss58_address)
 
     # To submit a proposal
-    proposal_index, proposal_hash = propose_spend(AMOUNT, KP_BENEFICIARY,
-                                                   KP_SUDO)
+    proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                  KP_BENEFICIARY,
+                                                  KP_SUDO)
     print(proposal_index)
     print(proposal_hash)
 
@@ -226,8 +229,11 @@ def pallet_treasury_test():
     cast_vote(proposal_hash, proposal_index, False, KP_COUNCIL_SECOND_MEMBER)
 
     # To close voting processes
-    close_vote(proposal_hash, proposal_index, WEIGHT_BOND,
-                LENGTH_BOND, KP_COUNCIL_FIRST_MEMBER)
+    close_vote(proposal_hash,
+               proposal_index,
+               WEIGHT_BOND,
+               LENGTH_BOND,
+               KP_COUNCIL_FIRST_MEMBER)
 
     # To submit second proposal
     proposal_index, proposal_hash = propose_spend(AMOUNT, KP_BENEFICIARY,
@@ -241,8 +247,11 @@ def pallet_treasury_test():
     cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_SECOND_MEMBER)
 
     # To close voting processes
-    close_vote(proposal_hash, proposal_index,
-            WEIGHT_BOND, LENGTH_BOND, KP_COUNCIL_SECOND_MEMBER)
+    close_vote(proposal_hash,
+               proposal_index,
+               WEIGHT_BOND,
+               LENGTH_BOND,
+               KP_COUNCIL_SECOND_MEMBER)
 
     # To cal treasury spend from root to spend some amount withput approval
     spend(AMOUNT, KP_BENEFICIARY, KP_SUDO)
