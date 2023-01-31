@@ -1,7 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
 
-
 # Global Constants
 
 # deinfe a conneciton with a peaq-network node
@@ -19,15 +18,9 @@ WEIGHT_BOND = 10000000000
 LENGTH_BOND = 1000000
 AMOUNT = 10
 
-# Global variables
-proposal_index = None
-proposal_hash = None
-
 
 # To set members of the council
 def set_members(members, kp_prime_member, old_count, kp_sudo):
-
-    print("set_members function called")
 
     # add council members
     payload = substrate.compose_call(
@@ -63,8 +56,6 @@ def set_members(members, kp_prime_member, old_count, kp_sudo):
 
 
 def propose_spend(value, beneficiary, kp_member):
-
-    print("propose spend function called")
 
     treasury_payload = substrate.compose_call(
         call_module='Treasury',
@@ -108,8 +99,6 @@ def propose_spend(value, beneficiary, kp_member):
 
 def cast_vote(proposal_hash, proposal_index, vote, kp_member):
 
-    print("vote function called")
-
     call = substrate.compose_call(
         call_module='Council',
         call_function='vote',
@@ -138,8 +127,6 @@ def cast_vote(proposal_hash, proposal_index, vote, kp_member):
 
 def close_vote(proposal_hash, proposal_index, weight_bond,
                length_bond, kp_member):
-
-    print("close_vote function called")
 
     call = substrate.compose_call(
         call_module='Council',
@@ -171,8 +158,6 @@ def close_vote(proposal_hash, proposal_index, weight_bond,
 
 # To directly spend funds from treasury
 def spend(value, beneficiary, kp_sudo):
-
-    print("spend function called")
 
     # add a spend extrinsic
     payload = substrate.compose_call(
@@ -208,50 +193,78 @@ def spend(value, beneficiary, kp_sudo):
 
 def pallet_treasury_test():
 
-    # To set members of council
     council_members = [KP_SUDO.ss58_address,
                        KP_COUNCIL_FIRST_MEMBER.ss58_address,
                        KP_COUNCIL_SECOND_MEMBER.ss58_address]
 
-    set_members(council_members,  KP_SUDO.ss58_address,
-                0, KP_SUDO.ss58_address)
+    def approve_proposal():
 
-    # To submit a proposal
-    proposal_index, proposal_hash = propose_spend(AMOUNT,
-                                                  KP_BENEFICIARY,
-                                                  KP_SUDO)
-    print(proposal_index)
-    print(proposal_hash)
+        proposal_index = None
+        proposal_hash = None
 
-    # To submit votes by all council member to APPORVE the motion with majority
-    cast_vote(proposal_hash, proposal_index, True, KP_SUDO)
-    cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_FIRST_MEMBER)
-    cast_vote(proposal_hash, proposal_index, False, KP_COUNCIL_SECOND_MEMBER)
+        # submit a proposal
+        proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                      KP_BENEFICIARY,
+                                                      KP_SUDO)
 
-    # To close voting processes
-    close_vote(proposal_hash,
-               proposal_index,
-               WEIGHT_BOND,
-               LENGTH_BOND,
-               KP_COUNCIL_FIRST_MEMBER)
+        # To submit votes by all council member to APPORVE the motion
+        cast_vote(proposal_hash, proposal_index, True, KP_SUDO)
+        cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_FIRST_MEMBER)
+        cast_vote(proposal_hash, proposal_index, False,
+                  KP_COUNCIL_SECOND_MEMBER)
 
-    # To submit second proposal
-    proposal_index, proposal_hash = propose_spend(AMOUNT, KP_BENEFICIARY,
-                                                  KP_COUNCIL_SECOND_MEMBER)
-    print(proposal_index)
-    print(proposal_hash)
+        # To close voting processes
+        close_vote(proposal_hash,
+                   proposal_index,
+                   WEIGHT_BOND,
+                   LENGTH_BOND,
+                   KP_COUNCIL_FIRST_MEMBER)
 
-    # To submit votes by all council member to REJECT the motion
-    cast_vote(proposal_hash, proposal_index, False, KP_SUDO)
-    cast_vote(proposal_hash, proposal_index, False, KP_COUNCIL_FIRST_MEMBER)
-    cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_SECOND_MEMBER)
+    def reject_proposal():
 
-    # To close voting processes
-    close_vote(proposal_hash,
-               proposal_index,
-               WEIGHT_BOND,
-               LENGTH_BOND,
-               KP_COUNCIL_SECOND_MEMBER)
+        proposal_index = None
+        proposal_hash = None
 
-    # To cal treasury spend from root to spend some amount withput approval
+        # submit a proposal
+        proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                      KP_BENEFICIARY,
+                                                      KP_SUDO)
+
+        # To submit votes by all council member to REJECT the proposal
+        cast_vote(proposal_hash, proposal_index, True,
+                  KP_SUDO)
+        cast_vote(proposal_hash, proposal_index, False,
+                  KP_COUNCIL_FIRST_MEMBER)
+        cast_vote(proposal_hash, proposal_index, False,
+                  KP_COUNCIL_SECOND_MEMBER)
+
+        # To close voting processes
+        close_vote(proposal_hash,
+                   proposal_index,
+                   WEIGHT_BOND,
+                   LENGTH_BOND,
+                   KP_COUNCIL_SECOND_MEMBER)
+
+    # To set members of council
+    print("---set members test started---")
+    set_members(council_members,
+                KP_SUDO.ss58_address,
+                0,
+                KP_SUDO.ss58_address)
+    print("--set member test completed successfully!---")
+    print()
+
+    print("---proposal approval test started---")
+    approve_proposal()
+    print("---proposal approval test completed successfully---")
+    print()
+
+    print("---proposal rejection test started---")
+    reject_proposal()
+    print("---proposal rejection test completed successfully---")
+    print()
+
+    # To directly spend funds from treasury with sudo user
+    print("---Spend test started---")
     spend(AMOUNT, KP_BENEFICIARY, KP_SUDO)
+    print("Spend test completed successfully")
