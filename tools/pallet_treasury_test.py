@@ -1,5 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
+from tools.utils import TOKEN_NUM_BASE
 
 # Global Constants
 
@@ -16,11 +17,10 @@ KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
 
 WEIGHT_BOND = 10000000000
 LENGTH_BOND = 1000000
-AMOUNT = 10
-
+AMOUNT = 1000
 
 # To set members of the council
-def set_members(members, kp_prime_member, old_count, kp_sudo):
+def set_members_test(members, kp_prime_member, old_count, kp_sudo):
 
     # add council members
     payload = substrate.compose_call(
@@ -61,7 +61,7 @@ def propose_spend(value, beneficiary, kp_member):
         call_module='Treasury',
         call_function='propose_spend',
         call_params={
-            'value': value,
+            'value': value*TOKEN_NUM_BASE,
             'beneficiary': beneficiary.ss58_address
         })
 
@@ -155,16 +155,82 @@ def close_vote(proposal_hash, proposal_index, weight_bond,
 
     show_extrinsic(receipt, 'closed voting processes')
 
+def approve_proposal_test():
+
+        proposal_index = None
+        proposal_hash = None
+
+        # submit a proposal
+        proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                      KP_BENEFICIARY,
+                                                      KP_SUDO)
+
+        # To submit votes by all council member to APPORVE the motion
+        cast_vote(proposal_hash, 
+                  proposal_index, 
+                  True, 
+                  KP_SUDO)
+
+        cast_vote(proposal_hash,
+                  proposal_index,
+                  True,
+                  KP_COUNCIL_FIRST_MEMBER)
+
+        cast_vote(proposal_hash,
+                  proposal_index,
+                  False,
+                  KP_COUNCIL_SECOND_MEMBER)
+
+        # To close voting processes
+        close_vote(proposal_hash,
+                   proposal_index,
+                   WEIGHT_BOND,
+                   LENGTH_BOND,
+                   KP_COUNCIL_FIRST_MEMBER)
+
+def reject_proposal_test():
+
+        proposal_index = None
+        proposal_hash = None
+
+        # submit a proposal
+        proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                      KP_BENEFICIARY,
+                                                      KP_SUDO)
+
+        # To submit votes by all council member to REJECT the proposal
+        cast_vote(proposal_hash,
+                  proposal_index,
+                  True,
+                  KP_SUDO)
+
+        cast_vote(proposal_hash,
+                  proposal_index,
+                  False,
+                  KP_COUNCIL_FIRST_MEMBER)
+
+        cast_vote(proposal_hash,
+                  proposal_index,
+                  False,
+                  KP_COUNCIL_SECOND_MEMBER)
+
+        # To close voting processes
+        close_vote(proposal_hash,
+                   proposal_index,
+                   WEIGHT_BOND,
+                   LENGTH_BOND,
+                   KP_COUNCIL_SECOND_MEMBER)
+
 
 # To directly spend funds from treasury
-def spend(value, beneficiary, kp_sudo):
+def spend_test(value, beneficiary, kp_sudo):
 
     # add a spend extrinsic
     payload = substrate.compose_call(
         call_module='Treasury',
         call_function='spend',
         call_params={
-            'amount': value,
+            'amount': value*TOKEN_NUM_BASE,
             'beneficiary': beneficiary.ss58_address
         })
 
@@ -193,78 +259,29 @@ def spend(value, beneficiary, kp_sudo):
 
 def pallet_treasury_test():
 
+    print("---set members test started---")
+
     council_members = [KP_SUDO.ss58_address,
                        KP_COUNCIL_FIRST_MEMBER.ss58_address,
-                       KP_COUNCIL_SECOND_MEMBER.ss58_address]
+                       KP_COUNCIL_SECOND_MEMBER.ss58_address]   
 
-    def approve_proposal():
-
-        proposal_index = None
-        proposal_hash = None
-
-        # submit a proposal
-        proposal_index, proposal_hash = propose_spend(AMOUNT,
-                                                      KP_BENEFICIARY,
-                                                      KP_SUDO)
-
-        # To submit votes by all council member to APPORVE the motion
-        cast_vote(proposal_hash, proposal_index, True, KP_SUDO)
-        cast_vote(proposal_hash, proposal_index, True, KP_COUNCIL_FIRST_MEMBER)
-        cast_vote(proposal_hash, proposal_index, False,
-                  KP_COUNCIL_SECOND_MEMBER)
-
-        # To close voting processes
-        close_vote(proposal_hash,
-                   proposal_index,
-                   WEIGHT_BOND,
-                   LENGTH_BOND,
-                   KP_COUNCIL_FIRST_MEMBER)
-
-    def reject_proposal():
-
-        proposal_index = None
-        proposal_hash = None
-
-        # submit a proposal
-        proposal_index, proposal_hash = propose_spend(AMOUNT,
-                                                      KP_BENEFICIARY,
-                                                      KP_SUDO)
-
-        # To submit votes by all council member to REJECT the proposal
-        cast_vote(proposal_hash, proposal_index, True,
-                  KP_SUDO)
-        cast_vote(proposal_hash, proposal_index, False,
-                  KP_COUNCIL_FIRST_MEMBER)
-        cast_vote(proposal_hash, proposal_index, False,
-                  KP_COUNCIL_SECOND_MEMBER)
-
-        # To close voting processes
-        close_vote(proposal_hash,
-                   proposal_index,
-                   WEIGHT_BOND,
-                   LENGTH_BOND,
-                   KP_COUNCIL_SECOND_MEMBER)
-
-    # To set members of council
-    print("---set members test started---")
-    set_members(council_members,
-                KP_SUDO.ss58_address,
-                0,
-                KP_SUDO.ss58_address)
+    set_members_test(council_members,
+                     KP_SUDO.ss58_address,
+                     0,
+                     KP_SUDO.ss58_address)
     print("--set member test completed successfully!---")
     print()
 
     print("---proposal approval test started---")
-    approve_proposal()
+    approve_proposal_test()
     print("---proposal approval test completed successfully---")
     print()
 
     print("---proposal rejection test started---")
-    reject_proposal()
+    reject_proposal_test()
     print("---proposal rejection test completed successfully---")
     print()
-
-    # To directly spend funds from treasury with sudo user
+    
     print("---Spend test started---")
-    spend(AMOUNT, KP_BENEFICIARY, KP_SUDO)
+    spend_test(AMOUNT, KP_BENEFICIARY, KP_SUDO)
     print("Spend test completed successfully")
