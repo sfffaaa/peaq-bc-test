@@ -3,42 +3,46 @@ import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, SKIP_SETUP
+import random
 
 sys.path.append('./')
 
+RANDOM_PREFIX = "%064x" % random.randrange(10 ** 80)
+RANDOM_PREFIX = RANDOM_PREFIX[:24]
+
 ##############################################################################
 # Constants for global test-setup defaults
-ROLE_ID1 = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789'
-ROLE_ID2 = 'bcdefa1234567890bcdefa1234567890bcdefa1234567890bcdefa1234567890'
-ROLE_ID3 = 'cdefab2345678901cdefab2345678901cdefab2345678901cdefab2345678901'
+ROLE_ID1 = '{0}03456789abcdef0123456789abcdef0123456789'.format(RANDOM_PREFIX)
+ROLE_ID2 = '{0}04567890bcdefa1234567890bcdefa1234567890'.format(RANDOM_PREFIX)
+ROLE_ID3 = '{0}05678901cdefab2345678901cdefab2345678901'.format(RANDOM_PREFIX)
 ROLE_NM1 = 'RoleA'
 ROLE_NM2 = 'RoleB'
 ROLE_NM3 = 'RoleC'
 
-GROUP_ID1 = 'abcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcdabcdefabcdefabcd'
-GROUP_ID2 = 'bcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcdebcdefabcdefabcde'
-GROUP_ID3 = 'cdefabcdefabcdefcdefabcdefabcdefcdefabcdefabcdefcdefabcdefabcdef'
+GROUP_ID1 = '{0}0defabcdabcdefabcdefabcdabcdefabcdefabcd'.format(RANDOM_PREFIX)
+GROUP_ID2 = '{0}0efabcdebcdefabcdefabcdebcdefabcdefabcde'.format(RANDOM_PREFIX)
+GROUP_ID3 = '{0}0fabcdefcdefabcdefabcdefcdefabcdefabcdef'.format(RANDOM_PREFIX)
 GROUP_NM1 = 'GroupA'
 GROUP_NM2 = 'GroupB'
 GROUP_NM3 = 'DisabledGroup'
 # GROUP_MK is only a marker group for test-interal-logic, see set_test_mk1/2()
-GROUP_MK1 = 'defabcdefabcdefadefabcdefabcdefadefabcdefabcdefadefabcdefabcdefa'
+GROUP_MK1 = '{0}0abcdefadefabcdefabcdefadefabcdefabcdefa'.format(RANDOM_PREFIX)
 GROUP_MK1N = 'MarkerGroup'
 
-PERM_ID1 = '0123456789012345012345678901234501234567890123450123456789012345'
-PERM_ID2 = '1234567890123456123456789012345612345678901234561234567890123456'
-PERM_ID3 = '2345678901234567234567890123456723456789012345672345678901234567'
-PERM_ID4 = '3456789012345678345678901234567834567890123456783456789012345678'
+PERM_ID1 = '{0}0901234501234567890123450123456789012345'.format(RANDOM_PREFIX)
+PERM_ID2 = '{0}0012345612345678901234561234567890123456'.format(RANDOM_PREFIX)
+PERM_ID3 = '{0}0123456723456789012345672345678901234567'.format(RANDOM_PREFIX)
+PERM_ID4 = '{0}0234567834567890123456783456789012345678'.format(RANDOM_PREFIX)
 PERM_NM1 = 'PermissionA'
 PERM_NM2 = 'PermissionB'
 PERM_NM3 = 'PermissionC'
 PERM_NM4 = 'PermissionD'
 
-USER_ID1 = 'ab012cd345ef6789ab012cd345ef6789ab012cd345ef6789ab012cd345ef6789'
-USER_ID2 = 'bc012de345fa6789bc012de345fa6789bc012de345fa6789bc012de345fa6789'
-USER_ID3 = 'cd012ef345ab6789cd012ef345ab6789cd012ef345ab6789cd012ef345ab6789'
+USER_ID1 = '{0}05ef6789ab012cd345ef6789ab012cd345ef6789'.format(RANDOM_PREFIX)
+USER_ID2 = '{0}05fa6789bc012de345fa6789bc012de345fa6789'.format(RANDOM_PREFIX)
+USER_ID3 = '{0}05ab6789cd012ef345ab6789cd012ef345ab6789'.format(RANDOM_PREFIX)
 # USER_IDE does not exist in chain -> error
-USER_IDE = 'de012fa345bc6789de012fa345bc6789de012fa345bc6789de012fa345bc6789'
+USER_IDE = '{0}05bc6789de012fa345bc6789de012fa345bc6789'.format(RANDOM_PREFIX)
 
 
 ##############################################################################
@@ -252,7 +256,7 @@ def rbac_rpc_test_setup(substrate, kp_src):
 ##############################################################################
 # Converts a HEX-string without 0x into ASCII-string
 def rpc_id(entity_id):
-    return [int(entity_id[i:i+2], 16) for i in range(0, len(entity_id), 2)]
+    return [int(entity_id[i:i + 2], 16) for i in range(0, len(entity_id), 2)]
 
 
 def test_success_msg(msg):
@@ -290,8 +294,7 @@ def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
     )
     data = check_ok_and_return(data, len(entity_ids))
     for i in range(0, len(names)):
-        assert data[i]['id'] == entity_ids[i]
-        assert bytes(data[i]['name']) == bytes(names[i], 'utf-8')
+        data.index({'id': entity_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
 
 
 def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
@@ -300,8 +303,7 @@ def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
         [kp_src.ss58_address, group_id])
     data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        assert data[i]['role'] == role_ids[i]
-        assert data[i]['group'] == group_id
+        data.index({'role': role_ids[i], 'group': group_id})
 
 
 def rbac_rpc_fetch_group_permissions(
@@ -311,8 +313,7 @@ def rbac_rpc_fetch_group_permissions(
         [kp_src.ss58_address, group_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert data[i]['id'] == perm_ids[i]
-        assert bytes(data[i]['name']) == bytes(names[i], 'utf-8')
+        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
 
 
 def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
@@ -321,8 +322,7 @@ def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
         [kp_src.ss58_address, role_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert data[i]['permission'] == perm_ids[i]
-        assert data[i]['role'] == role_id
+        data.index({'permission': perm_ids[i], 'role': role_id })
 
 
 def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
@@ -331,8 +331,7 @@ def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        assert data[i]['role'] == role_ids[i]
-        assert data[i]['user'] == user_id
+        data.index({'role': role_ids[i], 'user': user_id})
 
 
 def rbac_rpc_fetch_user_groups(substrate, kp_src, user_id, group_ids):
@@ -341,8 +340,7 @@ def rbac_rpc_fetch_user_groups(substrate, kp_src, user_id, group_ids):
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(group_ids))
     for i in range(0, len(group_ids)):
-        assert data[i]['group'] == group_ids[i]
-        assert data[i]['user'] == user_id
+        data.index({'group': group_ids[i], 'user': user_id})
 
 
 def rbac_rpc_fetch_user_permissions(
@@ -352,8 +350,7 @@ def rbac_rpc_fetch_user_permissions(
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        assert data[i]['id'] == perm_ids[i]
-        assert bytes(data[i]['name']) == bytes(names[i], 'utf-8')
+        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
 
 
 ##############################################################################
