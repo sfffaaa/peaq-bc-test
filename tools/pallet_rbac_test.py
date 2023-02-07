@@ -2,7 +2,7 @@ import sys
 import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL, SKIP_SETUP
+from tools.utils import show_extrinsic, WS_URL
 import random
 
 sys.path.append('./')
@@ -15,28 +15,28 @@ RANDOM_PREFIX = RANDOM_PREFIX[:24]
 ROLE_ID1 = '{0}03456789abcdef0123456789abcdef0123456789'.format(RANDOM_PREFIX)
 ROLE_ID2 = '{0}04567890bcdefa1234567890bcdefa1234567890'.format(RANDOM_PREFIX)
 ROLE_ID3 = '{0}05678901cdefab2345678901cdefab2345678901'.format(RANDOM_PREFIX)
-ROLE_NM1 = 'RoleA'
-ROLE_NM2 = 'RoleB'
-ROLE_NM3 = 'RoleC'
+ROLE_NM1 = '{0}RoleA'.format(RANDOM_PREFIX)
+ROLE_NM2 = '{0}RoleB'.format(RANDOM_PREFIX)
+ROLE_NM3 = '{0}RoleC'.format(RANDOM_PREFIX)
 
 GROUP_ID1 = '{0}0defabcdabcdefabcdefabcdabcdefabcdefabcd'.format(RANDOM_PREFIX)
 GROUP_ID2 = '{0}0efabcdebcdefabcdefabcdebcdefabcdefabcde'.format(RANDOM_PREFIX)
 GROUP_ID3 = '{0}0fabcdefcdefabcdefabcdefcdefabcdefabcdef'.format(RANDOM_PREFIX)
-GROUP_NM1 = 'GroupA'
-GROUP_NM2 = 'GroupB'
-GROUP_NM3 = 'DisabledGroup'
+GROUP_NM1 = '{0}GroupA'.format(RANDOM_PREFIX)
+GROUP_NM2 = '{0}GroupB'.format(RANDOM_PREFIX)
+GROUP_NM3 = '{0}DisabledGroup'.format(RANDOM_PREFIX)
 # GROUP_MK is only a marker group for test-interal-logic, see set_test_mk1/2()
 GROUP_MK1 = '{0}0abcdefadefabcdefabcdefadefabcdefabcdefa'.format(RANDOM_PREFIX)
-GROUP_MK1N = 'MarkerGroup'
+GROUP_MK1N = '{0}MarkerGroup'.format(RANDOM_PREFIX)
 
 PERM_ID1 = '{0}0901234501234567890123450123456789012345'.format(RANDOM_PREFIX)
 PERM_ID2 = '{0}0012345612345678901234561234567890123456'.format(RANDOM_PREFIX)
 PERM_ID3 = '{0}0123456723456789012345672345678901234567'.format(RANDOM_PREFIX)
 PERM_ID4 = '{0}0234567834567890123456783456789012345678'.format(RANDOM_PREFIX)
-PERM_NM1 = 'PermissionA'
-PERM_NM2 = 'PermissionB'
-PERM_NM3 = 'PermissionC'
-PERM_NM4 = 'PermissionD'
+PERM_NM1 = '{0}PermissionA'.format(RANDOM_PREFIX)
+PERM_NM2 = '{0}PermissionB'.format(RANDOM_PREFIX)
+PERM_NM3 = '{0}PermissionC'.format(RANDOM_PREFIX)
+PERM_NM4 = '{0}PermissionD'.format(RANDOM_PREFIX)
 
 USER_ID1 = '{0}05ef6789ab012cd345ef6789ab012cd345ef6789'.format(RANDOM_PREFIX)
 USER_ID2 = '{0}05fa6789bc012de345fa6789bc012de345fa6789'.format(RANDOM_PREFIX)
@@ -187,70 +187,67 @@ def rbac_rpc_test_setup(substrate, kp_src):
     # g2|
 
     # Test-progress will marked as group and users within parachain
-    if not SKIP_SETUP:
-        stack = []
-        # Add some roles
-        stack.append(rbac_add_role(
-            substrate, f'0x{ROLE_ID1}', ROLE_NM1))
-        stack.append(rbac_add_role(
-            substrate, f'0x{ROLE_ID2}', ROLE_NM2))
-        stack.append(rbac_add_role(
-            substrate, f'0x{ROLE_ID3}', ROLE_NM3))
+    stack = []
+    # Add some roles
+    stack.append(rbac_add_role(
+        substrate, f'0x{ROLE_ID1}', ROLE_NM1))
+    stack.append(rbac_add_role(
+        substrate, f'0x{ROLE_ID2}', ROLE_NM2))
+    stack.append(rbac_add_role(
+        substrate, f'0x{ROLE_ID3}', ROLE_NM3))
 
-        # Add some groups
-        stack.append(rbac_add_group(
-            substrate, f'0x{GROUP_ID1}', GROUP_NM1))
-        stack.append(rbac_add_group(
-            substrate, f'0x{GROUP_ID2}', GROUP_NM2))
-        stack.append(rbac_add_group(
-            substrate, f'0x{GROUP_ID3}', GROUP_NM3))
-        stack.append(rbac_disable_group(
-            substrate, f'0x{GROUP_ID3}'))
+    # Add some groups
+    stack.append(rbac_add_group(
+        substrate, f'0x{GROUP_ID1}', GROUP_NM1))
+    stack.append(rbac_add_group(
+        substrate, f'0x{GROUP_ID2}', GROUP_NM2))
+    stack.append(rbac_add_group(
+        substrate, f'0x{GROUP_ID3}', GROUP_NM3))
+    stack.append(rbac_disable_group(
+        substrate, f'0x{GROUP_ID3}'))
 
-        # Add some permissions
-        stack.append(rbac_add_permission(
-            substrate, f'0x{PERM_ID1}', PERM_NM1))
-        stack.append(rbac_add_permission(
-            substrate, f'0x{PERM_ID2}', PERM_NM2))
-        stack.append(rbac_add_permission(
-            substrate, f'0x{PERM_ID3}', PERM_NM3))
-        stack.append(rbac_add_permission(
-            substrate, f'0x{PERM_ID4}', PERM_NM4))
+    # Add some permissions
+    stack.append(rbac_add_permission(
+        substrate, f'0x{PERM_ID1}', PERM_NM1))
+    stack.append(rbac_add_permission(
+        substrate, f'0x{PERM_ID2}', PERM_NM2))
+    stack.append(rbac_add_permission(
+        substrate, f'0x{PERM_ID3}', PERM_NM3))
+    stack.append(rbac_add_permission(
+        substrate, f'0x{PERM_ID4}', PERM_NM4))
 
-        # Assign permissions to roles
-        stack.append(rbac_permission2role(
-            substrate, f'0x{PERM_ID1}', f'0x{ROLE_ID1}'))
-        stack.append(rbac_permission2role(
-            substrate, f'0x{PERM_ID2}', f'0x{ROLE_ID1}'))
-        stack.append(rbac_permission2role(
-            substrate, f'0x{PERM_ID3}', f'0x{ROLE_ID2}'))
-        stack.append(rbac_permission2role(
-            substrate, f'0x{PERM_ID4}', f'0x{ROLE_ID3}'))
+    # Assign permissions to roles
+    stack.append(rbac_permission2role(
+        substrate, f'0x{PERM_ID1}', f'0x{ROLE_ID1}'))
+    stack.append(rbac_permission2role(
+        substrate, f'0x{PERM_ID2}', f'0x{ROLE_ID1}'))
+    stack.append(rbac_permission2role(
+        substrate, f'0x{PERM_ID3}', f'0x{ROLE_ID2}'))
+    stack.append(rbac_permission2role(
+        substrate, f'0x{PERM_ID4}', f'0x{ROLE_ID3}'))
 
-        # Assign roles to groups
-        stack.append(rbac_role2group(
-            substrate, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}'))
-        stack.append(rbac_role2group(
-            substrate, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}'))
-        stack.append(rbac_role2group(
-            substrate, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}'))
+    # Assign roles to groups
+    stack.append(rbac_role2group(
+        substrate, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}'))
+    stack.append(rbac_role2group(
+        substrate, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}'))
+    stack.append(rbac_role2group(
+        substrate, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}'))
 
-        # Assign users to groups
-        stack.append(rbac_user2group(
-            substrate, f'0x{USER_ID1}', f'0x{GROUP_ID1}'))
-        stack.append(rbac_user2group(
-            substrate, f'0x{USER_ID2}', f'0x{GROUP_ID2}'))
+    # Assign users to groups
+    stack.append(rbac_user2group(
+        substrate, f'0x{USER_ID1}', f'0x{GROUP_ID1}'))
+    stack.append(rbac_user2group(
+        substrate, f'0x{USER_ID2}', f'0x{GROUP_ID2}'))
 
-        # Assign roles to users
-        stack.append(rbac_role2user(
-            substrate, f'0x{ROLE_ID2}', f'0x{USER_ID3}'))
-        stack.append(rbac_role2user(
-            substrate, f'0x{ROLE_ID3}', f'0x{USER_ID3}'))
+    # Assign roles to users
+    stack.append(rbac_role2user(
+        substrate, f'0x{ROLE_ID2}', f'0x{USER_ID3}'))
+    stack.append(rbac_role2user(
+        substrate, f'0x{ROLE_ID3}', f'0x{USER_ID3}'))
 
-        # Execute extrinsic-call-stack
-        exec_stack_extrinsic_call(substrate, kp_src, stack)
-    else:
-        print("Note: skipped test setup for pallet_rbac_rpc_test")
+    # Execute extrinsic-call-stack
+    exec_stack_extrinsic_call(substrate, kp_src, stack)
 
 
 ##############################################################################
@@ -294,7 +291,7 @@ def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
     )
     data = check_ok_and_return(data, len(entity_ids))
     for i in range(0, len(names)):
-        data.index({'id': entity_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
+        data.index({'id': entity_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
 
 
 def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
@@ -313,7 +310,7 @@ def rbac_rpc_fetch_group_permissions(
         [kp_src.ss58_address, group_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
+        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
 
 
 def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
@@ -322,7 +319,7 @@ def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
         [kp_src.ss58_address, role_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'permission': perm_ids[i], 'role': role_id })
+        data.index({'permission': perm_ids[i], 'role': role_id})
 
 
 def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
@@ -350,7 +347,7 @@ def rbac_rpc_fetch_user_permissions(
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True })
+        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
 
 
 ##############################################################################

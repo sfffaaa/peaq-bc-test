@@ -4,11 +4,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 
-# This parameter may affect some test-scripts and will setup to
-# skip their test-setup procedure (to save time when running tests
-# multiple times, e.g. pallet_rbac_rpc_test.py)
-SKIP_SETUP = False
-
 TOKEN_NUM_BASE = pow(10, 3)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
@@ -26,8 +21,10 @@ ETH_URL = PARACHAIN_ETH_URL
 PEAQ_DEV_CHAIN_ID = 9999
 AGUNG_CHAIN_ID = 9999
 KREST_CHAIN_ID = 424242
+PEAQ_CHAIN_ID = 424242
 
 ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
+ETH_CHAIN_ID = PEAQ_CHAIN_ID
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
