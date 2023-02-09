@@ -3,12 +3,11 @@ import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
-import random
+import time
 
 sys.path.append('./')
 
-RANDOM_PREFIX = "%064x" % random.randrange(10 ** 80)
-RANDOM_PREFIX = RANDOM_PREFIX[:24]
+RANDOM_PREFIX = hex(int(time.time()))[2:] * 3
 
 ##############################################################################
 # Constants for global test-setup defaults
@@ -291,7 +290,11 @@ def rbac_rpc_fetch_entities(substrate, kp_src, entity, entity_ids, names):
     )
     data = check_ok_and_return(data, len(entity_ids))
     for i in range(0, len(names)):
-        data.index({'id': entity_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
+        data.index({
+            'id': entity_ids[i],
+            'name': [ord(x) for x in names[i]],
+            'enabled': True
+        })
 
 
 def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
@@ -300,7 +303,10 @@ def rbac_rpc_fetch_group_roles(substrate, kp_src, group_id, role_ids):
         [kp_src.ss58_address, group_id])
     data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        data.index({'role': role_ids[i], 'group': group_id})
+        data.index({
+            'role': role_ids[i],
+            'group': group_id
+        })
 
 
 def rbac_rpc_fetch_group_permissions(
@@ -310,7 +316,11 @@ def rbac_rpc_fetch_group_permissions(
         [kp_src.ss58_address, group_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
+        data.index({
+            'id': perm_ids[i],
+            'name': [ord(x) for x in names[i]],
+            'enabled': True
+        })
 
 
 def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
@@ -319,7 +329,10 @@ def rbac_rpc_fetch_role_permissions(substrate, kp_src, role_id, perm_ids):
         [kp_src.ss58_address, role_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'permission': perm_ids[i], 'role': role_id})
+        data.index({
+            'permission': perm_ids[i],
+            'role': role_id
+        })
 
 
 def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
@@ -328,7 +341,10 @@ def rbac_rpc_fetch_user_roles(substrate, kp_src, user_id, role_ids):
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(role_ids))
     for i in range(0, len(role_ids)):
-        data.index({'role': role_ids[i], 'user': user_id})
+        data.index({
+            'role': role_ids[i],
+            'user': user_id
+        })
 
 
 def rbac_rpc_fetch_user_groups(substrate, kp_src, user_id, group_ids):
@@ -337,7 +353,10 @@ def rbac_rpc_fetch_user_groups(substrate, kp_src, user_id, group_ids):
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(group_ids))
     for i in range(0, len(group_ids)):
-        data.index({'group': group_ids[i], 'user': user_id})
+        data.index({
+            'group': group_ids[i],
+            'user': user_id
+        })
 
 
 def rbac_rpc_fetch_user_permissions(
@@ -347,7 +366,11 @@ def rbac_rpc_fetch_user_permissions(
         [kp_src.ss58_address, user_id])
     data = check_ok_and_return(data, len(perm_ids))
     for i in range(0, len(perm_ids)):
-        data.index({'id': perm_ids[i], 'name': [ord(x) for x in names[i]], 'enabled': True})
+        data.index({
+            'id': perm_ids[i],
+            'name': [ord(x) for x in names[i]],
+            'enabled': True
+        })
 
 
 ##############################################################################

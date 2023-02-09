@@ -24,7 +24,6 @@ KREST_CHAIN_ID = 424242
 PEAQ_CHAIN_ID = 424242
 
 ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
-ETH_CHAIN_ID = PEAQ_CHAIN_ID
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
