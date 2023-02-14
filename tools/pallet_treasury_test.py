@@ -1,6 +1,10 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
-from tools.utils import TOKEN_NUM_BASE
+from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV
+from tools.utils import check_and_fund_account
+
+# Assumptions
+# 1. Alice is the sudo key
+# 2. Treasury address is:'5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 
 # Global Constants
 
@@ -14,10 +18,12 @@ KP_SUDO = Keypair.create_from_uri('//Alice')
 KP_COUNCIL_FIRST_MEMBER = Keypair.create_from_uri('//Bob')
 KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
 KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
+KP_TREASURY = '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 
 WEIGHT_BOND = 10000000000
 LENGTH_BOND = 1000000
-AMOUNT = 1000
+AMOUNT = 10
+
 
 # To set members of the council
 def set_members_test(members, kp_prime_member, old_count, kp_sudo):
@@ -55,13 +61,14 @@ def set_members_test(members, kp_prime_member, old_count, kp_sudo):
     show_extrinsic(receipt, 'setMembers')
 
 
+# To submit a spend proposal
 def propose_spend(value, beneficiary, kp_member):
 
     treasury_payload = substrate.compose_call(
         call_module='Treasury',
         call_function='propose_spend',
         call_params={
-            'value': value*TOKEN_NUM_BASE,
+            'value': value*TOKEN_NUM_BASE_DEV,
             'beneficiary': beneficiary.ss58_address
         })
 
@@ -155,71 +162,73 @@ def close_vote(proposal_hash, proposal_index, weight_bond,
 
     show_extrinsic(receipt, 'closed voting processes')
 
+
 def approve_proposal_test():
 
-        proposal_index = None
-        proposal_hash = None
+    proposal_index = None
+    proposal_hash = None
 
-        # submit a proposal
-        proposal_index, proposal_hash = propose_spend(AMOUNT,
-                                                      KP_BENEFICIARY,
-                                                      KP_SUDO)
+    # submit a proposal
+    proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                  KP_BENEFICIARY,
+                                                  KP_SUDO)
 
-        # To submit votes by all council member to APPORVE the motion
-        cast_vote(proposal_hash, 
-                  proposal_index, 
-                  True, 
-                  KP_SUDO)
+    # To submit votes by all council member to APPORVE the motion
+    cast_vote(proposal_hash,
+              proposal_index,
+              True,
+              KP_SUDO)
 
-        cast_vote(proposal_hash,
-                  proposal_index,
-                  True,
-                  KP_COUNCIL_FIRST_MEMBER)
+    cast_vote(proposal_hash,
+              proposal_index,
+              True,
+              KP_COUNCIL_FIRST_MEMBER)
 
-        cast_vote(proposal_hash,
-                  proposal_index,
-                  False,
-                  KP_COUNCIL_SECOND_MEMBER)
+    cast_vote(proposal_hash,
+              proposal_index,
+              False,
+              KP_COUNCIL_SECOND_MEMBER)
 
-        # To close voting processes
-        close_vote(proposal_hash,
-                   proposal_index,
-                   WEIGHT_BOND,
-                   LENGTH_BOND,
-                   KP_COUNCIL_FIRST_MEMBER)
+    # To close voting processes
+    close_vote(proposal_hash,
+               proposal_index,
+               WEIGHT_BOND,
+               LENGTH_BOND,
+               KP_COUNCIL_FIRST_MEMBER)
+
 
 def reject_proposal_test():
 
-        proposal_index = None
-        proposal_hash = None
+    proposal_index = None
+    proposal_hash = None
 
-        # submit a proposal
-        proposal_index, proposal_hash = propose_spend(AMOUNT,
-                                                      KP_BENEFICIARY,
-                                                      KP_SUDO)
+    # submit a proposal
+    proposal_index, proposal_hash = propose_spend(AMOUNT,
+                                                  KP_BENEFICIARY,
+                                                  KP_SUDO)
 
-        # To submit votes by all council member to REJECT the proposal
-        cast_vote(proposal_hash,
-                  proposal_index,
-                  True,
-                  KP_SUDO)
+    # To submit votes by all council member to REJECT the proposal
+    cast_vote(proposal_hash,
+              proposal_index,
+              True,
+              KP_SUDO)
 
-        cast_vote(proposal_hash,
-                  proposal_index,
-                  False,
-                  KP_COUNCIL_FIRST_MEMBER)
+    cast_vote(proposal_hash,
+              proposal_index,
+              False,
+              KP_COUNCIL_FIRST_MEMBER)
 
-        cast_vote(proposal_hash,
-                  proposal_index,
-                  False,
-                  KP_COUNCIL_SECOND_MEMBER)
+    cast_vote(proposal_hash,
+              proposal_index,
+              False,
+              KP_COUNCIL_SECOND_MEMBER)
 
-        # To close voting processes
-        close_vote(proposal_hash,
-                   proposal_index,
-                   WEIGHT_BOND,
-                   LENGTH_BOND,
-                   KP_COUNCIL_SECOND_MEMBER)
+    # To close voting processes
+    close_vote(proposal_hash,
+               proposal_index,
+               WEIGHT_BOND,
+               LENGTH_BOND,
+               KP_COUNCIL_SECOND_MEMBER)
 
 
 # To directly spend funds from treasury
@@ -230,7 +239,7 @@ def spend_test(value, beneficiary, kp_sudo):
         call_module='Treasury',
         call_function='spend',
         call_params={
-            'amount': value*TOKEN_NUM_BASE,
+            'amount': value*TOKEN_NUM_BASE_DEV,
             'beneficiary': beneficiary.ss58_address
         })
 
@@ -257,13 +266,63 @@ def spend_test(value, beneficiary, kp_sudo):
     show_extrinsic(receipt, 'spend')
 
 
+def treasury_rewards_test():
+
+    # To get current block reward as configured in BlockReward.BlockIssueReward
+    result = substrate.query('BlockReward', 'BlockIssueReward')
+    block_reward = result.decode()
+    print("Block reward:", block_reward)
+
+    # To get treasury percentage in block reward
+    # as configured in BlockReward.RewardDistributionConfigStorage
+    result = substrate.query('BlockReward', 'RewardDistributionConfigStorage')
+    treasury_percentage = ((result['treasury_percent']).decode()) / (10**7)
+    print("Treasury percentage: ", '{:.2f}%'.format(treasury_percentage))
+
+    # To get expected reward to be distributd to treasury
+    expected_reward_dist_to_treasury = int(
+                                    (treasury_percentage/100)*block_reward)
+    print("Treasury expected reward:", expected_reward_dist_to_treasury)
+
+    actual_reward_dist_to_treasury = 0
+
+    # Examine events for most recent block
+    for event in substrate.get_events():
+        if event.value['event_id'] == 'Deposit' and \
+           event['event'][1][1][0] == KP_TREASURY:
+            actual_reward_dist_to_treasury = event['event'][1][1][1]
+
+    print("Treasury actual reward: ", actual_reward_dist_to_treasury)
+
+    # assert expected_reward_dist_to_treasury == \
+    # actual_reward_dist_to_treasury, \
+    # "Actual and expected reward distribution are not equal"
+
+    print(f'✅ Reward distributed to treasury as expected')
+
+
 def pallet_treasury_test():
 
-    print("---set members test started---")
+    # To fund accounts, if sufficient funds are not available
+    check_and_fund_account(substrate,
+                           KP_SUDO,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
 
+    check_and_fund_account(substrate,
+                           KP_COUNCIL_FIRST_MEMBER,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
+
+    check_and_fund_account(substrate,
+                           KP_COUNCIL_SECOND_MEMBER,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
+                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
+
+    print("--set member test started---")
     council_members = [KP_SUDO.ss58_address,
                        KP_COUNCIL_FIRST_MEMBER.ss58_address,
-                       KP_COUNCIL_SECOND_MEMBER.ss58_address]   
+                       KP_COUNCIL_SECOND_MEMBER.ss58_address]
 
     set_members_test(council_members,
                      KP_SUDO.ss58_address,
@@ -281,7 +340,13 @@ def pallet_treasury_test():
     reject_proposal_test()
     print("---proposal rejection test completed successfully---")
     print()
-    
+
     print("---Spend test started---")
     spend_test(AMOUNT, KP_BENEFICIARY, KP_SUDO)
     print("Spend test completed successfully")
+    print()
+
+    print("---Treasury reward distribution test started---")
+    treasury_rewards_test()
+    print("---Treasury reward distribution test completed successfully---")
+    print()

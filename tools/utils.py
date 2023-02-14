@@ -10,6 +10,7 @@ from scalecodec.utils.ss58 import ss58_encode
 SKIP_SETUP = False
 
 TOKEN_NUM_BASE = pow(10, 3)
+TOKEN_NUM_BASE_DEV = pow(10, 18)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
 PARACHAIN_ETH_URL = "http://127.0.0.1:9936"
@@ -74,36 +75,6 @@ def calculate_multi_sig(kps, threshold):
     multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
     print(multi_sig_account)
     return ss58_encode(multi_sig_account.value.replace('0x', ''), 42)
-
-
-def fund(substrate, kp_dst, token_num):
-    kp_sudo = Keypair.create_from_uri('//Alice')
-
-    payload = substrate.compose_call(
-        call_module='Balances',
-        call_function='set_balance',
-        call_params={
-            'who': kp_dst.ss58_address,
-            'new_free': token_num * TOKEN_NUM_BASE,
-            'new_reserved': 0
-        }
-    )
-
-    call = substrate.compose_call(
-        call_module='Sudo',
-        call_function='sudo',
-        call_params={
-            'call': payload.value,
-        }
-    )
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_sudo
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'fund')
 
 
 def deposit_money_to_multsig_wallet(substrate, kp_consumer, kp_provider, token_num):
@@ -360,3 +331,45 @@ def calculate_evm_account(addr):
 
 def calculate_evm_addr(addr):
     return '0x' + ss58.ss58_decode(addr)[:40]
+
+def fund(substrate, kp_dst, token_num):
+    kp_sudo = Keypair.create_from_uri('//Alice')
+
+    payload = substrate.compose_call(
+        call_module='Balances',
+        call_function='set_balance',
+        call_params={
+            'who': kp_dst.ss58_address,
+            'new_free': token_num * TOKEN_NUM_BASE,
+            'new_reserved': 0
+        }
+    )
+
+    call = substrate.compose_call(
+        call_module='Sudo',
+        call_function='sudo',
+        call_params={
+            'call': payload.value,
+        }
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_sudo
+    )
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'fund')
+
+
+def get_account_balance(substrate, addr):
+    result = substrate.query("System", "Account", [addr])    
+    return int(result['data']['free'].value)
+
+def check_and_fund_account(substrate, addr, min_bal, req_bal):  
+
+    if  get_account_balance(substrate, addr.ss58_address) < min_bal: 
+        print("Since sufficinet balance is not available in account: ", addr.ss58_address)        
+        print("account will be fund with an amount equalt to :", req_bal)        
+        fund(substrate, addr, req_bal)
+        print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
+        
