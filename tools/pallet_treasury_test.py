@@ -294,30 +294,33 @@ def treasury_rewards_test():
 
     print("Treasury actual reward: ", actual_reward_dist_to_treasury)
 
-    # assert expected_reward_dist_to_treasury == \
-    # actual_reward_dist_to_treasury, \
-    # "Actual and expected reward distribution are not equal"
+    # In future, after we introduce the transaction fee
+    # into the reward system, this equation will not works
+    # and hence this test needs to be updated accordingly
+    assert expected_reward_dist_to_treasury == \
+        actual_reward_dist_to_treasury, \
+        "Actual and expected reward distribution are not equal"
 
     print(f'✅ Reward distributed to treasury as expected')
 
 
 def pallet_treasury_test():
 
-    # To fund accounts, if sufficient funds are not available
+    # To fund accounts, if sufficient  funds are not available
     check_and_fund_account(substrate,
                            KP_SUDO,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV,
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
     check_and_fund_account(substrate,
                            KP_COUNCIL_FIRST_MEMBER,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV,
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
     check_and_fund_account(substrate,
                            KP_COUNCIL_SECOND_MEMBER,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV,
-                           100*AMOUNT*TOKEN_NUM_BASE_DEV)
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV,
+                           100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
     print("--set member test started---")
     council_members = [KP_SUDO.ss58_address,
