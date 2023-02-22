@@ -38,12 +38,12 @@ def setup_block_reward(substrate, kp_src, block_reward):
     show_extrinsic(receipt, 'set reward')
 
 
-def set_hard_cap(substrate, kp_src, hard_cap):
+def set_max_currency_supply(substrate, kp_src, max_currency_supply):
     payload = substrate.compose_call(
         call_module='BlockReward',
-        call_function='set_hard_cap',
+        call_function='set_max_currency_supply',
         call_params={
-            'limit': hard_cap
+            'limit': max_currency_supply
         }
     )
 
@@ -63,7 +63,7 @@ def set_hard_cap(substrate, kp_src, hard_cap):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     if not receipt.is_success:
         raise IOError('cannot setup the receipt')
-    show_extrinsic(receipt, 'set hard_cap')
+    show_extrinsic(receipt, 'set max_currency_supply')
 
 
 def pallet_change_block_reward():
@@ -97,18 +97,18 @@ def pallet_change_block_reward():
         sys.exit()
 
 
-def pallet_change_hard_cap():
-    print('---- change hard cap!! ----')
+def pallet_change_max_currency_supply():
+    print('---- change max currency supply!! ----')
     try:
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
-            hard_cap = substrate.query(
+            max_currency_supply = substrate.query(
                 module='BlockReward',
-                storage_function='HardCap',
+                storage_function='MaxCurrencySupply',
             )
-            print(f'Current hardcap: {hard_cap}')
-            new_hard_cap = 500
-            set_hard_cap(substrate, kp_src, new_hard_cap)
+            print(f'Current max-currency-supply: {max_currency_supply}')
+            new_max_currency_supply = 500
+            set_max_currency_supply(substrate, kp_src, new_max_currency_supply)
 
             time.sleep(WAIT_TIME_PERIOD)
 
@@ -120,7 +120,7 @@ def pallet_change_hard_cap():
                 if int(str(now_reward)) != 0:
                     raise IOError('Cannot get the correct number')
 
-            set_hard_cap(substrate, kp_src, hard_cap)
+            set_max_currency_supply(substrate, kp_src, max_currency_supply)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -129,7 +129,7 @@ def pallet_change_hard_cap():
 
 def pallet_block_reward_tests():
     pallet_change_block_reward()
-    pallet_change_hard_cap()
+    pallet_change_max_currency_supply()
 
 
 if __name__ == '__main__':
