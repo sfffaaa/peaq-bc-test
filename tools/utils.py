@@ -324,6 +324,10 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
+    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0)
+
+
+def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     call = substrate.compose_call(
@@ -338,6 +342,7 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
         call=call,
         keypair=kp_src,
         era={'period': 64},
+        tip=tip * TOKEN_NUM_BASE,
         nonce=nonce
     )
 
@@ -346,6 +351,7 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError
+    return receipt
 
 
 def calculate_evm_account(addr):
@@ -356,3 +362,8 @@ def calculate_evm_account(addr):
 
 def calculate_evm_addr(addr):
     return '0x' + ss58.ss58_decode(addr)[:40]
+
+
+def get_account_balance(substrate, addr):
+    result = substrate.query("System", "Account", [addr])
+    return int(result['data']['free'].value)
