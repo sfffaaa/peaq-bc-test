@@ -327,7 +327,10 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
     return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0)
 
 
-def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip):
+def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base=0):
+    if not token_base:
+        token_base = TOKEN_NUM_BASE
+
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     call = substrate.compose_call(
@@ -335,14 +338,14 @@ def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip):
         call_function='transfer',
         call_params={
             'dest': kp_dst_addr,
-            'value': token_num * TOKEN_NUM_BASE
+            'value': token_num * token_base
         })
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
         keypair=kp_src,
         era={'period': 64},
-        tip=tip * TOKEN_NUM_BASE,
+        tip=tip * token_base,
         nonce=nonce
     )
 
