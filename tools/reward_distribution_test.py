@@ -17,7 +17,6 @@ TIP = 10 ** 20
 
 
 def _check_transaction_fee_reward_event(substrate, block_hash, tip):
-    # Check the event
     for event in substrate.get_events(block_hash):
         if event.value['module_id'] != 'BlockReward' or \
            event.value['event_id'] != 'TransactionFeesDistributed':
@@ -32,7 +31,6 @@ def _check_transaction_fee_reward_event(substrate, block_hash, tip):
 
 
 def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
-    # Check collator's balance
     now_balance = get_account_balance(substrate, addr)
     real_rate = (now_balance - prev_balance) / (tip * COLLATOR_REWARD_RATE) - 1
     if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
@@ -42,11 +40,11 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
 def transaction_fee_reward_test():
     print('---- transaction reward test!! ----')
     try:
-        with SubstrateInterface(url=WS_URL) as substrate:
-            kp_src = Keypair.create_from_uri('//Alice')
-            kp_bob = Keypair.create_from_uri('//Bob')
-            kp_charlie = Keypair.create_from_uri('//Charlie')
+        kp_src = Keypair.create_from_uri('//Alice')
+        kp_bob = Keypair.create_from_uri('//Bob')
+        kp_charlie = Keypair.create_from_uri('//Charlie')
 
+        with SubstrateInterface(url=WS_URL) as substrate:
             block_reward = substrate.query(
                 module='BlockReward',
                 storage_function='BlockIssueReward',
