@@ -7,7 +7,6 @@ from tools.utils import show_extrinsic, WS_URL
 
 COLLATOR_REWARD_RATE = 0.1
 WAIT_TIME_PERIOD = 12 * 3
-# from tools.pallet_assets_test import pallet_assets_test
 
 
 def setup_block_reward(substrate, kp_src, block_reward):
