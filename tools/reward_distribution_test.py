@@ -16,6 +16,29 @@ REWARD_ERROR = 0.0001
 TIP = 10 ** 20
 
 
+def _check_transaction_fee_reward_event(substrate, block_hash, tip):
+    # Check the event
+    for event in substrate.get_events(block_hash):
+        if event.value['module_id'] != 'BlockReward' or \
+           event.value['event_id'] != 'TransactionFeesDistributed':
+            continue
+        now_reward = int(str(event['event'][1][1]))
+        break
+    if not now_reward:
+        raise IOError('Cannot find the block event for transaction reward')
+    real_rate = (now_reward - tip) / tip
+    if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
+        raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+
+
+def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
+    # Check collator's balance
+    now_balance = get_account_balance(substrate, addr)
+    real_rate = (now_balance - prev_balance) / (tip * COLLATOR_REWARD_RATE) - 1
+    if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
+        raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+
+
 def transaction_fee_reward_test():
     print('---- transaction reward test!! ----')
     try:
@@ -34,29 +57,13 @@ def transaction_fee_reward_test():
 
             time.sleep(WAIT_TIME_PERIOD)
             prev_balance = get_account_balance(substrate, kp_src.ss58_address)
-            receipt = transfer_with_tip(substrate, kp_bob, kp_charlie.ss58_address, 1, TIP / TOKEN_NUM_BASE)
-            now_reward = 0
+            receipt = transfer_with_tip(
+                substrate, kp_bob, kp_charlie.ss58_address,
+                1 * TOKEN_NUM_BASE, TIP, 1)
 
-            # Check the event
-            for event in substrate.get_events(receipt.block_hash):
-                if event.value['module_id'] != 'BlockReward' or \
-                   event.value['event_id'] != 'TransactionFeesDistributed':
-                    continue
-                now_reward = int(str(event['event'][1][1]))
-                break
-            if not now_reward:
-                raise IOError('Cannot find the block event for transaction reward')
-            real_rate = (now_reward - TIP) / TIP
-            if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-                raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
-
+            _check_transaction_fee_reward_event(substrate, receipt.block_hash, TIP)
             time.sleep(WAIT_TIME_PERIOD)
-
-            # Check collator's balance
-            now_balance = get_account_balance(substrate, kp_src.ss58_address)
-            real_rate = (now_balance - prev_balance) / (TIP * COLLATOR_REWARD_RATE) - 1
-            if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-                raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+            _check_transaction_fee_reward_balance(substrate, kp_src.ss58_address, prev_balance, TIP)
 
             setup_block_reward(substrate, kp_src, block_reward)
             print('✅✅✅transaction fee reward test pass')
