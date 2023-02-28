@@ -7,7 +7,6 @@ from tools.utils import show_extrinsic, WS_URL
 
 COLLATOR_REWARD_RATE = 0.1
 WAIT_TIME_PERIOD = 12 * 3
-# from tools.pallet_assets_test import pallet_assets_test
 
 
 def setup_block_reward(substrate, kp_src, block_reward):
@@ -66,37 +65,6 @@ def set_max_currency_supply(substrate, kp_src, max_currency_supply):
     show_extrinsic(receipt, 'set max_currency_supply')
 
 
-def pallet_change_block_reward():
-    print('---- change block reward!! ----')
-    try:
-        with SubstrateInterface(url=WS_URL) as substrate:
-            kp_src = Keypair.create_from_uri('//Alice')
-            block_reward = substrate.query(
-                module='BlockReward',
-                storage_function='BlockIssueReward',
-            )
-            print(f'Current reward: {block_reward}')
-            new_set_reward = 500
-            setup_block_reward(substrate, kp_src, new_set_reward)
-
-            time.sleep(WAIT_TIME_PERIOD)
-
-            for event in substrate.get_events():
-                if event.value['module_id'] != 'ParachainStaking' or \
-                   event.value['event_id'] != 'Rewarded':
-                    continue
-                now_reward = event['event'][1][1][1]
-                if int(str(now_reward)) * 1 / COLLATOR_REWARD_RATE != new_set_reward:
-                    print(f'{int(str(now_reward)) * 10} v.s. {new_set_reward}')
-                    raise IOError('Cannot get the correct number')
-
-            setup_block_reward(substrate, kp_src, block_reward)
-
-    except ConnectionRefusedError:
-        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
-        sys.exit()
-
-
 def pallet_change_max_currency_supply():
     print('---- change max currency supply!! ----')
     try:
@@ -127,10 +95,9 @@ def pallet_change_max_currency_supply():
         sys.exit()
 
 
-def pallet_block_reward_tests():
-    pallet_change_block_reward()
+def pallet_block_reward_test():
     pallet_change_max_currency_supply()
 
 
 if __name__ == '__main__':
-    pallet_block_reward_tests()
+    pallet_block_reward_test()
