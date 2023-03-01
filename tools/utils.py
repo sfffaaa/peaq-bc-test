@@ -4,11 +4,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 
-# This parameter may affect some test-scripts and will setup to
-# skip their test-setup procedure (to save time when running tests
-# multiple times, e.g. pallet_rbac_rpc_test.py)
-SKIP_SETUP = False
-
 TOKEN_NUM_BASE = pow(10, 3)
 TOKEN_NUM_BASE_DEV = pow(10, 18)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
@@ -27,6 +22,7 @@ ETH_URL = PARACHAIN_ETH_URL
 PEAQ_DEV_CHAIN_ID = 9999
 AGUNG_CHAIN_ID = 9999
 KREST_CHAIN_ID = 424242
+PEAQ_CHAIN_ID = 424242
 
 ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
 
@@ -299,6 +295,13 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
+    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0)
+
+
+def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base=0):
+    if not token_base:
+        token_base = TOKEN_NUM_BASE
+
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     call = substrate.compose_call(
@@ -306,13 +309,14 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
         call_function='transfer',
         call_params={
             'dest': kp_dst_addr,
-            'value': token_num * TOKEN_NUM_BASE
+            'value': token_num * token_base
         })
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
         keypair=kp_src,
         era={'period': 64},
+        tip=tip * token_base,
         nonce=nonce
     )
 
@@ -321,6 +325,7 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError
+    return receipt
 
 
 def calculate_evm_account(addr):
