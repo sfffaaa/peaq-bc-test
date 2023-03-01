@@ -24,6 +24,8 @@ WEIGHT_BOND = 10000000000
 LENGTH_BOND = 1000000
 AMOUNT = 10
 
+DIVISION_FACTOR = pow(10,7)
+
 
 # To set members of the council
 def set_members_test(members, kp_prime_member, old_count, kp_sudo):
@@ -276,7 +278,7 @@ def treasury_rewards_test():
     # To get treasury percentage in block reward
     # as configured in BlockReward.RewardDistributionConfigStorage
     result = substrate.query('BlockReward', 'RewardDistributionConfigStorage')
-    treasury_percentage = ((result['treasury_percent']).decode()) / (10**7)
+    treasury_percentage = ((result['treasury_percent']).decode()) / DIVISION_FACTOR
     print("Treasury percentage: ", '{:.2f}%'.format(treasury_percentage))
 
     # To get expected reward to be distributd to treasury
@@ -306,6 +308,8 @@ def treasury_rewards_test():
 
 def pallet_treasury_test():
 
+    print('----Start of pallet_treasury_test!! ----')
+    print()
     # To fund accounts, if sufficient  funds are not available
     check_and_fund_account(substrate,
                            KP_SUDO,
@@ -353,3 +357,6 @@ def pallet_treasury_test():
     treasury_rewards_test()
     print("---Treasury reward distribution test completed successfully---")
     print()
+
+    print('---- End of pallet_treasury_test!! ----')
+    
