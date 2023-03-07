@@ -5,6 +5,7 @@ from tools.utils import check_and_fund_account
 
 # Assumptions
 # 1. Alice is the sudo key
+# 2. Parachain block generation time is 12 Secs
 
 
 # Global Constants
@@ -17,22 +18,22 @@ substrate = SubstrateInterface(
 # accounts to carty out diffirent transactions
 KP_SUDO = Keypair.create_from_uri('//Alice')
 KP_SOURCE = Keypair.create_from_uri('//Bob')
-KP_TARGET_FIRST = Keypair.create_from_uri('//Dave')
-KP_TARGET_SECOND = Keypair.create_from_uri('//Eve')
+KP_TARGET_FIRST = Keypair.create_from_uri('//Charlie')
+KP_TARGET_SECOND = Keypair.create_from_uri('//Dave')
+KP_TARGET_THIRD = Keypair.create_from_uri('//Eve')
 
+
+# Schedule transfer of some amount from a souce to target account
 def vested_transfer_test(kp_soucre, kp_target, schedule):
 
-    print('--Start of vested_transfer_test--')
-    print()
-
     call = substrate.compose_call(
-        call_module = 'Vesting', 
-        call_function = 'vested_transfer',
-        call_params = {
-            'target':kp_target.ss58_address,
+        call_module='Vesting',
+        call_function='vested_transfer',
+        call_params={
+            'target': kp_target.ss58_address,
             'schedule': schedule
         }
-    )  
+    )
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -48,24 +49,19 @@ def vested_transfer_test(kp_soucre, kp_target, schedule):
 
     show_extrinsic(receipt, 'vestedTranser')
 
-    print()
-    print('--End of vested_transfer_test--')
-    print()
 
+# Forced Schedule transfer of some amount from a souce to target account
 def force_vested_transfer_test(kp_source, kp_target, kp_sudo, schedule):
 
-    print('--Start of forced_vested_transfer_test--')
-    print()   
-
-    payload= substrate.compose_call(
-        call_module = 'Vesting', 
-        call_function = 'force_vested_transfer',
-        call_params = {
+    payload = substrate.compose_call(
+        call_module='Vesting',
+        call_function='force_vested_transfer',
+        call_params={
             'source': kp_source.ss58_address,
-            'target':kp_target.ss58_address,
+            'target': kp_target.ss58_address,
             'schedule': schedule
         }
-    )  
+    )
 
     call = substrate.compose_call(
         call_module='Sudo',
@@ -88,20 +84,14 @@ def force_vested_transfer_test(kp_source, kp_target, kp_sudo, schedule):
 
     show_extrinsic(receipt, 'forced_vested_transer')
 
-    print()
-    print('--End of forced_vested_transfer_test--')
-    print()    
 
-
+# Actual transfer of funds that were previouls scheduled to be released
 def vest_test(kp_source):
 
-    print('--Start of vest_test--')
-    print()
-
     call = substrate.compose_call(
-        call_module = 'Vesting', 
-        call_function = 'vest',        
-    )  
+        call_module='Vesting',
+        call_function='vest',
+    )
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -117,22 +107,17 @@ def vest_test(kp_source):
 
     show_extrinsic(receipt, 'vest')
 
-    print()
-    print('--End of vest_test--')
-    print()
 
+# Force actual transfer of funds that were previouls scheduled to be released
 def vest_other_test(kp_source, kp_sudo):
 
-    print('--Start of vest_other_test--')
-    print()
-
     call = substrate.compose_call(
-        call_module = 'Vesting', 
-        call_function = 'vest_other',    
+        call_module='Vesting',
+        call_function='vest_other',
         call_params={
             'target': kp_source.ss58_address
-        }    
-    )  
+        }
+    )
 
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -148,23 +133,48 @@ def vest_other_test(kp_source, kp_sudo):
 
     show_extrinsic(receipt, 'vest_other')
 
-    print()
-    print('--End of vest_other_test--')
-    print()       
 
+# To merge two scheduled transfed into one
+def merge_schedules_test(kp_source, kp_target, kp_sudo,
+                         first_schedule, second_schedule):
 
-def merge_schedule_test():
+    print("First vested trasnfer")
+    vested_transfer_test(kp_source, kp_target, first_schedule)
 
-    print('--Start of merge_schedule_test--')
-    print()
+    print("Seond vested trasnfer")
+    vested_transfer_test(kp_source, kp_target, second_schedule)
 
-    print('--End of merge_schedule_test--')
-    print()   
+    print("Merge Schedule for first and second vested transfer")
+
+    call = substrate.compose_call(
+        call_module='Vesting',
+        call_function='merge_schedules',
+        call_params={
+            'schedule1_index': 0,
+            'schedule2_index': 1
+        }
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_target,
+        era={'period': 64},
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+
+    show_extrinsic(receipt, 'merge_schedule')
+
 
 def pallet_vesting_test():
-    
+
+    print()
     print('----Start of pallet_vesting_test!! ----')
-    print()  
+    print()
 
     # To fund accounts, if sufficient  funds are not available
     check_and_fund_account(substrate,
@@ -173,45 +183,122 @@ def pallet_vesting_test():
                            1000 * TOKEN_NUM_BASE_DEV)
 
     check_and_fund_account(substrate,
-                           KP_SOURCE,                            
+                           KP_SOURCE,
                            1000 * TOKEN_NUM_BASE_DEV,
                            1000 * TOKEN_NUM_BASE_DEV,)
 
+    block_header = substrate.get_block_header()
+    current_block_number = int(block_header['header']['number'])
 
-    block_header=substrate.get_block_header()    
-    current_block_number= int(block_header['header']['number'])
-    starting_block_number = current_block_number+10
+    first_starting_block_number = current_block_number+10
+    second_starting_block_number = current_block_number+10
+
     print("Current Block: ", current_block_number)
-    print("Starting Block: ", starting_block_number)        
-    
-    schedule={'locked':100*TOKEN_NUM_BASE_DEV, 'per_block':10*TOKEN_NUM_BASE_DEV, 'starting_block':starting_block_number}   
 
-    vested_transfer_test(
-                            KP_SUDO,
-                            KP_TARGET_FIRST, 
-                            schedule        
-    )
+    # Starting block numbers of transfer schedules
+    print("Starting Block Number of first schedule: ",
+          first_starting_block_number)
+    print("Starting Block Number of second schedule: ",
+          second_starting_block_number)
+
+    first_schedule = {'locked': 100*TOKEN_NUM_BASE_DEV,
+                      'per_block': 10*TOKEN_NUM_BASE_DEV,
+                      'starting_block': first_starting_block_number}
+    second_schedule = {'locked': 200*TOKEN_NUM_BASE_DEV,
+                       'per_block': 20*TOKEN_NUM_BASE_DEV,
+                       'starting_block': second_starting_block_number}
+
+    print()
+    print('--Start of vested_transfer_test--')
+    print()
+
+    vested_transfer_test(KP_SUDO,
+                         KP_TARGET_FIRST,
+                         first_schedule)
+
+    print()
+    print('--End of vested_transfer_test--')
+    print()
+
+    print('--Start of forced_vested_transfer_test--')
+    print()
 
     force_vested_transfer_test(
                                 KP_SOURCE,
                                 KP_TARGET_SECOND,
                                 KP_SUDO,
-                                schedule                             
+                                second_schedule
     )
 
-    while starting_block_number>current_block_number:                
-        block_header=substrate.get_block_header()    
-        current_block_number= int(block_header['header']['number'])    
-        print("Current Block: ", current_block_number)           
-        time.sleep( (starting_block_number-current_block_number) * 12)    
-   
-    vest_test(KP_TARGET_FIRST )
+    print()
+    print('--End of forced_vested_transfer_test--')
+    print()
 
-    vest_other_test(KP_TARGET_SECOND, KP_SUDO)    
-    
-    merge_schedule_test()
+    # Wait till the time staring block number is finalized
+    print("We need to wait till finzlization of block: ",
+          max(first_starting_block_number, second_starting_block_number))
+
+    while max(first_starting_block_number, second_starting_block_number) \
+            > current_block_number:
+
+        block_header = substrate.get_block_header()
+        current_block_number = int(block_header['header']['number'])
+        print("Current Block: ", current_block_number)
+        time.sleep((max(first_starting_block_number,
+                        second_starting_block_number)
+                   - current_block_number+1)*12)
+
+    print('--Start of vest_test--')
+    print()
+
+    vest_test(KP_TARGET_FIRST)
 
     print()
+    print('--End of vest_test--')
+    print()
+
+    print('--Start of vest_other_test--')
+    print()
+
+    vest_other_test(KP_TARGET_SECOND, KP_SUDO)
+
+    print()
+    print('--End of vest_other_test--')
+    print()
+
+    print('--Start of merge_schedules_test--')
+    print()
+
+    block_header = substrate.get_block_header()
+    current_block_number = int(block_header['header']['number'])
+    first_starting_block_number = current_block_number+10
+    second_starting_block_number = current_block_number+20
+    print("Current Block: ", current_block_number)
+    print("Starting Block Number of first schedule: ",
+          first_starting_block_number)
+    print("Starting Block Number of second schedule: ",
+          second_starting_block_number)
+    print("New schedule should start at block number:",
+          max(first_starting_block_number, second_starting_block_number))
+
+    first_schedule = {'locked': 100 * TOKEN_NUM_BASE_DEV,
+                      'per_block': 10 * TOKEN_NUM_BASE_DEV,
+                      'starting_block': first_starting_block_number}
+    second_schedule = {'locked': 200 * TOKEN_NUM_BASE_DEV,
+                       'per_block': 20 * TOKEN_NUM_BASE_DEV,
+                       'starting_block': second_starting_block_number}
+
+    # First and second schedules will be merged
+    # in one schedule
+    merge_schedules_test(KP_SOURCE,
+                         KP_TARGET_THIRD,
+                         KP_SUDO,
+                         first_schedule,
+                         second_schedule)
+
+    print()
+    print('--End of merge_schedules_test--')
+    print()
+
     print('----End of pallet_vesting_test!! ----')
     print()
-    
