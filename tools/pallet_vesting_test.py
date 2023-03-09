@@ -208,13 +208,44 @@ def pallet_vesting_test():
                        'per_block': 20*TOKEN_NUM_BASE_DEV,
                        'starting_block': second_starting_block_number}
 
+    vested_transfer_amount = 0
+    free_bal_before_vested_transfer = 0
+    free_bal_after_vested_transfer = 0
+    locked_bal_before_vest = 0
+    locked_bal_after_vest = 0
+
     print()
     print('--Start of vested_transfer_test--')
     print()
 
+    vested_transfe_amount = int(first_schedule['locked'])
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_FIRST.ss58_address])
+    free_bal_before_vested_transfer = int(result.value['data']['free'])
+
+    print("Free Balance before vested transfer:",
+          free_bal_before_vested_transfer)
+    print("Vested transer amount: ", vested_transfe_amount)
+
     vested_transfer_test(KP_SUDO,
                          KP_TARGET_FIRST,
                          first_schedule)
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_FIRST.ss58_address])
+    free_bal_after_vested_transfer = int(result.value['data']['free'])
+
+    print("Free Balance after vested transfer:",
+          free_bal_after_vested_transfer)
+
+    # Free balance after vested transfer should be equal to the sum of
+    # free balance before transer and vested amount transfer
+    assert free_bal_after_vested_transfer == \
+        free_bal_before_vested_transfer+vested_transfe_amount, \
+        "Vested tranfer amount not added to destination account"
 
     print()
     print('--End of vested_transfer_test--')
@@ -223,12 +254,37 @@ def pallet_vesting_test():
     print('--Start of forced_vested_transfer_test--')
     print()
 
+    vested_transfe_amount = int(second_schedule['locked'])
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_SECOND.ss58_address])
+    free_bal_before_vested_transfer = int(result.value['data']['free'])
+
+    print("Free Balance before vested transfer:",
+          free_bal_before_vested_transfer)
+    print("Vested transer amount: ", vested_transfe_amount)
+
     force_vested_transfer_test(
                                 KP_SOURCE,
                                 KP_TARGET_SECOND,
                                 KP_SUDO,
                                 second_schedule
     )
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_SECOND.ss58_address])
+    free_bal_after_vested_transfer = int(result.value['data']['free'])
+
+    print("Free Balance after vested transfer:",
+          free_bal_after_vested_transfer)
+
+    # Free balance after foreced vested transfer should be equal to the sum of
+    # free balance before forced vested transer and vested amount transfer
+    assert free_bal_after_vested_transfer == \
+        free_bal_before_vested_transfer+vested_transfe_amount, \
+        "Vested tranfer amount not added to destination account"
 
     print()
     print('--End of forced_vested_transfer_test--')
@@ -251,7 +307,30 @@ def pallet_vesting_test():
     print('--Start of vest_test--')
     print()
 
+    vested_transfe_amount = int(first_schedule['locked'])
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_FIRST.ss58_address])
+    locked_bal_before_vest = int(result.value['data']['misc_frozen'])
+
+    print("Locked balance before vest: ", locked_bal_before_vest)
+    print("Vested transer amount: ", vested_transfe_amount)
+
     vest_test(KP_TARGET_FIRST)
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_FIRST.ss58_address])
+    locked_bal_after_vest = int(result.value['data']['misc_frozen'])
+
+    print("Locked balance after vest: ", locked_bal_after_vest)
+
+    # Lock balance after vest must be less than locked balance before vest
+    # We can not make an exact comaparison here, since se do not know if
+    # there are some other vested_transfer amount avaiable in the same acccount
+    assert locked_bal_before_vest > locked_bal_after_vest, \
+        "Vested amount still not released"
 
     print()
     print('--End of vest_test--')
@@ -260,7 +339,30 @@ def pallet_vesting_test():
     print('--Start of vest_other_test--')
     print()
 
+    vested_transfe_amount = int(second_schedule['locked'])
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_SECOND.ss58_address])
+    locked_bal_before_vest = int(result.value['data']['misc_frozen'])
+
+    print("Locked balance before vest: ", locked_bal_before_vest)
+    print("Vested transer amount: ", vested_transfe_amount)
+
     vest_other_test(KP_TARGET_SECOND, KP_SUDO)
+
+    result = substrate.query('System',
+                             'Account',
+                             [KP_TARGET_SECOND.ss58_address])
+    locked_bal_after_vest = int(result.value['data']['misc_frozen'])
+
+    print("Locked balance after vest: ", locked_bal_after_vest)
+
+    # Lock balance after vest must be less than locked balance before vest
+    # We can not make an exact comaparison here, since se do not know if
+    # there are some other vested_transfer amount avaiable in the same acccount
+    assert locked_bal_before_vest > locked_bal_after_vest, \
+        "Vested amount still not released"
 
     print()
     print('--End of vest_other_test--')
