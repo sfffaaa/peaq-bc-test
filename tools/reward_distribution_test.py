@@ -14,8 +14,11 @@ WAIT_TIME_PERIOD = WAIT_ONLY_ONE_BLOCK_PERIOD * 3
 REWARD_PERCENTAGE = 0.5
 REWARD_ERROR = 0.0001
 TIP = 10 ** 20
+FEE_MIN_LIMIT = 30 * 10**9  # 30nPEAQ
+FEE_MAX_LIMIT = 90 * 10**9  # 90nPEAQ
 
 
+# TODO: improve testing fees, by using fee-model, when ready...
 def _check_transaction_fee_reward_event(substrate, block_hash, tip):
     for event in substrate.get_events(block_hash):
         if event.value['module_id'] != 'BlockReward' or \
@@ -25,16 +28,23 @@ def _check_transaction_fee_reward_event(substrate, block_hash, tip):
         break
     if not now_reward:
         raise IOError('Cannot find the block event for transaction reward')
-    real_rate = (now_reward - tip) / tip
-    if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-        raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+    # real_rate = (now_reward - tip) / tip
+    fee_wo_tip = now_reward - tip
+    # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
+		# raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+    if fee_wo_tip < FEE_MIN_LIMIT or fee_wo_tip > FEE_MAX_LIMIT:
+        raise IOError(f'The transaction fee w/o tip is out of limit: {fee_wo_tip}')
+            
 
-
+# TODO: improve testing fees, by using fee-model, when ready
 def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
     now_balance = get_account_balance(substrate, addr)
-    real_rate = (now_balance - prev_balance) / (tip * COLLATOR_REWARD_RATE) - 1
-    if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-        raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+    # real_rate = (now_balance - prev_balance) / (tip * COLLATOR_REWARD_RATE) - 1
+    # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
+    #     raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+    rewards_wo_tip = (now_balance - prev_balance - tip * COLLATOR_REWARD_RATE) / COLLATOR_REWARD_RATE 
+    if rewards_wo_tip < FEE_MIN_LIMIT or rewards_wo_tip > FEE_MAX_LIMIT:
+        raise IOError(f'The transaction fee w/o tip is out of limit: {rewards_wo_tip}')
 
 
 def transaction_fee_reward_test():
