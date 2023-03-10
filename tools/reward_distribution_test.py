@@ -134,7 +134,7 @@ def block_reward_test():
 
 
 def reward_distribution_test():
-    # block_reward_test()
+    block_reward_test()
     transaction_fee_reward_test()
 
 
