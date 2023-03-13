@@ -20,25 +20,9 @@ KP_SUDO = Keypair.create_from_uri('//Alice')
 KP_SOURCE = Keypair.create_from_uri('//Bob')
 KP_TARGET = Keypair.create_from_uri('//Dave')
 KP_TARGET_SECOND = Keypair.create_from_uri('//Eve')
-
-# Global variables
-free_bal_before_transfer = 0
-free_bal_after_transfer = 0
-
-locked_bal_before_vest = 0
-locked_bal_after_vest = 0
-
-transfer_amount = 100*TOKEN_NUM_BASE_DEV
-per_block_amount = 20*TOKEN_NUM_BASE_DEV
-number_of_blocks_to_wait = math.ceil(transfer_amount / per_block_amount)
-current_block_number = 0
-starting_block_number = 0
-
-schedule = {
-        'locked': 0,
-        'per_block': 0,
-        'starting_block': 0
-    }
+TRANSFER_AMOUNT = 100*TOKEN_NUM_BASE_DEV
+PER_BLOCK_AMOUNT = 20*TOKEN_NUM_BASE_DEV
+NO_OF_BLOCKS_TO_WAIT = math.ceil(TRANSFER_AMOUNT / PER_BLOCK_AMOUNT)
 
 
 # Schedule transfer of some amount from a souce to target account
@@ -198,19 +182,19 @@ def vested_transfer_test():
     current_block_number = int(block_header['header']['number'])
     starting_block_number = current_block_number + 5
 
-    schedule['locked'] = transfer_amount
-    schedule['per_block'] = per_block_amount
-    schedule['starting_block'] = starting_block_number
+    schedule = {
+        'locked': TRANSFER_AMOUNT,
+        'per_block': PER_BLOCK_AMOUNT,
+        'starting_block': starting_block_number
+    }
 
     print("Current Block: ", current_block_number)
-
-    # Starting block numbers of transfer schedules
     print("Starting Block Number of schedule: ",
           starting_block_number)
 
     print("Free Balance before vested transfer:",
           free_bal_before_transfer)
-    print("Vested transer amount: ", transfer_amount)
+    print("Vested transer amount: ", TRANSFER_AMOUNT)
 
     vested_transfer(KP_SUDO,
                     KP_TARGET,
@@ -225,21 +209,21 @@ def vested_transfer_test():
     # Free balance after vested transfer should be equal to the sum of
     # free balance before transer and vested amount transfer
     assert free_bal_after_transfer == \
-        free_bal_before_transfer+transfer_amount, \
+        free_bal_before_transfer+TRANSFER_AMOUNT, \
         "Vested tranfer amount not added to destination account"
 
     # Vest all the funds
     # Wait till the time ending block number is fianlized
     print("We need to wait till finzlization of block: ",
-          starting_block_number+number_of_blocks_to_wait)
+          starting_block_number+NO_OF_BLOCKS_TO_WAIT)
 
-    while (starting_block_number+number_of_blocks_to_wait) >= \
+    while (starting_block_number+NO_OF_BLOCKS_TO_WAIT) >= \
             current_block_number:
 
         block_header = substrate.get_block_header()
         current_block_number = int(block_header['header']['number'])
         print("Current Block: ", current_block_number)
-        time.sleep((starting_block_number + number_of_blocks_to_wait
+        time.sleep((starting_block_number + NO_OF_BLOCKS_TO_WAIT
                     - current_block_number+1)*12)
 
     locked_bal_before_vest = \
@@ -255,7 +239,7 @@ def vested_transfer_test():
     print("Locked balance after vest: ", locked_bal_after_vest)
 
     # All the vested amount is released
-    assert locked_bal_before_vest-locked_bal_after_vest == transfer_amount, \
+    assert locked_bal_before_vest-locked_bal_after_vest == TRANSFER_AMOUNT, \
         "Vested amount still not released"
 
 
@@ -269,19 +253,19 @@ def forced_vested_transfer_test():
     current_block_number = int(block_header['header']['number'])
     starting_block_number = current_block_number + 5
 
-    schedule['locked'] = transfer_amount
-    schedule['per_block'] = per_block_amount
-    schedule['starting_block'] = starting_block_number
+    schedule = {
+        'locked': TRANSFER_AMOUNT,
+        'per_block': PER_BLOCK_AMOUNT,
+        'starting_block': starting_block_number
+    }
 
     print("Current Block: ", current_block_number)
-
-    # Starting block numbers of transfer schedules
     print("Starting Block Number of schedule: ",
           starting_block_number)
 
     print("Free Balance before forced vested transfer:",
           free_bal_before_transfer)
-    print("Vested transer amount: ", transfer_amount)
+    print("Vested transer amount: ", TRANSFER_AMOUNT)
 
     force_vested_transfer(KP_SOURCE,
                           KP_TARGET,
@@ -297,20 +281,20 @@ def forced_vested_transfer_test():
     # Free balance after forced vested transfer should be equal to the sum of
     # free balance before forced vested transer and vested amount transfer
     assert free_bal_after_transfer == \
-        free_bal_before_transfer+transfer_amount, \
+        free_bal_before_transfer+TRANSFER_AMOUNT, \
         "Vested tranfer amount not added to destination account"
 
     # Vest all the funds through vest_others
     print("We need to wait till finzlization of block: ",
-          starting_block_number+number_of_blocks_to_wait)
+          starting_block_number+NO_OF_BLOCKS_TO_WAIT)
 
-    while (starting_block_number+number_of_blocks_to_wait) >= \
+    while (starting_block_number+NO_OF_BLOCKS_TO_WAIT) >= \
             current_block_number:
 
         block_header = substrate.get_block_header()
         current_block_number = int(block_header['header']['number'])
         print("Current Block: ", current_block_number)
-        time.sleep((starting_block_number + number_of_blocks_to_wait
+        time.sleep((starting_block_number + NO_OF_BLOCKS_TO_WAIT
                    - current_block_number+1)*12)
 
     locked_bal_before_vest = \
@@ -327,7 +311,7 @@ def forced_vested_transfer_test():
     print("Locked balance after vest: ", locked_bal_after_vest)
 
     # All the vested amount is released
-    assert locked_bal_before_vest-locked_bal_after_vest == transfer_amount, \
+    assert locked_bal_before_vest-locked_bal_after_vest == TRANSFER_AMOUNT, \
         "Vested amount still not released"
 
 
