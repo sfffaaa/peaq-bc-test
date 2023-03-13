@@ -2,24 +2,43 @@ import time
 import math
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV
+from tools.utils import get_account_balance, get_account_balance_locked
 from tools.utils import check_and_fund_account
 
 # Assumptions
 # 1. Alice is the sudo key
 # 2. Parachain block generation time is 12 Secs
 
-
 # Global Constants
-
 # deinfe a conneciton with a peaq-network node
 substrate = SubstrateInterface(
         url=WS_URL
     )
 
-# accounts to carty out diffirent transactions
+# Global constants
 KP_SUDO = Keypair.create_from_uri('//Alice')
 KP_SOURCE = Keypair.create_from_uri('//Bob')
-KP_TARGET = Keypair.create_from_uri('//Eve')
+KP_TARGET = Keypair.create_from_uri('//Dave')
+KP_TARGET_SECOND = Keypair.create_from_uri('//Eve')
+
+# Global variables
+free_bal_before_transfer = 0
+free_bal_after_transfer = 0
+
+locked_bal_before_vest = 0
+locked_bal_after_vest = 0
+
+transfer_amount = 100*TOKEN_NUM_BASE_DEV
+per_block_amount = 20*TOKEN_NUM_BASE_DEV
+number_of_blocks_to_wait = math.ceil(transfer_amount / per_block_amount)
+current_block_number = 0
+starting_block_number = 0
+
+schedule = {
+        'locked': 0,
+        'per_block': 0,
+        'starting_block': 0
+    }
 
 
 # Schedule transfer of some amount from a souce to target account
@@ -49,7 +68,7 @@ def vested_transfer(kp_soucre, kp_target, schedule):
     show_extrinsic(receipt, 'vestedTranser')
 
 
-# Actual transfer of funds that were previouls scheduled to be released
+# transfer of funds that were previouls scheduled to be released
 def vest(kp_source):
 
     call = substrate.compose_call(
@@ -107,7 +126,7 @@ def force_vested_transfer(kp_source, kp_target, kp_sudo, schedule):
     show_extrinsic(receipt, 'forced_vested_transer')
 
 
-# Force actual transfer of funds that were previouls scheduled to be released
+# actual transfer of funds that were previouls scheduled to be released
 def vest_other(kp_source, kp_sudo):
 
     call = substrate.compose_call(
@@ -133,7 +152,7 @@ def vest_other(kp_source, kp_sudo):
     show_extrinsic(receipt, 'vest_other')
 
 
-# To merge two scheduled transfed into one
+# To merge two schedules  into one
 def merge_schedules(kp_source, kp_target, kp_sudo,
                     first_schedule, second_schedule):
 
@@ -169,57 +188,10 @@ def merge_schedules(kp_source, kp_target, kp_sudo,
     show_extrinsic(receipt, 'merge_schedule')
 
 
-def pallet_vesting_test():
+def vested_transfer_test():
 
-    # TODO
-    # In current code structure
-    # Vest test is dependent on vest_transer
-    # vest_other is dependent on forced_vest_transfer
-    # In future, the code structure will be improved so that
-    # there may be no such dependencies and each test is
-    # performed independend of others
-
-    print()
-    print('----Start of pallet_vesting_test!! ----')
-    print()
-
-    # To fund accounts, if sufficient  funds are not available
-    check_and_fund_account(substrate,
-                           KP_SUDO,
-                           1000 * TOKEN_NUM_BASE_DEV,
-                           1000 * TOKEN_NUM_BASE_DEV)
-
-    check_and_fund_account(substrate,
-                           KP_SOURCE,
-                           1000 * TOKEN_NUM_BASE_DEV,
-                           1000 * TOKEN_NUM_BASE_DEV,)
-
-    free_bal_before_transfer = 0
-    free_bal_after_transfer = 0
-
-    locked_bal_before_vest = 0
-    locked_bal_after_vest = 0
-
-    transfer_amount = 100*TOKEN_NUM_BASE_DEV
-    per_block_amount = 20*TOKEN_NUM_BASE_DEV
-    number_of_blocks_to_wait = math.ceil(transfer_amount / per_block_amount)
-    current_block_number = 0
-    starting_block_number = 0
-
-    schedule = {
-        'locked': 0,
-        'per_block': 0,
-        'starting_block': 0
-    }
-
-    print()
-    print('--Start of vested_transfer and vest test--')
-    print()
-
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    free_bal_before_transfer = int(result.value['data']['free'])
+    free_bal_before_transfer = \
+        get_account_balance(substrate, KP_TARGET.ss58_address)
 
     block_header = substrate.get_block_header()
 
@@ -244,10 +216,8 @@ def pallet_vesting_test():
                     KP_TARGET,
                     schedule)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    free_bal_after_transfer = int(result.value['data']['free'])
+    free_bal_after_transfer = \
+        get_account_balance(substrate, KP_TARGET.ss58_address)
 
     print("Free Balance after vested transfer:",
           free_bal_after_transfer)
@@ -272,38 +242,27 @@ def pallet_vesting_test():
         time.sleep((starting_block_number + number_of_blocks_to_wait
                     - current_block_number+1)*12)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    locked_bal_before_vest = int(result.value['data']['misc_frozen'])
+    locked_bal_before_vest = \
+        get_account_balance_locked(substrate, KP_TARGET.ss58_address)
 
     print("Locked balance before vest: ", locked_bal_before_vest)
 
     vest(KP_TARGET)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
+    locked_bal_after_vest = \
+        get_account_balance_locked(substrate, KP_TARGET.ss58_address)
 
-    locked_bal_after_vest = int(result.value['data']['misc_frozen'])
     print("Locked balance after vest: ", locked_bal_after_vest)
 
     # All the vested amount is released
     assert locked_bal_before_vest-locked_bal_after_vest == transfer_amount, \
         "Vested amount still not released"
 
-    print()
-    print('--End of vested_transfer and vest test--')
-    print()
 
-    print()
-    print('--Start of forced_vested_transfer and vest_other test--')
-    print()
+def forced_vested_transfer_test():
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    free_bal_before_transfer = int(result.value['data']['free'])
+    free_bal_before_transfer = \
+        get_account_balance(substrate, KP_TARGET.ss58_address)
 
     block_header = substrate.get_block_header()
 
@@ -329,10 +288,8 @@ def pallet_vesting_test():
                           KP_SUDO,
                           schedule)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    free_bal_after_transfer = int(result.value['data']['free'])
+    free_bal_after_transfer = \
+        get_account_balance(substrate, KP_TARGET.ss58_address)
 
     print("Free Balance after forced vested transfer:",
           free_bal_after_transfer)
@@ -344,7 +301,6 @@ def pallet_vesting_test():
         "Vested tranfer amount not added to destination account"
 
     # Vest all the funds through vest_others
-    # Wait till the time ending block number is fianlized
     print("We need to wait till finzlization of block: ",
           starting_block_number+number_of_blocks_to_wait)
 
@@ -357,38 +313,32 @@ def pallet_vesting_test():
         time.sleep((starting_block_number + number_of_blocks_to_wait
                    - current_block_number+1)*12)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
-    locked_bal_before_vest = int(result.value['data']['misc_frozen'])
+    locked_bal_before_vest = \
+        get_account_balance_locked(substrate, KP_TARGET.ss58_address)
 
     print("Locked balance before vest: ", locked_bal_before_vest)
 
     vest_other(KP_TARGET,
                KP_SUDO)
 
-    result = substrate.query('System',
-                             'Account',
-                             [KP_TARGET.ss58_address])
+    locked_bal_after_vest = \
+        get_account_balance_locked(substrate, KP_TARGET.ss58_address)
 
-    locked_bal_after_vest = int(result.value['data']['misc_frozen'])
     print("Locked balance after vest: ", locked_bal_after_vest)
 
     # All the vested amount is released
     assert locked_bal_before_vest-locked_bal_after_vest == transfer_amount, \
         "Vested amount still not released"
 
-    print()
-    print('--End of forced_vested_transfer and vest_other test--')
-    print()
 
-    print('--Start of merge_schedules_test--')
-    print()
+def merge_schedule_test():
 
     block_header = substrate.get_block_header()
     current_block_number = int(block_header['header']['number'])
+
     first_starting_block_number = current_block_number + 10
     second_starting_block_number = current_block_number + 20
+
     print("Current Block: ", current_block_number)
     print("Starting Block Number of first schedule: ",
           first_starting_block_number)
@@ -405,15 +355,51 @@ def pallet_vesting_test():
                        'starting_block': second_starting_block_number}
 
     # First and second schedules will be merged
-    # in one schedule
     merge_schedules(KP_SOURCE,
-                    KP_TARGET,
+                    KP_TARGET_SECOND,
                     KP_SUDO,
                     first_schedule,
                     second_schedule)
 
+
+def pallet_vesting_test():
+
+    # TODO
+    # In current code structure
+    # Vest test is dependent on vest_transer
+    # vest_other is dependent on forced_vest_transfer
+    # In future, the code structure will be improved so that
+    # there may be no such dependencies and each test is
+    # performed independend of others
+
     print()
-    print('--End of merge_schedules_test--')
+    print('----Start of pallet_vesting_test!! ----')
+    print()
+
+    # To fund accounts, if sufficient  funds are not available
+    check_and_fund_account(substrate,
+                           KP_SUDO,
+                           1000 * TOKEN_NUM_BASE_DEV,
+                           1000 * TOKEN_NUM_BASE_DEV)
+
+    check_and_fund_account(substrate,
+                           KP_SOURCE,
+                           1000 * TOKEN_NUM_BASE_DEV,
+                           1000 * TOKEN_NUM_BASE_DEV,)
+
+    print("---vested transfer test started---")
+    vested_transfer_test()
+    print("---vested transfer test completed successfully---")
+    print()
+
+    print("---forced vested transfer test started---")
+    forced_vested_transfer_test()
+    print("---forced vested transfer test completed successfully---")
+    print()
+
+    print("---merge schedule test started---")
+    merge_schedule_test()
+    print("---merge schedule test completed successfully---")
     print()
 
     print('----End of pallet_vesting_test!! ----')
