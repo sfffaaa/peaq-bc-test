@@ -10,6 +10,7 @@ from tools.pallet_storage_test import pallet_storage_test
 from tools.pallet_block_reward_test import pallet_block_reward_test
 from tools.reward_distribution_test import reward_distribution_test
 from tools.pallet_treasury_test import pallet_treasury_test
+from tools.pallet_vesting_test import pallet_vesting_test
 
 if __name__ == '__main__':
     pallet_multisig_test()
@@ -24,3 +25,4 @@ if __name__ == '__main__':
     pallet_block_reward_test()
     reward_distribution_test()
     pallet_treasury_test()
+    pallet_vesting_test()
