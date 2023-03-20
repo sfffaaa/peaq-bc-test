@@ -137,23 +137,16 @@ def vest_other(kp_source, kp_sudo):
 
 
 # To merge two schedules  into one
-def merge_schedules(kp_source, kp_target, kp_sudo,
-                    first_schedule, second_schedule):
-
-    print("First vested trasnfer")
-    vested_transfer(kp_source, kp_target, first_schedule)
-
-    print("Seond vested trasnfer")
-    vested_transfer(kp_source, kp_target, second_schedule)
-
-    print("Merge Schedule for first and second vested transfer")
+def merge_schedules(kp_target,
+                    index_of_first_schedule,
+                    index_of_second_schedule):
 
     call = substrate.compose_call(
         call_module='Vesting',
         call_function='merge_schedules',
         call_params={
-            'schedule1_index': 0,
-            'schedule2_index': 1
+            'schedule1_index': index_of_first_schedule,
+            'schedule2_index': index_of_second_schedule
         }
     )
 
@@ -170,6 +163,12 @@ def merge_schedules(kp_source, kp_target, kp_sudo,
         raise IOError
 
     show_extrinsic(receipt, 'merge_schedule')
+
+
+def get_schedule_index(kp_target):
+
+    result = substrate.query("Vesting", "Vesting", [kp_target.ss58_address])
+    return len((result.value))-1
 
 
 def vested_transfer_test():
@@ -338,12 +337,46 @@ def merge_schedule_test():
                        'per_block': 20 * TOKEN_NUM_BASE_DEV,
                        'starting_block': second_starting_block_number}
 
+    print("First vested trasnfer")
+    vested_transfer(KP_SOURCE, KP_TARGET_SECOND, first_schedule)
+    index_of_first_schedule = get_schedule_index(KP_TARGET_SECOND)
+
+    print("Seond vested trasnfer")
+    vested_transfer(KP_SOURCE, KP_TARGET_SECOND, second_schedule)
+    index_of_second_schedule = get_schedule_index(KP_TARGET_SECOND)
+
     # First and second schedules will be merged
-    merge_schedules(KP_SOURCE,
-                    KP_TARGET_SECOND,
-                    KP_SUDO,
-                    first_schedule,
-                    second_schedule)
+    print("Merge Schedule for first and second vested transfer")
+    merge_schedules(KP_TARGET_SECOND,
+                    index_of_first_schedule,
+                    index_of_second_schedule)
+    index_of_merged_schedule = get_schedule_index(KP_TARGET_SECOND)
+
+    result = substrate.query("Vesting",
+                             "Vesting",
+                             [KP_TARGET_SECOND.ss58_address])
+
+    merged_locked = int(result[index_of_merged_schedule]
+                        ['locked'])
+    merged_per_block = int(result[index_of_merged_schedule]
+                           ['per_block'])
+    merged_starting_block = int(result[index_of_merged_schedule]
+                                ['starting_block'])
+
+    assert merged_locked == int(first_schedule['locked']) + \
+        int(second_schedule['locked']), \
+        "merged schedule locked funds is not eaqul \
+          to sum of first and second schedule locked funds"
+
+    assert merged_per_block == int(first_schedule['per_block']) + \
+        int(second_schedule['per_block']), \
+        "merged schedule per block funds is not eaqul \
+          to sum of first and second schedule per block funds"
+
+    assert merged_starting_block == \
+        max(int(first_schedule['starting_block']),
+            int(second_schedule['starting_block'])), \
+        "Starting block of merge schedule is not correct"
 
 
 def pallet_vesting_test():
