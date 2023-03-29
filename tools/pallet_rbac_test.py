@@ -2,7 +2,7 @@ import sys
 import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import show_extrinsic, ExtrinsicStack
 import time
 
 sys.path.append('./')
@@ -49,11 +49,11 @@ USER_IDE = '{0}05bc6789de012fa345bc6789de012fa345bc6789'.format(RANDOM_PREFIX)
 # Example:
 #   cl_fcn = 'add_role'
 #   cl_par = {'role_id': entity_id, 'name': name }
-def comp_rbac_call(substrate, cl_fcn, cl_par):
-    return substrate.compose_call(
-        call_module='PeaqRbac',
-        call_function=cl_fcn,
-        call_params=cl_par
+def comp_rbac_call(ex_stack, cl_fcn, cl_par):
+    ex_stack.compose_call(
+        'PeaqRbac',
+        cl_fcn,
+        cl_par
     )
 
 
@@ -85,9 +85,9 @@ def exec_stack_extrinsic_call(substrate, kp_src, stack):
 
 ##############################################################################
 # Adds a new role to the RBAC-pallet via extrinsic call
-def rbac_add_role(substrate, entity_id, name):
+def rbac_add_role(ex_stack, entity_id, name):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'add_role',
         {
             'role_id': entity_id,
@@ -96,9 +96,9 @@ def rbac_add_role(substrate, entity_id, name):
 
 
 # Adds a group to the RBAC-pallet via extrinsic call
-def rbac_add_group(substrate, group_id, name):
+def rbac_add_group(ex_stack, group_id, name):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'add_group',
         {
             'group_id': group_id,
@@ -107,9 +107,9 @@ def rbac_add_group(substrate, group_id, name):
 
 
 # Adds a permission to the RBAC-pallet via extrinsic call
-def rbac_add_permission(substrate, permission_id, name):
+def rbac_add_permission(ex_stack, permission_id, name):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'add_permission',
         {
             'permission_id': permission_id,
@@ -118,9 +118,9 @@ def rbac_add_permission(substrate, permission_id, name):
 
 
 # Assigns a permission to a role...
-def rbac_permission2role(substrate, permission_id, role_id):
+def rbac_permission2role(ex_stack, permission_id, role_id):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'assign_permission_to_role',
         {
             'permission_id': permission_id,
@@ -129,9 +129,9 @@ def rbac_permission2role(substrate, permission_id, role_id):
 
 
 # Assigns a role to a group...
-def rbac_role2group(substrate, role_id, group_id):
+def rbac_role2group(ex_stack, role_id, group_id):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'assign_role_to_group',
         {
             'role_id': role_id,
@@ -140,9 +140,9 @@ def rbac_role2group(substrate, role_id, group_id):
 
 
 # Assigns a role to a user...
-def rbac_role2user(substrate, role_id, user_id):
+def rbac_role2user(ex_stack, role_id, user_id):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'assign_role_to_user',
         {
             'role_id': role_id,
@@ -151,9 +151,9 @@ def rbac_role2user(substrate, role_id, user_id):
 
 
 # Assigns a user to a group...
-def rbac_user2group(substrate, user_id, group_id):
+def rbac_user2group(ex_stack, user_id, group_id):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'assign_user_to_group',
         {
             'user_id': user_id,
@@ -162,9 +162,9 @@ def rbac_user2group(substrate, user_id, group_id):
 
 
 # Disable an existing group...
-def rbac_disable_group(substrate, group_id):
+def rbac_disable_group(ex_stack, group_id):
     return comp_rbac_call(
-        substrate,
+        ex_stack,
         'disable_group',
         {
             'group_id': group_id,
@@ -173,7 +173,7 @@ def rbac_disable_group(substrate, group_id):
 
 ##############################################################################
 # Does a generic test-setup on the parachain
-def rbac_rpc_test_setup(substrate, kp_src):
+def rbac_rpc_test_setup(ex_stack):
     #   |u1|u2|u3|r1|r2|r3|g1|g2|
     # -------------------------
     # u1|  |  |  |xx|xx|  |  |xx|
@@ -186,67 +186,44 @@ def rbac_rpc_test_setup(substrate, kp_src):
     # g2|
 
     # Test-progress will marked as group and users within parachain
-    stack = []
     # Add some roles
-    stack.append(rbac_add_role(
-        substrate, f'0x{ROLE_ID1}', ROLE_NM1))
-    stack.append(rbac_add_role(
-        substrate, f'0x{ROLE_ID2}', ROLE_NM2))
-    stack.append(rbac_add_role(
-        substrate, f'0x{ROLE_ID3}', ROLE_NM3))
+    rbac_add_role(ex_stack, f'0x{ROLE_ID1}', ROLE_NM1)
+    rbac_add_role(ex_stack, f'0x{ROLE_ID2}', ROLE_NM2)
+    rbac_add_role(ex_stack, f'0x{ROLE_ID3}', ROLE_NM3)
 
     # Add some groups
-    stack.append(rbac_add_group(
-        substrate, f'0x{GROUP_ID1}', GROUP_NM1))
-    stack.append(rbac_add_group(
-        substrate, f'0x{GROUP_ID2}', GROUP_NM2))
-    stack.append(rbac_add_group(
-        substrate, f'0x{GROUP_ID3}', GROUP_NM3))
-    stack.append(rbac_disable_group(
-        substrate, f'0x{GROUP_ID3}'))
+    rbac_add_group(ex_stack, f'0x{GROUP_ID1}', GROUP_NM1)
+    rbac_add_group(ex_stack, f'0x{GROUP_ID2}', GROUP_NM2)
+    rbac_add_group(ex_stack, f'0x{GROUP_ID3}', GROUP_NM3)
+    rbac_disable_group(ex_stack, f'0x{GROUP_ID3}')
 
     # Add some permissions
-    stack.append(rbac_add_permission(
-        substrate, f'0x{PERM_ID1}', PERM_NM1))
-    stack.append(rbac_add_permission(
-        substrate, f'0x{PERM_ID2}', PERM_NM2))
-    stack.append(rbac_add_permission(
-        substrate, f'0x{PERM_ID3}', PERM_NM3))
-    stack.append(rbac_add_permission(
-        substrate, f'0x{PERM_ID4}', PERM_NM4))
+    rbac_add_permission(ex_stack, f'0x{PERM_ID1}', PERM_NM1)
+    rbac_add_permission(ex_stack, f'0x{PERM_ID2}', PERM_NM2)
+    rbac_add_permission(ex_stack, f'0x{PERM_ID3}', PERM_NM3)
+    rbac_add_permission(ex_stack, f'0x{PERM_ID4}', PERM_NM4)
 
     # Assign permissions to roles
-    stack.append(rbac_permission2role(
-        substrate, f'0x{PERM_ID1}', f'0x{ROLE_ID1}'))
-    stack.append(rbac_permission2role(
-        substrate, f'0x{PERM_ID2}', f'0x{ROLE_ID1}'))
-    stack.append(rbac_permission2role(
-        substrate, f'0x{PERM_ID3}', f'0x{ROLE_ID2}'))
-    stack.append(rbac_permission2role(
-        substrate, f'0x{PERM_ID4}', f'0x{ROLE_ID3}'))
+    rbac_permission2role(ex_stack, f'0x{PERM_ID1}', f'0x{ROLE_ID1}')
+    rbac_permission2role(ex_stack, f'0x{PERM_ID2}', f'0x{ROLE_ID1}')
+    rbac_permission2role(ex_stack, f'0x{PERM_ID3}', f'0x{ROLE_ID2}')
+    rbac_permission2role(ex_stack, f'0x{PERM_ID4}', f'0x{ROLE_ID3}')
 
     # Assign roles to groups
-    stack.append(rbac_role2group(
-        substrate, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}'))
-    stack.append(rbac_role2group(
-        substrate, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}'))
-    stack.append(rbac_role2group(
-        substrate, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}'))
+    rbac_role2group(ex_stack, f'0x{ROLE_ID1}', f'0x{GROUP_ID1}')
+    rbac_role2group(ex_stack, f'0x{ROLE_ID2}', f'0x{GROUP_ID1}')
+    rbac_role2group(ex_stack, f'0x{ROLE_ID3}', f'0x{GROUP_ID2}')
 
     # Assign users to groups
-    stack.append(rbac_user2group(
-        substrate, f'0x{USER_ID1}', f'0x{GROUP_ID1}'))
-    stack.append(rbac_user2group(
-        substrate, f'0x{USER_ID2}', f'0x{GROUP_ID2}'))
+    rbac_user2group(ex_stack, f'0x{USER_ID1}', f'0x{GROUP_ID1}')
+    rbac_user2group(ex_stack, f'0x{USER_ID2}', f'0x{GROUP_ID2}')
 
     # Assign roles to users
-    stack.append(rbac_role2user(
-        substrate, f'0x{ROLE_ID2}', f'0x{USER_ID3}'))
-    stack.append(rbac_role2user(
-        substrate, f'0x{ROLE_ID3}', f'0x{USER_ID3}'))
+    rbac_role2user(ex_stack, f'0x{ROLE_ID2}', f'0x{USER_ID3}')
+    rbac_role2user(ex_stack, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
 
     # Execute extrinsic-call-stack
-    exec_stack_extrinsic_call(substrate, kp_src, stack)
+    ex_stack.execute()
 
 
 ##############################################################################
@@ -538,10 +515,11 @@ def test_rpc_fail_disabled_id(substrate, kp_src):
 def pallet_rbac_test():
     print('---- pallet_rbac_test!! ----')
     try:
-        with SubstrateInterface(url=WS_URL) as substrate:
+        with ExtrinsicStack() as ex_stack:
             # Success tests, default test setup
-            kp_src = Keypair.create_from_uri('//Alice')
-            rbac_rpc_test_setup(substrate, kp_src)
+            rbac_rpc_test_setup(ex_stack)
+            substrate = ex_stack.substrate
+            kp_src = ex_stack.keypair
 
             test_rpc_fetch_role(substrate, kp_src)
             test_rpc_fetch_roles(substrate, kp_src)

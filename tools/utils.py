@@ -395,6 +395,12 @@ class ExtrinsicStack:
         self.substrate = _into_substrate(substrate_or_url)
         self.keypair = _into_keypair(keypair_or_uri)
         self.stack = []
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self
 
     # Composes and appends an extrinsic call to this stack
     def compose_call(self, module, extrinsic, params):
@@ -456,9 +462,9 @@ def execute_extrinsic_stack(substrate, kp_src, stack):
 
 # Takes either a Keypair, or transforms a given uri into one
 def _into_keypair(keypair_or_uri) -> Keypair:
-    if isinstance(keypair_or_uri, 'str'):
+    if isinstance(keypair_or_uri, str):
         return Keypair.create_from_uri(keypair_or_uri)
-    elif isinstance(keypair_or_uri, 'Keypair'):
+    elif isinstance(keypair_or_uri, Keypair):
         return keypair_or_uri
     else:
         raise TypeError
@@ -466,9 +472,9 @@ def _into_keypair(keypair_or_uri) -> Keypair:
 
 # Takes a SubstrateInterface, or takes into one by given url
 def _into_substrate(substrate_or_url) -> SubstrateInterface:
-    if isinstance(substrate_or_url, 'str'):
+    if isinstance(substrate_or_url, str):
         return SubstrateInterface(substrate_or_url)
-    elif isinstance(substrate_or_url, 'SubstrateInterface'):
+    elif isinstance(substrate_or_url, SubstrateInterface):
         return substrate_or_url
     else:
         raise TypeError
