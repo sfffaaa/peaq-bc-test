@@ -1,8 +1,7 @@
 import sys
 import traceback
 
-from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, ExtrinsicStack
+from tools.utils import ExtrinsicStack
 import time
 
 sys.path.append('./')
@@ -55,32 +54,6 @@ def comp_rbac_call(ex_stack, cl_fcn, cl_par):
         cl_fcn,
         cl_par
     )
-
-
-# Executes a stack-extrinsic-call on substrate
-def exec_stack_extrinsic_call(substrate, kp_src, stack):
-    # Wrape payload into a utility batch cal
-    call = substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': stack,
-        })
-
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'batch_transaction')
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
 
 
 ##############################################################################

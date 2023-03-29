@@ -367,13 +367,16 @@ def fund(substrate, kp_dst, token_num):
     show_extrinsic(receipt, 'fund')
 
 
-def get_account_balance(substrate, addr):
-    result = substrate.query("System", "Account", [addr])    
+def get_account_balance(substrate, addr, block_hash=None):
+    result = substrate.query("System", "Account",
+                             [addr], block_hash=block_hash)
     return int(result['data']['free'].value)
+
 
 def get_account_balance_locked(substrate, addr):
     result = substrate.query("System", "Account", [addr])    
     return int(result['data']['misc_frozen'].value)
+
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
     if  get_account_balance(substrate, addr.ss58_address) < min_bal: 
@@ -384,6 +387,11 @@ def check_and_fund_account(substrate, addr, min_bal, req_bal):
 
 
 # ExtrinsicStack class for simple creation of extrinsic-stacks to be executed
+# When initialising, pass either an existing SubstrateInterface/WS-URL and
+# optional Keypair/URI, or use the defaults
+# Example 1:    ex_stack = ExtrinsicStack(substrate, kp_src)
+# Example 2:    ex_stack = ExtrinsicStack(WS_URL, '//Bob')
+# Example 3:    ex_stack = ExtrinsicStack()
 @dataclass
 class ExtrinsicStack:
     substrate: SubstrateInterface
@@ -395,10 +403,10 @@ class ExtrinsicStack:
         self.substrate = _into_substrate(substrate_or_url)
         self.keypair = _into_keypair(keypair_or_uri)
         self.stack = []
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self
 
@@ -406,15 +414,22 @@ class ExtrinsicStack:
     def compose_call(self, module, extrinsic, params):
         self.stack.append(compose_call(
             self.substrate, module, extrinsic, params))
-    
+
     # Composes a sudo-user extrinsic call and adds it this stack
     def compose_sudo_call(self, module, extrinsic, params):
         payload = compose_call(module, extrinsic, params)
-        self.compose_call('Sudo', 'sudo', {'call': payload.value,})
-        
-    # Executes the extrinsic-batch
-    def execute(self):
-        execute_extrinsic_stack(self.substrate, self.keypair, self.stack)
+        self.compose_call('Sudo', 'sudo', {'call': payload.value})
+
+    # Executes the extrinsic-stack
+    def execute(self, alt_keypair=None) -> int:
+        if alt_keypair is None:
+            alt_keypair = self.keypair
+        return execute_extrinsic_stack(self.substrate,
+                                       alt_keypair, self.stack)
+
+    # Clears the current extrinsic-stack
+    def clear(self):
+        self.stack = []
 
 
 # Composes a substrate-extrinsic-call on any module
@@ -435,7 +450,7 @@ def compose_call(substrate, module, extrinsic, params):
 #   substrate:  SubstrateInterface
 #   kp_src:     Keypair
 #   stack:      list[compose_call(), compose_call(), ...]
-def execute_extrinsic_stack(substrate, kp_src, stack):
+def execute_extrinsic_stack(substrate, kp_src, stack) -> int:
     # Wrape payload into a utility batch cal
     call = substrate.compose_call(
         call_module='Utility',
@@ -458,7 +473,9 @@ def execute_extrinsic_stack(substrate, kp_src, stack):
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError
-    
+    else:
+        return receipt.block_hash
+
 
 # Takes either a Keypair, or transforms a given uri into one
 def _into_keypair(keypair_or_uri) -> Keypair:

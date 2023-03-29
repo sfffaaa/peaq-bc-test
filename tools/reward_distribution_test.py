@@ -4,7 +4,8 @@ import time
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance
+from tools.utils import WS_URL, transfer_with_tip, get_account_balance
+from tools.utils import TOKEN_NUM_BASE, ExtrinsicStack
 from tools.pallet_block_reward_test import setup_block_reward
 
 WAIT_BLOCK_NUMBER = 10
@@ -47,6 +48,12 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
         raise IOError(f'The transaction fee w/o tip is out of limit: {rewards_wo_tip}')
 
 
+def _get_blocks_authored(substrate, addr, block_hash=None) -> int:
+    result = substrate.query("ParachainStaking", "BlocksAuthored",
+                             [addr], block_hash=block_hash)
+    return result
+
+
 def transaction_fee_reward_test():
     print('---- transaction reward test!! ----')
     try:
@@ -87,46 +94,103 @@ def block_reward_test():
     try:
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
+            kp_src_bob = Keypair.create_from_uri('//Bob')
+            ex_stack = ExtrinsicStack(substrate, kp_src)
+
+            # Extrinsic-stack: increment rewards & claim them
+            ex_stack.compose_call("ParachainStaking",
+                                  "increment_collator_rewards", [])
+            ex_stack.compose_call("ParachainStaking",
+                                  "claim_rewards", [])
+            # Execute once at the beginning, to make sure all rewards have been
+            # collected at the beginning of this test (more tests have been
+            # run before)
+            bl_hash_start_alice = ex_stack.execute()
+            bl_hash_start_bob = ex_stack.execute(kp_src_bob)
+
+            # Now check the accounts at this moment
+            balance_alice_start = get_account_balance(
+                substrate, kp_src.ss58_address, bl_hash_start_alice)
+            balance_bob_start = get_account_balance(
+                substrate, kp_src.ss58_address, bl_hash_start_bob)
+            bl_auth_alice_start = _get_blocks_authored(
+                substrate, kp_src.ss58_address, bl_hash_start_alice)
+            bl_auth_bob_start = _get_blocks_authored(
+                substrate, kp_src_bob.ss58_address, bl_hash_start_bob)
+
+            print(f'Balances: {balance_alice_start} / {balance_bob_start}')
+            print(f'BlocksAuthored: {bl_auth_alice_start} / {bl_auth_bob_start}')
+
             block_reward = substrate.query(
                 module='BlockReward',
                 storage_function='BlockIssueReward',
             )
             block_reward = int(str(block_reward))
-            print(f'Current reward: {block_reward}')
+            # print(f'Current reward: {block_reward}')
             if not block_reward:
                 raise IOError('block reward should not be zero')
 
-            time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
+            # Now wait for round about 3 blocks to be finalized and run
+            # extrinsics for both validators again
+            time.sleep(WAIT_TIME_PERIOD)
+            bl_hash_now = ex_stack.execute()
+            bl_hash_now_bob = ex_stack.execute(kp_src_bob)
 
-            for i in range(0, WAIT_BLOCK_NUMBER):
-                block_info = substrate.get_block_header()
-                now_hash = block_info['header']['hash']
-                prev_hash = block_info['header']['parentHash']
-                extrinsic = substrate.get_block(prev_hash)['extrinsics']
-                if not len(extrinsic):
-                    raise IOError('Extrinsic list shouldn\'t be zero, maybe in the genesis block')
-                # The fee of extrinsic in the previous block becomes the reward of this block,
-                # but we have three default extrinisc
-                #   timestamp.set
-                #   dynamicFee.noteMinGasPriceTarget
-                #   parachainSystem.setValidationData)
-                elif len(substrate.get_block(prev_hash)['extrinsics']) != 3:
-                    time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
-                    continue
+            # Now compare balances and blocks-authored
+            bl_auth_alice_now = _get_blocks_authored(
+                substrate, kp_src.ss58_address, bl_hash_now)
+            balance_alice_now = get_account_balance(
+                substrate, kp_src.ss58_address, bl_hash_now)
+            bl_auth_bob_now = _get_blocks_authored(
+                substrate, kp_src.ss58_address, bl_hash_now_bob)
+            balance_bob_now = get_account_balance(
+                substrate, kp_src.ss58_address, bl_hash_now_bob)
+            
+            print(f'Balances: {balance_alice_now} / {balance_bob_now}')
+            print(f'BlocksAuthored: {bl_auth_alice_now} / {bl_auth_bob_now}')
 
-                now_balance = substrate.query(
-                    "System", "Account", [kp_src.ss58_address], block_hash=now_hash
-                )['data']['free'].value
-                previous_balance = substrate.query(
-                    "System", "Account", [kp_src.ss58_address], block_hash=prev_hash
-                )['data']['free'].value
-                if now_balance - previous_balance != block_reward * COLLATOR_REWARD_RATE:
-                    raise IOError(f'The block reward {now_balance - previous_balance} is'
-                                  f'not the same as {block_reward * COLLATOR_REWARD_RATE}')
-                else:
-                    print('✅✅✅block fee reward test pass')
-                    return
-            raise IOError(f'Wait {WAIT_BLOCK_NUMBER}, but all blocks have extrinsic')
+            # Compare initial balance with current balance
+            diff_balance_alice = balance_alice_now - balance_alice_start
+            diff_bl_auth_alice = bl_auth_alice_now - bl_auth_alice_start
+            diff_balance_bob = balance_bob_now - balance_bob_start
+            diff_bl_auth_bob = bl_auth_bob_now - bl_auth_bob_start
+
+            assert diff_balance_alice == block_reward * diff_bl_auth_alice
+            assert diff_balance_bob == block_reward * diff_bl_auth_bob
+
+            # time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
+
+            # for i in range(0, WAIT_BLOCK_NUMBER):
+            #     block_info = substrate.get_block_header()
+            #     now_hash = block_info['header']['hash']
+            #     prev_hash = block_info['header']['parentHash']
+            #     extrinsic = substrate.get_block(prev_hash)['extrinsics']
+            #     if not len(extrinsic):
+            #         raise IOError('Extrinsic list shouldn\'t be zero, maybe in the genesis block')
+            #     # The fee of extrinsic in the previous block becomes the reward of this block,
+            #     # but we have three default extrinisc
+            #     #   timestamp.set
+            #     #   dynamicFee.noteMinGasPriceTarget
+            #     #   parachainSystem.setValidationData)
+            #     elif len(substrate.get_block(prev_hash)['extrinsics']) != 3:
+            #         time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
+            #         continue
+
+            #     ex_stack.execute()
+
+            #     now_balance = substrate.query(
+            #         "System", "Account", [kp_src.ss58_address], block_hash=now_hash
+            #     )['data']['free'].value
+            #     previous_balance = substrate.query(
+            #         "System", "Account", [kp_src.ss58_address], block_hash=prev_hash
+            #     )['data']['free'].value
+            #     if now_balance - previous_balance != block_reward * COLLATOR_REWARD_RATE:
+            #         raise IOError(f'The block reward {now_balance - previous_balance} is'
+            #                       f'not the same as {block_reward * COLLATOR_REWARD_RATE}')
+            #     else:
+            #         print('✅✅✅block fee reward test pass')
+            #         return
+            # raise IOError(f'Wait {WAIT_BLOCK_NUMBER}, but all blocks have extrinsic')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
