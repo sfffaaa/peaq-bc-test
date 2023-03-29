@@ -1,4 +1,5 @@
-from substrateinterface import Keypair
+from dataclasses import dataclass
+from substrateinterface import SubstrateInterface, Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
@@ -374,11 +375,100 @@ def get_account_balance_locked(substrate, addr):
     result = substrate.query("System", "Account", [addr])    
     return int(result['data']['misc_frozen'].value)
 
-def check_and_fund_account(substrate, addr, min_bal, req_bal):  
-
+def check_and_fund_account(substrate, addr, min_bal, req_bal):
     if  get_account_balance(substrate, addr.ss58_address) < min_bal: 
         print("Since sufficinet balance is not available in account: ", addr.ss58_address)        
         print("account will be fund with an amount equalt to :", req_bal)        
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
+
+
+# ExtrinsicStack class for simple creation of extrinsic-stacks to be executed
+@dataclass
+class ExtrinsicStack:
+    substrate: SubstrateInterface
+    keypair: Keypair
+    stack: list
+
+    # Default initialisation methods
+    def __init__(self, substrate_or_url=WS_URL, keypair_or_uri='//Alice'):
+        self.substrate = _into_substrate(substrate_or_url)
+        self.keypair = _into_keypair(keypair_or_uri)
+        self.stack = []
+
+    # Composes and appends an extrinsic call to this stack
+    def compose_call(self, module, extrinsic, params):
+        self.stack.append(compose_call(
+            self.substrate, module, extrinsic, params))
+    
+    # Composes a sudo-user extrinsic call and adds it this stack
+    def compose_sudo_call(self, module, extrinsic, params):
+        payload = compose_call(module, extrinsic, params)
+        self.compose_call('Sudo', 'sudo', {'call': payload.value,})
         
+    # Executes the extrinsic-batch
+    def execute(self):
+        execute_extrinsic_stack(self.substrate, self.keypair, self.stack)
+
+
+# Composes a substrate-extrinsic-call on any module
+# Example:
+#   module = 'Rbac'
+#   extrinsic = 'add_role'
+#   params = {'role_id': entity_id, 'name': name }
+def compose_call(substrate, module, extrinsic, params):
+    return substrate.compose_call(
+        call_module=module,
+        call_function=extrinsic,
+        call_params=params
+    )
+
+
+# Executes a extrinsic-stack/batch-call on substrate
+# Parameters:
+#   substrate:  SubstrateInterface
+#   kp_src:     Keypair
+#   stack:      list[compose_call(), compose_call(), ...]
+def execute_extrinsic_stack(substrate, kp_src, stack):
+    # Wrape payload into a utility batch cal
+    call = substrate.compose_call(
+        call_module='Utility',
+        call_function='batch_all',
+        call_params={
+            'calls': stack,
+        })
+
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'batch_transaction')
+
+    if not receipt.is_success:
+        print(substrate.get_events(receipt.block_hash))
+        raise IOError
+    
+
+# Takes either a Keypair, or transforms a given uri into one
+def _into_keypair(keypair_or_uri) -> Keypair:
+    if isinstance(keypair_or_uri, 'str'):
+        return Keypair.create_from_uri(keypair_or_uri)
+    elif isinstance(keypair_or_uri, 'Keypair'):
+        return keypair_or_uri
+    else:
+        raise TypeError
+
+
+# Takes a SubstrateInterface, or takes into one by given url
+def _into_substrate(substrate_or_url) -> SubstrateInterface:
+    if isinstance(substrate_or_url, 'str'):
+        return SubstrateInterface(substrate_or_url)
+    elif isinstance(substrate_or_url, 'SubstrateInterface'):
+        return substrate_or_url
+    else:
+        raise TypeError
