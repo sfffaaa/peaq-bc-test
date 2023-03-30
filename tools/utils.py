@@ -404,7 +404,7 @@ class ExtrinsicStack:
         self.substrate = _into_substrate(substrate_or_url)
         self.keypair = _into_keypair(keypair_or_uri)
         self.stack = []
-        self.description = 'Stack: '
+        self.description = 'Stack:'
 
     def __enter__(self):
         return self
@@ -414,13 +414,18 @@ class ExtrinsicStack:
 
     # Composes and appends an extrinsic call to this stack
     def compose_call(self, module, extrinsic, params):
-        self.description = f'{self.description} {extrinsic}'
+        if module == 'Sudo':
+            desc = params['call']['call_function']
+            desc = f'sudo-{desc}'
+        else:
+            desc = extrinsic
+        self.description = f'{self.description} {desc}'
         self.stack.append(compose_call(
             self.substrate, module, extrinsic, params))
 
     # Composes a sudo-user extrinsic call and adds it this stack
     def compose_sudo_call(self, module, extrinsic, params):
-        payload = compose_call(module, extrinsic, params)
+        payload = compose_call(self.substrate, module, extrinsic, params)
         self.compose_call('Sudo', 'sudo', {'call': payload.value})
 
     # Executes the extrinsic-stack
@@ -433,7 +438,7 @@ class ExtrinsicStack:
     # Clears the current extrinsic-stack
     def clear(self):
         self.stack = []
-        self.description = 'Stack: '
+        self.description = 'Stack:'
 
 
 # Composes a substrate-extrinsic-call on any module
