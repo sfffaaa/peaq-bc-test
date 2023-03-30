@@ -397,12 +397,14 @@ class ExtrinsicStack:
     substrate: SubstrateInterface
     keypair: Keypair
     stack: list
+    description: str
 
     # Default initialisation methods
     def __init__(self, substrate_or_url=WS_URL, keypair_or_uri='//Alice'):
         self.substrate = _into_substrate(substrate_or_url)
         self.keypair = _into_keypair(keypair_or_uri)
         self.stack = []
+        self.description = 'Stack: '
 
     def __enter__(self):
         return self
@@ -412,6 +414,7 @@ class ExtrinsicStack:
 
     # Composes and appends an extrinsic call to this stack
     def compose_call(self, module, extrinsic, params):
+        self.description = f'{self.description} {extrinsic}'
         self.stack.append(compose_call(
             self.substrate, module, extrinsic, params))
 
@@ -424,12 +427,13 @@ class ExtrinsicStack:
     def execute(self, alt_keypair=None) -> int:
         if alt_keypair is None:
             alt_keypair = self.keypair
-        return execute_extrinsic_stack(self.substrate,
-                                       alt_keypair, self.stack)
+        return execute_extrinsic_stack(
+            self.substrate, alt_keypair, self.stack, self.description)
 
     # Clears the current extrinsic-stack
     def clear(self):
         self.stack = []
+        self.description = 'Stack: '
 
 
 # Composes a substrate-extrinsic-call on any module
@@ -450,7 +454,7 @@ def compose_call(substrate, module, extrinsic, params):
 #   substrate:  SubstrateInterface
 #   kp_src:     Keypair
 #   stack:      list[compose_call(), compose_call(), ...]
-def execute_extrinsic_stack(substrate, kp_src, stack) -> int:
+def execute_extrinsic_stack(substrate, kp_src, stack, description=None) -> int:
     # Wrape payload into a utility batch cal
     call = substrate.compose_call(
         call_module='Utility',
@@ -468,7 +472,9 @@ def execute_extrinsic_stack(substrate, kp_src, stack) -> int:
     )
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'batch_transaction')
+    if description is None:
+        description = 'Execute extrinsic-stack'
+    show_extrinsic(receipt, description)
 
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
