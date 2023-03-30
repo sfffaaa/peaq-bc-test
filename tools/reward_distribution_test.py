@@ -51,7 +51,13 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
 def _get_blocks_authored(substrate, addr, block_hash=None) -> int:
     result = substrate.query("ParachainStaking", "BlocksAuthored",
                              [addr], block_hash=block_hash)
-    return result
+    return int(str(result))
+
+
+def _get_blocks_rewarded(substrate, addr, block_hash=None) -> int:
+    result = substrate.query("ParachainStaking", "BlocksRewarded",
+                             [addr], block_hash=block_hash)
+    return int(str(result))
 
 
 def transaction_fee_reward_test():
@@ -112,8 +118,9 @@ def block_reward_test():
             bl_auth = _get_blocks_authored(
                 substrate, kp_src_alice.ss58_address, None
             )
-            bl_reward = substrate.query('ParachainStaking', 'BlocksRewarded',
-                                        [kp_src_alice.ss58_address])
+            bl_reward = _get_blocks_rewarded(
+                substrate, kp_src_alice.ss58_address, None
+            )
             if bl_reward < bl_auth:
                 bl_hash_alice_start = ex_stack.execute()
             else:
@@ -133,9 +140,9 @@ def block_reward_test():
                 substrate, kp_src_alice.ss58_address, bl_hash_alice_start)
             balance_bob_start = get_account_balance(
                 substrate, kp_src_bob.ss58_address, bl_hash_bob_start)
-            bl_auth_alice_start = _get_blocks_authored(
+            bl_auth_alice_start = _get_blocks_rewarded(
                 substrate, kp_src_alice.ss58_address, bl_hash_alice_start)
-            bl_auth_bob_start = _get_blocks_authored(
+            bl_auth_bob_start = _get_blocks_rewarded(
                 substrate, kp_src_bob.ss58_address, bl_hash_bob_start)
             # Debug:
             print(f'Balances: {balance_alice_start} / {balance_bob_start}')
