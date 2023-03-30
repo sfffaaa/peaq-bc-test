@@ -98,8 +98,7 @@ def block_reward_test():
             ex_stack = ExtrinsicStack(substrate, kp_src_alice)
 
             # Setup Block Reward
-            ex_stack.compose_call('BlockReward', 'BlockIssueReward',
-                                  {'block_reward': pow(10, 18)})
+            setup_block_reward(substrate, kp_src_alice, pow(10, 18))
 
             # Extrinsic-stack: increment rewards & claim them
             ex_stack.compose_call("ParachainStaking",
