@@ -51,24 +51,24 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
 def _get_blocks_authored(substrate, addr, block_hash=None) -> int:
     result = substrate.query("ParachainStaking", "BlocksAuthored",
                              [addr], block_hash=block_hash)
-    print(result)
+    print(result)  # TODO remove
     return int(str(result))
 
 
 def _get_blocks_rewarded(substrate, addr, block_hash=None) -> int:
     result = substrate.query("ParachainStaking", "BlocksRewarded",
                              [addr], block_hash=block_hash)
-    print(result)
+    print(result)  # TODO remove
     return int(str(result))
 
 
 def _get_block_status(substrate, keypair, bl_hash=None):
-    print('====')
+    print('====')  # TODO remove
     bl_authored = _get_blocks_authored(
         substrate, keypair.ss58_address, bl_hash)
     bl_rewarded = _get_blocks_rewarded(
         substrate, keypair.ss58_address, bl_hash)
-    print('====')
+    print('====')  # TODO remove
     return bl_authored, bl_rewarded
 
 
@@ -219,6 +219,7 @@ def block_reward_test():
             bl_num_stop = substrate.get_block_number(bl_hash_bob_now)
             assert bl_num_stop - bl_num_start == bl_auth_tot
 
+            # TODO remove
             print(f'Alice: authored-start({bl_auth_alice_start}), authored-now({bl_auth_alice_now})')
             print(f'Alice: balance-start({balance_alice_start}), balance-now({balance_alice_now})')
             print(f'Alice: diff block({diff_bl_auth_alice}), diff balance({diff_balance_alice})')
@@ -232,10 +233,10 @@ def block_reward_test():
             # Debug:
             rewards_alice = collator_reward * diff_bl_auth_alice
             diff = abs(diff_balance_alice - rewards_alice) / rewards_alice * 100
-            print(f'Deviation Alice: {diff}%')
+            print(f'Deviation Alice: {diff}%')  # TODO remove
             rewards_bob = collator_reward * diff_bl_auth_bob
             diff = abs(diff_balance_bob - rewards_bob) / rewards_bob * 100
-            print(f'Deviation Bob: {diff}%')
+            print(f'Deviation Bob: {diff}%')  # TODO remove
             assert diff_balance_alice == rewards_alice
             assert diff_balance_bob == rewards_bob
 
