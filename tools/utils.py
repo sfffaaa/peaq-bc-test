@@ -404,7 +404,7 @@ class ExtrinsicStack:
         self.substrate = _into_substrate(substrate_or_url)
         self.keypair = _into_keypair(keypair_or_uri)
         self.stack = []
-        self.description = 'Stack:'
+        self.description = []
 
     def __enter__(self):
         return self
@@ -419,7 +419,7 @@ class ExtrinsicStack:
             desc = f'sudo-{desc}'
         else:
             desc = extrinsic
-        self.description = f'{self.description} {desc}'
+        self.description.append(desc)
         self.stack.append(compose_call(
             self.substrate, module, extrinsic, params))
 
@@ -432,9 +432,10 @@ class ExtrinsicStack:
     def execute(self, alt_keypair=None, wait_for_finalization=False) -> int:
         if alt_keypair is None:
             alt_keypair = self.keypair
+        description = 'Stack: ' + ' '.join(self.description)
         return execute_extrinsic_stack(
             self.substrate, alt_keypair, self.stack,
-            self.description, wait_for_finalization)
+            description, wait_for_finalization)
 
     # Combination of execute() and clear()
     def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> int:
@@ -445,7 +446,7 @@ class ExtrinsicStack:
     # Clears the current extrinsic-stack
     def clear(self):
         self.stack = []
-        self.description = 'Stack:'
+        self.description = []
 
 
 # Composes a substrate-extrinsic-call on any module

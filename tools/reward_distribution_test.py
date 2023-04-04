@@ -102,6 +102,16 @@ def _get_collator_rate(substrate) -> float:
     return int(str(reward_rate['collator_rate'])) / pow(10, 18)
 
 
+def _get_block_issue_reward(substrate) -> int:
+    return int(str(substrate.query(
+        'BlockReward', 'BlockIssueReward')))
+
+
+def _get_block_hash_before(substrate, bl_hash):
+    header = substrate.get_block_header(bl_hash)
+    return header['header']['parentHash']
+
+
 # def _get_staking_factor(substrate) -> float:
 #     staking_factor = substrate.query(
 #         'BlockReward', 'RewardDistributionConfigStorage')
@@ -114,8 +124,7 @@ def _get_collator_rate(substrate) -> float:
 # def _get_reward_rates(substrate):
 #     _debugprint('---- Rewarding-Status ----')
 #     staking_factor = _get_staking_factor(substrate)
-#     block_reward = int(str(substrate.query(
-#         'BlockReward', 'BlockIssueReward')))
+#     block_reward = _get_block_issue_reward(substrate)
 #     collator_rate = _get_collator_rate(substrate)
 #     if not block_reward:
 #         raise IOError('block reward should not be zero')
@@ -135,24 +144,24 @@ def _get_collator_rate(substrate) -> float:
 #     return collator_rewards, staking_rewards
 
 
-# def block_reward_test_setup(substrate, kp_src) -> int:
-#     ex_stack = ExtrinsicStack(substrate, kp_src)
-#     # Setup block issue number
-#     ex_stack.compose_sudo_call('BlockReward', 'set_block_issue_reward',
-#                                {'block_reward': ISSUE_RATE})
-#     ex_stack.execute_n_clear(wait_for_finalization=True)
-#     # Get current rates and reset average-reward-register
-#     ex_stack.compose_sudo_call(
-#         "ParachainStaking", 'reset_average_reward_to', {"balance": 0})
-#     ex_stack.execute(wait_for_finalization=True)
+def block_reward_test_setup(substrate, kp_src):
+    ex_stack = ExtrinsicStack(substrate, kp_src)
+    # Setup block issue number
+    ex_stack.compose_sudo_call('BlockReward', 'set_block_issue_reward',
+                               {'block_reward': pow(10, 19)})
+    ex_stack.execute_n_clear(wait_for_finalization=True)
+    # Get current rates and reset average-reward-register
+    ex_stack.compose_sudo_call(
+        "ParachainStaking", 'reset_average_reward_to', {"balance": 0})
+    ex_stack.execute(wait_for_finalization=True)
 
-#     # Double check, that average-block-reward is correct
-#     # avg_bl_reward = _get_average_block_reward(substrate)
-#     collator_reward, staking_rewards = _get_reward_rates(substrate)
-#     # _debugprint(f'AvgBlReward {avg_bl_reward} == staking_rewards {staking_rewards}')
-#     # assert avg_bl_reward == staking_rewards
+    # Double check, that average-block-reward is correct
+    # avg_bl_reward = _get_average_block_reward(substrate)
+    # collator_reward, staking_rewards = _get_reward_rates(substrate)
+    # _debugprint(f'AvgBlReward {avg_bl_reward} == staking_rewards {staking_rewards}')
+    # assert avg_bl_reward == staking_rewards
     
-#     return collator_reward
+    # return collator_reward
 
 
 def transaction_fee_reward_test():
@@ -163,10 +172,7 @@ def transaction_fee_reward_test():
         kp_charlie = Keypair.create_from_uri('//Charlie')
 
         with SubstrateInterface(url=WS_URL) as substrate:
-            block_reward = substrate.query(
-                module='BlockReward',
-                storage_function='BlockIssueReward',
-            )
+            block_reward = _get_block_issue_reward(substrate)
             print(f'Current reward: {block_reward}')
             new_set_reward = 0
             setup_block_reward(substrate, kp_src, new_set_reward)
@@ -200,6 +206,7 @@ def block_reward_test():
 
             # Do tricky test setup (issue-number & average-reward-register)
             # collator_reward = block_reward_test_setup(substrate, kp_alice)
+            block_reward_test_setup(substrate, kp_alice)
 
             # Extrinsic-stack: increment rewards & claim them
             ex_stack.compose_call("ParachainStaking",
@@ -211,13 +218,12 @@ def block_reward_test():
             # collected at the beginning of this test (more tests have been
             # run before) - but only if there are rewards to be claimed...
             bl_hash_alice_start = substrate.get_block_hash(None)
-            bl_hash_bob_start = bl_hash_alice_start
-
             bl_authd, bl_rewdd, _ = _get_block_status(
                 substrate, kp_alice, bl_hash_alice_start)
             if bl_rewdd < bl_authd:
                 bl_hash_alice_start = ex_stack.execute()
 
+            bl_hash_bob_start = substrate.get_block_hash(None)
             bl_authd, bl_rewdd, _ = _get_block_status(
                 substrate, kp_bob, bl_hash_bob_start)
             if bl_rewdd < bl_authd:
@@ -271,16 +277,30 @@ def block_reward_test():
 
             # Check collator-rewards in reward-register
             collator_rate = _get_collator_rate(substrate)
-            avg_bl_reward = _get_average_block_reward(substrate, bl_hash_alice_now)
-            collator_rewards = int(avg_bl_reward * collator_rate)
-            exp_rewards_alice = collator_rewards * diff_bl_auth_alice
+            avg_bl_reward_alice = _get_average_block_reward(substrate, bl_hash_alice_now)
+            avg_cl_reward_alice = int(avg_bl_reward_alice * collator_rate)
+            exp_rewards_alice = avg_cl_reward_alice * diff_bl_auth_alice
             avg_bl_reward = _get_average_block_reward(substrate, bl_hash_bob_now)
-            collator_rewards = int(avg_bl_reward * collator_rate)
-            exp_rewards_bob = collator_rewards * diff_bl_auth_bob
+            exp_rewards_bob = int(avg_bl_reward * collator_rate) * diff_bl_auth_bob
             if DEBUG:
+                bl_before = _get_block_hash_before(substrate, bl_hash_alice_now)
+                bl_auth_alice_now2, bl_rewdd_alice2, rewards_alice2 = _get_block_status(
+                    substrate, kp_alice, bl_before)
+                print(f'Before: {bl_auth_alice_now2}, {bl_rewdd_alice2}, {rewards_alice2}')
+                print(f'Now: {bl_auth_alice_now}, {bl_rewdd_alice}, {rewards_alice}')
+                print(f'{avg_bl_reward_alice} * {collator_rate} = {avg_cl_reward_alice}')
+
+                bl_nr_start = substrate.get_block_number(bl_hash_alice_start)
+                bl_nr_stop = substrate.get_block_number(bl_hash_alice_now)
+                print(f'Alice: Blocks authored {diff_bl_auth_alice} in range '
+                      + f'{bl_nr_start}-{bl_nr_stop}')
                 diff = abs(rewards_alice - exp_rewards_alice) / exp_rewards_alice * 100
                 print(f'Expected: {exp_rewards_alice}, Got: {rewards_alice}')
                 print(f'Deviation Alice: {diff:.2f}%')
+                bl_nr_start = substrate.get_block_number(bl_hash_bob_start)
+                bl_nr_stop = substrate.get_block_number(bl_hash_bob_now)
+                print(f'Alice: Blocks authored {diff_bl_auth_alice} in range '
+                      + f'{bl_nr_start}-{bl_nr_stop}')
                 diff = abs(rewards_bob - exp_rewards_bob) / exp_rewards_bob * 100
                 print(f'Expected: {exp_rewards_bob}, Got: {rewards_bob}')
                 print(f'Deviation Bob: {diff:.2f}%')
