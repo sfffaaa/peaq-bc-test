@@ -429,11 +429,18 @@ class ExtrinsicStack:
         self.compose_call('Sudo', 'sudo', {'call': payload.value})
 
     # Executes the extrinsic-stack
-    def execute(self, alt_keypair=None) -> int:
+    def execute(self, alt_keypair=None, wait_for_finalization=False) -> int:
         if alt_keypair is None:
             alt_keypair = self.keypair
         return execute_extrinsic_stack(
-            self.substrate, alt_keypair, self.stack, self.description)
+            self.substrate, alt_keypair, self.stack,
+            self.description, wait_for_finalization)
+
+    # Combination of execute() and clear()
+    def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> int:
+        bl_hash = self.execute(alt_keypair, wait_for_finalization)
+        self.clear()
+        return bl_hash
 
     # Clears the current extrinsic-stack
     def clear(self):
@@ -459,7 +466,8 @@ def compose_call(substrate, module, extrinsic, params):
 #   substrate:  SubstrateInterface
 #   kp_src:     Keypair
 #   stack:      list[compose_call(), compose_call(), ...]
-def execute_extrinsic_stack(substrate, kp_src, stack, description=None) -> int:
+def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
+                            wait_for_finalization=False) -> int:
     # Wrape payload into a utility batch cal
     call = substrate.compose_call(
         call_module='Utility',
@@ -476,7 +484,9 @@ def execute_extrinsic_stack(substrate, kp_src, stack, description=None) -> int:
         nonce=nonce
     )
 
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    receipt = substrate.submit_extrinsic(
+        extrinsic, wait_for_inclusion=True,
+        wait_for_finalization=wait_for_finalization)
     if description is None:
         description = 'Execute extrinsic-stack'
     show_extrinsic(receipt, description)

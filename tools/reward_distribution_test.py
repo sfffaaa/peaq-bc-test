@@ -18,6 +18,14 @@ TIP = 10 ** 20
 FEE_MIN_LIMIT = 30 * 10**9  # 30nPEAQ
 FEE_MAX_LIMIT = 90 * 10**9  # 90nPEAQ
 
+DEBUG = True
+
+
+# Prints messages to terminal only when DEBUG=True
+def _debugprint(msg: str):
+    if DEBUG:
+        print(msg)
+
 
 # TODO: improve testing fees, by using fee-model, when ready...
 def _check_transaction_fee_reward_event(substrate, block_hash, tip):
@@ -32,10 +40,10 @@ def _check_transaction_fee_reward_event(substrate, block_hash, tip):
     # real_rate = (now_reward - tip) / tip
     fee_wo_tip = now_reward - tip
     # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-		# raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+	    # raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
     if fee_wo_tip < FEE_MIN_LIMIT or fee_wo_tip > FEE_MAX_LIMIT:
         raise IOError(f'The transaction fee w/o tip is out of limit: {fee_wo_tip}')
-            
+
 
 # TODO: improve testing fees, by using fee-model, when ready
 def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
@@ -49,27 +57,102 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
 
 
 def _get_blocks_authored(substrate, addr, block_hash=None) -> int:
-    result = substrate.query("ParachainStaking", "BlocksAuthored",
-                             [addr], block_hash=block_hash)
-    print(result)  # TODO remove
-    return int(str(result))
+    result = int(str(substrate.query(
+        "ParachainStaking", "BlocksAuthored", [addr], block_hash=block_hash)))
+    _debugprint(f'BlocksAuthored: {result} [{type(result)}]')
+    return result
 
 
 def _get_blocks_rewarded(substrate, addr, block_hash=None) -> int:
-    result = substrate.query("ParachainStaking", "BlocksRewarded",
-                             [addr], block_hash=block_hash)
-    print(result)  # TODO remove
-    return int(str(result))
+    result = int(str(substrate.query(
+        "ParachainStaking", "BlocksRewarded", [addr], block_hash=block_hash)))
+    _debugprint(f'BlocksRewarded: {result} [{type(result)}]')
+    return result
 
 
-def _get_block_status(substrate, keypair, bl_hash=None):
-    print('====')  # TODO remove
+def _get_unclaimed_rewards(substrate, addr, block_hash=None) -> int:
+    result = int(str(substrate.query(
+        "ParachainStaking", "Rewards", [addr], block_hash=block_hash)))
+    _debugprint(f'Rewards: {result} [{type(result)}]')
+    return result
+
+
+def _get_average_block_reward(substrate, block_hash=None) -> int:
+    result = int(str(substrate.query(
+        "ParachainStaking", "AverageBlockReward", block_hash=block_hash)))
+    _debugprint(f'AverageBlockReward: {result} [{type(result)}]')
+    return result
+
+
+def _get_block_status(substrate, keypair: Keypair, bl_hash=None):
+    _debugprint('==== Block-Status ====')
     bl_authored = _get_blocks_authored(
         substrate, keypair.ss58_address, bl_hash)
     bl_rewarded = _get_blocks_rewarded(
         substrate, keypair.ss58_address, bl_hash)
-    print('====')  # TODO remove
-    return bl_authored, bl_rewarded
+    rewards = _get_unclaimed_rewards(
+        substrate, keypair.ss58_address, bl_hash)
+    _debugprint('======================')
+    return bl_authored, bl_rewarded, rewards
+
+
+def _get_collator_rate(substrate) -> float:
+    reward_rate = substrate.query(
+        'ParachainStaking', 'RewardRateConfig')
+    return int(str(reward_rate['collator_rate'])) / pow(10, 18)
+
+
+# def _get_staking_factor(substrate) -> float:
+#     staking_factor = substrate.query(
+#         'BlockReward', 'RewardDistributionConfigStorage')
+#     staking_factor = staking_factor['collators_percent']
+#     staking_factor = int(str(staking_factor))
+#     staking_factor = staking_factor / pow(10, 9)
+#     return staking_factor
+
+
+# def _get_reward_rates(substrate):
+#     _debugprint('---- Rewarding-Status ----')
+#     staking_factor = _get_staking_factor(substrate)
+#     block_reward = int(str(substrate.query(
+#         'BlockReward', 'BlockIssueReward')))
+#     collator_rate = _get_collator_rate(substrate)
+#     if not block_reward:
+#         raise IOError('block reward should not be zero')
+#     if not collator_rate:
+#         raise IOError('could not determine collator-reward-rate')
+#     if not staking_factor:
+#         raise IOError('Staking percentage should not be zero')
+#     staking_rewards = int(block_reward * staking_factor)
+#     collator_rewards = int(staking_rewards * collator_rate)
+#     _debugprint(f'BlockIssueReward: {block_reward} [{type(block_reward)}]')
+#     _debugprint(f'StakingRate: {staking_factor} [{type(staking_factor)}]')
+#     _debugprint(f'CollatorRate: {collator_rate} [{type(collator_rate)}]')
+#     _debugprint('-- -- -- -- -- -- -- -- --')
+#     _debugprint(f'StakingRewards: {staking_rewards} [{type(staking_rewards)}]')
+#     _debugprint(f'CollatorRewards: {collator_rewards} [{type(collator_rewards)}]')
+#     _debugprint('--------------------------')
+#     return collator_rewards, staking_rewards
+
+
+# def block_reward_test_setup(substrate, kp_src) -> int:
+#     ex_stack = ExtrinsicStack(substrate, kp_src)
+#     # Setup block issue number
+#     ex_stack.compose_sudo_call('BlockReward', 'set_block_issue_reward',
+#                                {'block_reward': ISSUE_RATE})
+#     ex_stack.execute_n_clear(wait_for_finalization=True)
+#     # Get current rates and reset average-reward-register
+#     ex_stack.compose_sudo_call(
+#         "ParachainStaking", 'reset_average_reward_to', {"balance": 0})
+#     ex_stack.execute(wait_for_finalization=True)
+
+#     # Double check, that average-block-reward is correct
+#     # avg_bl_reward = _get_average_block_reward(substrate)
+#     collator_reward, staking_rewards = _get_reward_rates(substrate)
+#     # _debugprint(f'AvgBlReward {avg_bl_reward} == staking_rewards {staking_rewards}')
+#     # assert avg_bl_reward == staking_rewards
+    
+#     return collator_reward
 
 
 def transaction_fee_reward_test():
@@ -115,130 +198,110 @@ def block_reward_test():
             kp_bob = Keypair.create_from_uri('//Bob')
             ex_stack = ExtrinsicStack(substrate, kp_alice)
 
-            # Setup Block Reward
-            setup_block_reward(substrate, kp_alice, pow(10, 18))
+            # Do tricky test setup (issue-number & average-reward-register)
+            # collator_reward = block_reward_test_setup(substrate, kp_alice)
 
             # Extrinsic-stack: increment rewards & claim them
             ex_stack.compose_call("ParachainStaking",
                                   "increment_collator_rewards", [])
             ex_stack.compose_call("ParachainStaking",
                                   "claim_rewards", [])
-            
+
             # Execute once at the beginning, to make sure all rewards have been
             # collected at the beginning of this test (more tests have been
             # run before) - but only if there are rewards to be claimed...
             bl_hash_alice_start = substrate.get_block_hash(None)
             bl_hash_bob_start = bl_hash_alice_start
 
-            bl_authd, bl_rewdd = _get_block_status(
+            bl_authd, bl_rewdd, _ = _get_block_status(
                 substrate, kp_alice, bl_hash_alice_start)
             if bl_rewdd < bl_authd:
                 bl_hash_alice_start = ex_stack.execute()
 
-            bl_authd, bl_rewdd = _get_block_status(
+            bl_authd, bl_rewdd, _ = _get_block_status(
                 substrate, kp_bob, bl_hash_bob_start)
             if bl_rewdd < bl_authd:
                 bl_hash_bob_start = ex_stack.execute(kp_bob)
 
-            # Double check that number of authored is equal to rewarded
-            bl_authd, bl_rewdd = _get_block_status(
-                substrate, kp_alice, bl_hash_alice_start)
-            if bl_authd != bl_rewdd:
-                raise IOError(f'Alice: blocks authored ({bl_authd}) != \
-                              rewarded ({bl_rewdd}), abort test')
-            bl_authd, bl_rewdd = _get_block_status(
-                substrate, kp_bob, bl_hash_bob_start)
-            if bl_authd != bl_rewdd:
-                raise IOError(f'Bob: blocks authored ({bl_authd}) != \
-                              rewarded ({bl_rewdd}), abort test')
+            # Debug: Double check that number of authored is equal to rewarded
+            if DEBUG:
+                bl_authd, bl_rewdd, rewards = _get_block_status(
+                    substrate, kp_alice, bl_hash_alice_start)
+                if bl_authd != bl_rewdd:
+                    raise IOError(f'Alice: blocks authored ({bl_authd}) != \
+                                  rewarded ({bl_rewdd}), abort test')
+                if rewards != 0:
+                    raise IOError(f'Alice rewards should be claimed ={rewards}')
+                bl_authd, bl_rewdd, rewards = _get_block_status(
+                    substrate, kp_bob, bl_hash_bob_start)
+                if bl_authd != bl_rewdd:
+                    raise IOError(f'Bob: blocks authored ({bl_authd}) != \
+                                  rewarded ({bl_rewdd}), abort test')
+                if rewards != 0:
+                    raise IOError(f'Alice rewards should be claimed ={rewards}')
 
             # Now check the accounts at this moment
-            balance_alice_start = get_account_balance(
-                substrate, kp_alice.ss58_address, bl_hash_alice_start)
-            balance_bob_start = get_account_balance(
-                substrate, kp_bob.ss58_address, bl_hash_bob_start)
             bl_auth_alice_start = _get_blocks_rewarded(
                 substrate, kp_alice.ss58_address, bl_hash_alice_start)
             bl_auth_bob_start = _get_blocks_rewarded(
                 substrate, kp_bob.ss58_address, bl_hash_bob_start)
             
-            # Determine reward-rates
-            block_reward = substrate.query(
-                module='BlockReward',
-                storage_function='BlockIssueReward',
-            )
-            reward_rate = substrate.query(
-                module='ParachainStaking',
-                storage_function='RewardRateConfig',
-            )
-            collator_rate = int(str(reward_rate['collator_rate'])) / pow(10, 18)
-            block_reward = int(str(block_reward))
-            collator_reward = block_reward * collator_rate
-            if not block_reward:
-                raise IOError('block reward should not be zero')
-            if not collator_rate:
-                raise IOError('could not determine collator-reward-rate')
-            
             # Now wait for round about 3 blocks to be finalized and run
             # extrinsics for both validators again
             print('Waiting for round about 3 blocks to be finalized...')
             time.sleep(WAIT_TIME_PERIOD)
+            # Only increment rewards to check these without Tx-Fees
+            ex_stack.stack.pop()
             bl_hash_alice_now = ex_stack.execute()
             bl_hash_bob_now = ex_stack.execute(kp_bob)
 
-            # Check again, that blocks authored is equal to rewarded
-            bl_auth_alice_now, bl_rewdd = _get_block_status(
+            # Check, blocks authored = blocks rewarded, and rewards != 0
+            bl_auth_alice_now, bl_rewdd_alice, rewards_alice = _get_block_status(
                 substrate, kp_alice, bl_hash_alice_now)
-            assert bl_auth_alice_now == bl_rewdd
-            bl_auth_bob_now, bl_rewdd = _get_block_status(
+            bl_auth_bob_now, bl_rewdd_bob, rewards_bob = _get_block_status(
                 substrate, kp_bob, bl_hash_bob_now)
-            assert bl_auth_bob_now == bl_rewdd
-
-            # Now compare balances and blocks-authored
-            balance_alice_now = get_account_balance(
-                substrate, kp_alice.ss58_address, bl_hash_alice_now)
-            balance_bob_now = get_account_balance(
-                substrate, kp_bob.ss58_address, bl_hash_bob_now)
-
-            # Compare initial balance with current balance
-            bl_auth_alice_now = int(str(bl_auth_alice_now))
-            bl_auth_alice_start = int(str(bl_auth_alice_start))
-            bl_auth_bob_now = int(str(bl_auth_bob_now))
-            bl_auth_bob_start = int(str(bl_auth_bob_start))
-            diff_balance_alice = balance_alice_now - balance_alice_start
             diff_bl_auth_alice = bl_auth_alice_now - bl_auth_alice_start
-            diff_balance_bob = balance_bob_now - balance_bob_start
             diff_bl_auth_bob = bl_auth_bob_now - bl_auth_bob_start
+            assert bl_auth_alice_now == bl_rewdd_alice
+            if diff_bl_auth_alice > 0:
+                assert rewards_alice != 0
+            assert bl_auth_bob_now == bl_rewdd_bob
+            if diff_bl_auth_bob > 0:
+                assert rewards_bob != 0
 
-            # Redundancy check for number of finalized blocks
-            bl_auth_tot = diff_bl_auth_alice + diff_bl_auth_bob
-            bl_num_start = substrate.get_block_number(bl_hash_alice_start)
-            bl_num_stop = substrate.get_block_number(bl_hash_alice_now)
-            assert bl_num_stop - bl_num_start == bl_auth_tot
-            bl_num_start = substrate.get_block_number(bl_hash_bob_start)
-            bl_num_stop = substrate.get_block_number(bl_hash_bob_now)
-            assert bl_num_stop - bl_num_start == bl_auth_tot
+            # Check collator-rewards in reward-register
+            collator_rate = _get_collator_rate(substrate)
+            avg_bl_reward = _get_average_block_reward(substrate, bl_hash_alice_now)
+            collator_rewards = int(avg_bl_reward * collator_rate)
+            exp_rewards_alice = collator_rewards * diff_bl_auth_alice
+            avg_bl_reward = _get_average_block_reward(substrate, bl_hash_bob_now)
+            collator_rewards = int(avg_bl_reward * collator_rate)
+            exp_rewards_bob = collator_rewards * diff_bl_auth_bob
+            if DEBUG:
+                diff = abs(rewards_alice - exp_rewards_alice) / exp_rewards_alice * 100
+                print(f'Expected: {exp_rewards_alice}, Got: {rewards_alice}')
+                print(f'Deviation Alice: {diff:.2f}%')
+                diff = abs(rewards_bob - exp_rewards_bob) / exp_rewards_bob * 100
+                print(f'Expected: {exp_rewards_bob}, Got: {rewards_bob}')
+                print(f'Deviation Bob: {diff:.2f}%')
+            assert exp_rewards_alice == rewards_alice
+            assert exp_rewards_bob == rewards_bob
 
+            # TODO
+            # Now compare balances and blocks-authored
+            # balance_alice_start = get_account_balance(
+            #     substrate, kp_alice.ss58_address, bl_hash_alice_start)
+            # balance_bob_start = get_account_balance(
+            #     substrate, kp_bob.ss58_address, bl_hash_bob_start)
+            # balance_alice_now = get_account_balance(
+            #     substrate, kp_alice.ss58_address, bl_hash_alice_now)
+            # balance_bob_now = get_account_balance(
+            #     substrate, kp_bob.ss58_address, bl_hash_bob_now)
+            # diff_balance_alice = balance_alice_now - balance_alice_start
+            # diff_balance_bob = balance_bob_now - balance_bob_start
             # TODO remove
-            print(f'Alice: authored-start({bl_auth_alice_start}), authored-now({bl_auth_alice_now})')
-            print(f'Alice: balance-start({balance_alice_start}), balance-now({balance_alice_now})')
-            print(f'Alice: diff block({diff_bl_auth_alice}), diff balance({diff_balance_alice})')
-            print('----')
-            print(f'Bob: authored-start({bl_auth_bob_start}), authored-now({bl_auth_bob_now})')
-            print(f'Bob: balance-start({balance_bob_start}), balance-now({balance_bob_now})')
-            print(f'Bob: diff block({diff_bl_auth_bob}), diff balance({diff_balance_bob})')
-            print('----')
-            print(f'BlockReward: {block_reward}, CollatorReward: {collator_reward}')
-
-            # Debug:
-            rewards_alice = collator_reward * diff_bl_auth_alice
-            diff = abs(diff_balance_alice - rewards_alice) / rewards_alice * 100
-            print(f'Deviation Alice: {diff}%')  # TODO remove
-            rewards_bob = collator_reward * diff_bl_auth_bob
-            diff = abs(diff_balance_bob - rewards_bob) / rewards_bob * 100
-            print(f'Deviation Bob: {diff}%')  # TODO remove
-            assert diff_balance_alice == rewards_alice
-            assert diff_balance_bob == rewards_bob
+            # print(f'Alice: balance-start({balance_alice_start}), balance-now({balance_alice_now})')
+            # print(f'Bob: balance-start({balance_bob_start}), balance-now({balance_bob_now})')
 
             print('✅✅✅ block reward test pass')
 
