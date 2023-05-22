@@ -27,7 +27,7 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
             'maybe_timepoint': None,
             'call': payload.value,
             'store_call': True,
-            'max_weight': {'ref_time': 1000000000},
+            'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -58,7 +58,7 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'other_signatories': [kp.ss58_address for kp in kps],
             'maybe_timepoint': timepoint,
             'call_hash': f'0x{payload.call_hash.hex()}',
-            'max_weight': {'ref_time': 1000000000},
+            'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -100,6 +100,8 @@ def multisig_test(substrate, kp_src, kp_dst):
                   threshold, payload, timepoint)
 
     post_multisig_token = show_account(substrate, multi_sig_addr, 'after transfer')
+    print(f'pre_multisig_token: {pre_multisig_token}, post_multisig_token: {post_multisig_token}')
+    print(f'num: {num}, num * TOKEN_NUM_BASE: {num * TOKEN_NUM_BASE}')
     assert(post_multisig_token + num * TOKEN_NUM_BASE == pre_multisig_token)
 
 
@@ -276,7 +278,7 @@ def create_as_approve(substrate, kp_provider, kp_consumer, kp_target, token_num,
             'maybe_timepoint': None,
             'call': payload_spent.value,
             'store_call': True,
-            'max_weight': {'ref_time': 1000000000},
+            'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
     return payload_spent, as_multi_call
 
