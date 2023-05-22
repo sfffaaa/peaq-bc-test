@@ -49,7 +49,7 @@ def create_constract(substrate, kp_src, eth_src):
     else:
         created_event = [_ for _ in substrate.get_events(receipt.block_hash)
                          if _['event'].value['event_id'] == 'Created'][0]
-        return created_event.value['attributes']
+        return created_event.value['attributes']['address']
 
 
 def call_eth_transfer(substrate, kp_src, eth_src, eth_dst):

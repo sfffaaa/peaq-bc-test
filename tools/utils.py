@@ -65,7 +65,7 @@ def calculate_multi_sig(kps, threshold):
     '''https://github.com/polkascan/py-scale-codec/blob/f063cfd47c836895886697e7d7112cbc4e7514b3/test/test_scale_types.py#L383'''
 
     addrs = [kp.ss58_address for kp in kps]
-    RuntimeConfiguration().update_type_registry(load_type_registry_preset("default"))
+    RuntimeConfiguration().update_type_registry(load_type_registry_preset("legacy"))
     multi_account_id = RuntimeConfiguration().get_decoder_class("MultiAccountId")
 
     multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
@@ -367,18 +367,18 @@ def fund(substrate, kp_dst, token_num):
 
 
 def get_account_balance(substrate, addr):
-    result = substrate.query("System", "Account", [addr])    
+    result = substrate.query("System", "Account", [addr])
     return int(result['data']['free'].value)
 
 def get_account_balance_locked(substrate, addr):
-    result = substrate.query("System", "Account", [addr])    
+    result = substrate.query("System", "Account", [addr])
     return int(result['data']['misc_frozen'].value)
 
-def check_and_fund_account(substrate, addr, min_bal, req_bal):  
+def check_and_fund_account(substrate, addr, min_bal, req_bal):
 
-    if  get_account_balance(substrate, addr.ss58_address) < min_bal: 
-        print("Since sufficinet balance is not available in account: ", addr.ss58_address)        
-        print("account will be fund with an amount equalt to :", req_bal)        
+    if  get_account_balance(substrate, addr.ss58_address) < min_bal:
+        print("Since sufficinet balance is not available in account: ", addr.ss58_address)
+        print("account will be fund with an amount equalt to :", req_bal)
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
-        
+

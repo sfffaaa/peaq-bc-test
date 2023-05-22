@@ -36,7 +36,8 @@ def vested_transfer(kp_soucre, kp_target, schedule):
             'schedule': schedule
         }
     )
-
+    print(f'call.value: {call.value}')
+    print(f'call.data: {str(call.data)}')
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
         keypair=kp_soucre,
@@ -356,26 +357,27 @@ def merge_schedule_test():
                              "Vesting",
                              [KP_TARGET_SECOND.ss58_address])
 
-    merged_locked = int(result[index_of_merged_schedule]
-                        ['locked'])
-    merged_per_block = int(result[index_of_merged_schedule]
-                           ['per_block'])
-    merged_starting_block = int(result[index_of_merged_schedule]
-                                ['starting_block'])
+    merged_locked = int(str(result[index_of_merged_schedule]
+                        ['locked']))
+    merged_per_block = int(str(result[index_of_merged_schedule]
+                           ['per_block']))
+    merged_starting_block = int(str(result[index_of_merged_schedule]
+                                ['starting_block']))
 
-    assert merged_locked == int(first_schedule['locked']) + \
+    assert merged_locked == int(str(first_schedule['locked'])) + \
         int(second_schedule['locked']), \
         "merged schedule locked funds is not eaqul \
           to sum of first and second schedule locked funds"
 
-    assert merged_per_block == int(first_schedule['per_block']) + \
+    assert merged_per_block == int(str(first_schedule['per_block'])) + \
         int(second_schedule['per_block']), \
         "merged schedule per block funds is not eaqul \
           to sum of first and second schedule per block funds"
 
+    print()
     assert merged_starting_block == \
-        max(int(first_schedule['starting_block']),
-            int(second_schedule['starting_block'])), \
+        max(int(str(first_schedule['starting_block'])),
+            int(str(second_schedule['starting_block']))), \
         "Starting block of merge schedule is not correct"
 
 

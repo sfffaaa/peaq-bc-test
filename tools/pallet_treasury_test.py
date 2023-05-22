@@ -20,11 +20,14 @@ KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
 KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
 KP_TREASURY = '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 
-WEIGHT_BOND = 10000000000
-LENGTH_BOND = 1000000
+WEIGHT_BOND = {
+    'ref_time': 1000000000,
+    'proof_size': 1000000
+}
+LENGTH_BOND = 100
 AMOUNT = 10
 
-DIVISION_FACTOR = pow(10,7)
+DIVISION_FACTOR = pow(10, 7)
 
 
 # To set members of the council
@@ -99,8 +102,9 @@ def propose_spend(value, beneficiary, kp_member):
 
     for event in substrate.get_events(receipt.block_hash):
         if event.value['event_id'] == 'Proposed':
-            pi = event.value['attributes'][1]
-            ph = event.value['attributes'][2]
+            print(event.value['attributes'])
+            pi = event.value['attributes']['proposal_index']
+            ph = event.value['attributes']['proposal_hash']
 
     show_extrinsic(receipt, 'propose_spend')
     return (pi, ph)
@@ -145,7 +149,6 @@ def close_vote(proposal_hash, proposal_index, weight_bond,
             'index': proposal_index,
             'proposal_weight_bound': weight_bond,
             'length_bound': length_bond
-
         })
 
     nonce = substrate.get_account_nonce(kp_member.ss58_address)
@@ -290,9 +293,11 @@ def treasury_rewards_test():
 
     # Examine events for most recent block
     for event in substrate.get_events():
-        if event.value['event_id'] == 'Deposit' and \
-           event['event'][1][1][0] == KP_TREASURY:
-            actual_reward_dist_to_treasury = event['event'][1][1][1]
+        if event.value['event_id'] != 'Deposit':
+            continue
+        if event.value['attributes']['who'] != KP_TREASURY:
+            continue
+        actual_reward_dist_to_treasury = event.value['attributes']['amount']
 
     print("Treasury actual reward: ", actual_reward_dist_to_treasury)
 
@@ -303,7 +308,7 @@ def treasury_rewards_test():
         actual_reward_dist_to_treasury, \
         "Actual and expected reward distribution are not equal"
 
-    print(f'✅ Reward distributed to treasury as expected')
+    print('✅ Reward distributed to treasury as expected')
 
 
 def pallet_treasury_test():
@@ -359,4 +364,3 @@ def pallet_treasury_test():
     print()
 
     print('---- End of pallet_treasury_test!! ----')
-    
