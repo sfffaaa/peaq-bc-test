@@ -5,7 +5,7 @@ sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance
-from tools.pallet_block_reward_test import setup_block_reward
+from tools.pallet_block_reward_test import setup_block_reward, set_max_currency_supply
 
 WAIT_BLOCK_NUMBER = 10
 COLLATOR_REWARD_RATE = 0.1
@@ -31,10 +31,10 @@ def _check_transaction_fee_reward_event(substrate, block_hash, tip):
     # real_rate = (now_reward - tip) / tip
     fee_wo_tip = now_reward - tip
     # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-		# raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+    # raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
     if fee_wo_tip < FEE_MIN_LIMIT or fee_wo_tip > FEE_MAX_LIMIT:
         raise IOError(f'The transaction fee w/o tip is out of limit: {fee_wo_tip}')
-            
+
 
 # TODO: improve testing fees, by using fee-model, when ready
 def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
@@ -42,9 +42,17 @@ def _check_transaction_fee_reward_balance(substrate, addr, prev_balance, tip):
     # real_rate = (now_balance - prev_balance) / (tip * COLLATOR_REWARD_RATE) - 1
     # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
     #     raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
-    rewards_wo_tip = (now_balance - prev_balance - tip * COLLATOR_REWARD_RATE) / COLLATOR_REWARD_RATE 
+    rewards_wo_tip = (now_balance - prev_balance - tip * COLLATOR_REWARD_RATE) / COLLATOR_REWARD_RATE
     if rewards_wo_tip < FEE_MIN_LIMIT or rewards_wo_tip > FEE_MAX_LIMIT:
         raise IOError(f'The transaction fee w/o tip is out of limit: {rewards_wo_tip}')
+
+
+def _extend_max_supply(substrate, sudo_key):
+    total_issuance = substrate.query(
+        module='Balances',
+        storage_function='TotalIssuance',
+    )
+    set_max_currency_supply(substrate, sudo_key, int(str(total_issuance)) * 3)
 
 
 def transaction_fee_reward_test():
@@ -55,6 +63,7 @@ def transaction_fee_reward_test():
         kp_charlie = Keypair.create_from_uri('//Charlie')
 
         with SubstrateInterface(url=WS_URL) as substrate:
+            _extend_max_supply(substrate, kp_src)
             block_reward = substrate.query(
                 module='BlockReward',
                 storage_function='BlockIssueReward',
@@ -68,13 +77,14 @@ def transaction_fee_reward_test():
             receipt = transfer_with_tip(
                 substrate, kp_bob, kp_charlie.ss58_address,
                 1 * TOKEN_NUM_BASE, TIP, 1)
+            print(f'Block hash: {receipt.block_hash}')
 
             _check_transaction_fee_reward_event(substrate, receipt.block_hash, TIP)
             time.sleep(WAIT_TIME_PERIOD)
             _check_transaction_fee_reward_balance(substrate, kp_src.ss58_address, prev_balance, TIP)
 
             setup_block_reward(substrate, kp_src, block_reward)
-            print('✅✅✅transaction fee reward test pass')
+            print('✅transaction fee reward test pass')
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
@@ -87,6 +97,9 @@ def block_reward_test():
     try:
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
+            setup_block_reward(substrate, kp_src, 10000)
+            _extend_max_supply(substrate, kp_src)
+
             block_reward = substrate.query(
                 module='BlockReward',
                 storage_function='BlockIssueReward',
@@ -121,10 +134,10 @@ def block_reward_test():
                     "System", "Account", [kp_src.ss58_address], block_hash=prev_hash
                 )['data']['free'].value
                 if now_balance - previous_balance != block_reward * COLLATOR_REWARD_RATE:
-                    raise IOError(f'The block reward {now_balance - previous_balance} is'
+                    raise IOError(f'The block reward {now_balance - previous_balance} is '
                                   f'not the same as {block_reward * COLLATOR_REWARD_RATE}')
                 else:
-                    print('✅✅✅block fee reward test pass')
+                    print('✅block fee reward test pass')
                     return
             raise IOError(f'Wait {WAIT_BLOCK_NUMBER}, but all blocks have extrinsic')
 
