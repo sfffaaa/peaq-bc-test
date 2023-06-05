@@ -1,8 +1,16 @@
+import sys
+sys.path.append('./')
+
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
+
+# Monkey patch
+from scalecodec.types import FixedLengthArray
+from tools.monkey_patch_scale_info import process_encode as new_process_encode
+FixedLengthArray.process_encode = new_process_encode
 
 TOKEN_NUM_BASE = pow(10, 3)
 TOKEN_NUM_BASE_DEV = pow(10, 18)
@@ -337,6 +345,7 @@ def calculate_evm_account(addr):
 def calculate_evm_addr(addr):
     return '0x' + ss58.ss58_decode(addr)[:40]
 
+
 def fund(substrate, kp_dst, token_num):
     kp_sudo = Keypair.create_from_uri('//Alice')
 
@@ -367,18 +376,19 @@ def fund(substrate, kp_dst, token_num):
 
 
 def get_account_balance(substrate, addr):
-    result = substrate.query("System", "Account", [addr])    
+    result = substrate.query("System", "Account", [addr])
     return int(result['data']['free'].value)
 
+
 def get_account_balance_locked(substrate, addr):
-    result = substrate.query("System", "Account", [addr])    
+    result = substrate.query("System", "Account", [addr])
     return int(result['data']['misc_frozen'].value)
 
-def check_and_fund_account(substrate, addr, min_bal, req_bal):  
 
-    if  get_account_balance(substrate, addr.ss58_address) < min_bal: 
-        print("Since sufficinet balance is not available in account: ", addr.ss58_address)        
-        print("account will be fund with an amount equalt to :", req_bal)        
+def check_and_fund_account(substrate, addr, min_bal, req_bal):
+
+    if get_account_balance(substrate, addr.ss58_address) < min_bal:
+        print("Since sufficinet balance is not available in account: ", addr.ss58_address)
+        print("account will be fund with an amount equalt to :", req_bal)
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
-        

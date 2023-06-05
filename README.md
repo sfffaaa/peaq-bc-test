@@ -66,29 +66,3 @@ Solution: Please install the wheel and reinstall the dependency library again. [
 pip3 install wheel
 pip3 install -r requirements.txt
 ```
-2. If you encounter the issue when testing the EVM related functionalities.
-```
-Traceback (most recent call last):
-  File "test.py", line 18, in <module>
-    evm_rpc_test()
-  File "/home/jaypan/Work/peaq/peaq-bc-test/tools/two_address_evm_contract_with_rpc.py", line 158, in evm_rpc_test
-    call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
-  File "/home/jaypan/Work/peaq/peaq-bc-test/tools/two_address_evm_contract_with_rpc.py", line 32, in call_eth_transfer_a_lot
-    call = substrate.compose_call(
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/substrateinterface/base.py", line 1566, in compose_call
-    call.encode({
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/base.py", line 709, in encode
-    self.data = self.process_encode(self.value_serialized)
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/types.py", line 1439, in process_encode
-    data += arg_obj.encode(param_value)
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/base.py", line 709, in encode
-    self.data = self.process_encode(self.value_serialized)
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/types.py", line 551, in process_encode
-    data += element_obj.encode(value[idx])
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/base.py", line 709, in encode
-    self.data = self.process_encode(self.value_serialized)
-  File "/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/types.py", line 1644, in process_encode
-    raise ValueError('Given value is not a list')
-ValueError: Given value is not a list
-```
-Solution: Apply this [commit](https://github.com/sfffaaa/py-scale-codec/commit/7da7fbe6c8c0a18fb7b825c12ff37edd206df4b8) to your py-scale-codec python library (/home/jaypan/venv.test/lib/python3.8/site-packages/scalecodec/types.py).
