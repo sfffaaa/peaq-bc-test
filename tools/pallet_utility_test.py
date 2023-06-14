@@ -1,6 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE
-from tools.two_address_substrate_with_extrinsic import show_account
+from tools.utils import show_account
 
 # The purpose of this code is to test pallet_utility functionality
 

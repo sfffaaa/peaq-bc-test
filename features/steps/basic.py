@@ -6,7 +6,8 @@ from substrateinterface import Keypair
 from tools.utils import calculate_multi_sig, TOKEN_NUM_BASE
 from tools.utils import transfer
 import random
-from tools.two_address_substrate_with_extrinsic import show_account, send_proposal, send_approval
+from tools.utils import show_account
+from tools.pallet_multisig_test import send_proposal, send_approval
 from tools.block_creation_utils import get_block_creation_times
 from tools.block_creation_time_test import BLOCK_TRAVERSE, BLOCK_CREATION_MS, BLOCK_TOLERATE_PERCENTAGE
 

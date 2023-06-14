@@ -11,12 +11,7 @@ from utils import send_refund_token_service_delievered
 from utils import approve_spent_token
 from utils import approve_refund_token
 from utils import WS_URL
-
-
-def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}')
-    print(result)
+from utils.utils import show_account
 
 
 def send_proposal(substrate, kp_src, kps, threshold, payload):
