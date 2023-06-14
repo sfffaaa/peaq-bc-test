@@ -1,8 +1,16 @@
+import sys
+sys.path.append('./')
+
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
+
+# Monkey patch
+from scalecodec.types import FixedLengthArray
+from tools.monkey_patch_scale_info import process_encode as new_process_encode
+FixedLengthArray.process_encode = new_process_encode
 
 TOKEN_NUM_BASE = pow(10, 3)
 TOKEN_NUM_BASE_DEV = pow(10, 18)
