@@ -7,7 +7,7 @@ from tools.utils import transfer, show_account
 import random
 
 
-def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
+def send_proposal(substrate, kp_src, kp_dst, threshold, payload, timepoint=None):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 
     as_multi_call = substrate.compose_call(
@@ -16,9 +16,8 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
         call_params={
             'threshold': threshold,
             'other_signatories': [kp_dst.ss58_address],
-            'maybe_timepoint': None,
+            'maybe_timepoint': timepoint,
             'call': payload.value,
-            'store_call': True,
             'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
 
@@ -90,6 +89,7 @@ def multisig_test(substrate, kp_src, kp_dst):
     timepoint = send_proposal(substrate, kp_src, kp_dst, threshold, payload)
     send_approval(substrate, kp_dst, [kp_src],
                   threshold, payload, timepoint)
+    send_proposal(substrate, kp_src, kp_dst, threshold, payload, timepoint)
 
     post_multisig_token = show_account(substrate, multi_sig_addr, 'after transfer')
     print(f'pre_multisig_token: {pre_multisig_token}, post_multisig_token: {post_multisig_token}')
