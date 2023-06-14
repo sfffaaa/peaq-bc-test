@@ -337,6 +337,7 @@ def calculate_evm_account(addr):
 def calculate_evm_addr(addr):
     return '0x' + ss58.ss58_decode(addr)[:40]
 
+
 def fund(substrate, kp_dst, token_num):
     kp_sudo = Keypair.create_from_uri('//Alice')
 
@@ -366,19 +367,27 @@ def fund(substrate, kp_dst, token_num):
     show_extrinsic(receipt, 'fund')
 
 
+# TODO Rmeove
 def get_account_balance(substrate, addr):
     result = substrate.query("System", "Account", [addr])
     return int(result['data']['free'].value)
+
 
 def get_account_balance_locked(substrate, addr):
     result = substrate.query("System", "Account", [addr])
     return int(result['data']['misc_frozen'].value)
 
+
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
 
-    if  get_account_balance(substrate, addr.ss58_address) < min_bal:
+    if get_account_balance(substrate, addr.ss58_address) < min_bal:
         print("Since sufficinet balance is not available in account: ", addr.ss58_address)
         print("account will be fund with an amount equalt to :", req_bal)
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
 
+
+def show_account(substrate, addr, out_str):
+    result = substrate.query("System", "Account", [addr])
+    print(f'{addr} {out_str}: {result["data"]["free"]}')
+    return int(result['data']['free'].value)
