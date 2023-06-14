@@ -1,4 +1,4 @@
-from tools.two_address_substrate_with_extrinsic import pallet_multisig_test
+from tools.pallet_multisig_test import pallet_multisig_test
 from tools.two_address_substrate_with_extrinsic import pallet_transaction_test
 from tools.two_address_substrate_with_extrinsic import pallet_did_test
 from tools.pallet_rbac_test import pallet_rbac_test
