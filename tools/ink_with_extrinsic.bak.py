@@ -5,12 +5,6 @@ from substrateinterface.contracts import ContractCode
 from utils import TOKEN_NUM_BASE, show_extrinsic, WS_URL
 
 
-def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}: {result["data"]["free"]}')
-    return int(result['data']['free'].value)
-
-
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 

@@ -48,14 +48,6 @@ SCALE_CODEC = {
 }
 
 
-def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{out_str} {addr}')
-    pp.pprint(result.value)
-    print('')
-    return result.value['data']['free']
-
-
 def upgrade(substrate, kp_src):
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
 

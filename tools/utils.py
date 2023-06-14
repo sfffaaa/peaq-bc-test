@@ -375,6 +375,7 @@ def fund(substrate, kp_dst, token_num):
     show_extrinsic(receipt, 'fund')
 
 
+# TODO Rmeove
 def get_account_balance(substrate, addr):
     result = substrate.query("System", "Account", [addr])
     return int(result['data']['free'].value)
@@ -392,3 +393,9 @@ def check_and_fund_account(substrate, addr, min_bal, req_bal):
         print("account will be fund with an amount equalt to :", req_bal)
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
+
+
+def show_account(substrate, addr, out_str):
+    result = substrate.query("System", "Account", [addr])
+    print(f'{addr} {out_str}: {result["data"]["free"]}')
+    return int(result['data']['free'].value)
