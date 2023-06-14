@@ -9,10 +9,10 @@ w3_obj = Web3(Web3.HTTPProvider("http://127.0.0.1:9933"))
 
 signed_txn = w3.eth.account.signTransaction(dict(
     nonce=w3_obj.eth.getTransactionCount(PK),
-    gasPrice = 10,
-    gas = 100000,
+    gasPrice=10,
+    gas=100000,
     to=DST_PK,
-    value=Web3.toWei(12345,'ether'),
+    value=Web3.toWei(12345, 'ether'),
     chainId=9999,
 ), SK)
 

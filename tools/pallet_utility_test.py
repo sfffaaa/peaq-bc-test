@@ -25,8 +25,7 @@ def all_valid_extrinsics_bath():
     print()
 
     # check account balances before transactions
-    bal_src_before = show_account(substrate,
-                                  kp_src.ss58_address, "src bal before trans")
+    show_account(substrate, kp_src.ss58_address, "src bal before trans")
     bal_dst_before = show_account(substrate,
                                   kp_dst.ss58_address, "Dest bal before trans")
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -60,8 +59,7 @@ def all_valid_extrinsics_bath():
         raise IOError
 
     # check account balances after transaciton
-    bal_src_after = show_account(substrate,
-                                 kp_src.ss58_address, "Src bal after trans")
+    show_account(substrate, kp_src.ss58_address, "Src bal after trans")
     bal_dst_after = show_account(substrate,
                                  kp_dst.ss58_address, "Dest bal after trans")
 
@@ -79,8 +77,7 @@ def all_valid_extrinsics_bath_all():
     print()
 
     # check account balances before transactions
-    bal_src_before = show_account(substrate,
-                                  kp_src.ss58_address, "src bal before trans")
+    show_account(substrate, kp_src.ss58_address, "src bal before trans")
     bal_dst_before = show_account(substrate,
                                   kp_dst.ss58_address, "Dest bal before trans")
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -114,8 +111,7 @@ def all_valid_extrinsics_bath_all():
         raise IOError
 
     # check account balances after transaciton
-    bal_src_after = show_account(substrate,
-                                 kp_src.ss58_address, "Src bal after trans")
+    show_account(substrate, kp_src.ss58_address, "Src bal after trans")
     bal_dst_after = show_account(substrate,
                                  kp_dst.ss58_address, "Dest bal after trans")
 
@@ -133,8 +129,7 @@ def atleast_one_invalid_extrinsic_bath():
     print()
 
     # check account balances before transactions
-    bal_src_before = show_account(substrate,
-                                  kp_src.ss58_address, "src bal before trans")
+    show_account(substrate, kp_src.ss58_address, "src bal before trans")
     bal_dst_before = show_account(substrate,
                                   kp_dst.ss58_address, "Dest bal before trans")
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -177,8 +172,7 @@ def atleast_one_invalid_extrinsic_bath():
         raise IOError
 
     # check account balances after transaciton
-    bal_src_after = show_account(substrate,
-                                 kp_src.ss58_address, "Src bal after trans")
+    show_account(substrate, kp_src.ss58_address, "Src bal after trans")
     bal_dst_after = show_account(substrate,
                                  kp_dst.ss58_address, "Dest bal after trans")
 
@@ -196,8 +190,7 @@ def atleast_one_invalid_extrinsic_bath_all():
     print()
 
     # check account balances before transactions
-    bal_src_before = show_account(substrate,
-                                  kp_src.ss58_address, "src bal before trans")
+    show_account(substrate, kp_src.ss58_address, "src bal before trans")
     bal_dst_before = show_account(substrate,
                                   kp_dst.ss58_address, "Dest bal before trans")
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -237,8 +230,7 @@ def atleast_one_invalid_extrinsic_bath_all():
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
 
     # check account balances after transaciton
-    bal_src_after = show_account(substrate,
-                                 kp_src.ss58_address, "Src bal after trans")
+    show_account(substrate, kp_src.ss58_address, "Src bal after trans")
     bal_dst_after = show_account(substrate,
                                  kp_dst.ss58_address, "Dest bal after trans")
 
