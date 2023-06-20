@@ -11,6 +11,7 @@ from tools.pallet_block_reward_test import pallet_block_reward_test
 from tools.reward_distribution_test import reward_distribution_test
 from tools.pallet_treasury_test import pallet_treasury_test
 from tools.pallet_vesting_test import pallet_vesting_test
+from tools.zenlink_dex_test import zenlink_dex_test
 
 if __name__ == '__main__':
     pallet_multisig_test()
@@ -26,3 +27,4 @@ if __name__ == '__main__':
     reward_distribution_test()
     pallet_treasury_test()
     pallet_vesting_test()
+    zenlink_dex_test()
