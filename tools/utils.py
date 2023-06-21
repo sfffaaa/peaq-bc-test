@@ -66,6 +66,21 @@ SCALE_CODEC = {
 }
 
 
+# Returns the value for x PEAQ
+def peaq(x):
+    return x * TOKEN_NUM_BASE_DEV
+
+
+# Returns the value for x milli-PEAQ (mPEAQ)
+def mpeaq(x):
+    return peaq(x) / 1000
+
+
+# Returns the value for x nano-PEAQ (nPEAQ)
+def npeaq(x):
+    return peaq(x) / 1000000000
+
+
 def show_extrinsic(receipt, info_type):
     if receipt.is_success:
         print(f'✅ {info_type}, Success: {receipt.get_extrinsic_identifier()}')
@@ -480,6 +495,13 @@ def compose_call(substrate, module, extrinsic, params):
     )
 
 
+# Composes a substrate-sudo-extrinsic-call on any module
+# Parameters same as in compose_call, see above
+def compose_sudo_call(substrate, module, extrinsic, params):
+    payload = compose_call(substrate, module, extrinsic, params)
+    return compose_call(substrate, 'Sudo', 'sudo', {'call': payload.value})
+
+
 # Executes a extrinsic-stack/batch-call on substrate
 # Parameters:
 #   substrate:  SubstrateInterface
@@ -531,7 +553,7 @@ def execute_extrinsic_call(substrate, kp_src, call, description=None,
         extrinsic, wait_for_inclusion=True,
         wait_for_finalization=wait_for_finalization)
     if description is None:
-        description = f'Execute extrinsic {call.call_module}.{call.call_function}'
+        description = generate_call_description(call)
     show_extrinsic(receipt, description)
 
     if not receipt.is_success:
@@ -539,6 +561,21 @@ def execute_extrinsic_call(substrate, kp_src, call, description=None,
         raise IOError
     else:
         return receipt.block_hash
+
+
+def generate_call_description(call):
+    module = call.call_module.name
+    function = call.call_function.name
+    if module == 'Sudo':
+        # I don't like this solution, but unfortunately I was not able to access
+        # call.call_args in that way to extract the module and function of the payload.
+        desc = call.__str__().split('{')[3]
+        desc = desc.split("'")
+        submodule = desc[3]
+        subfunction = desc[7]
+        return f'{module}.{function}({submodule}.{subfunction})'
+    else:
+        return f'{module}.{function}'
 
 
 # Takes either a Keypair, or transforms a given uri into one
