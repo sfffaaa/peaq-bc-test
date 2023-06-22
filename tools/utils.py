@@ -1,9 +1,9 @@
 import sys
+import time
 sys.path.append('./')
 
 from dataclasses import dataclass
 from substrateinterface import SubstrateInterface, Keypair
-from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
@@ -540,8 +540,8 @@ def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
 
 
 # Executes a single extrinsic call on substrate
-def execute_extrinsic_call(substrate, kp_src, call, description=None,
-                           wait_for_finalization=False) -> int:
+def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
+                    description=None, wait_for_finalization=False) -> int:
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -563,10 +563,18 @@ def execute_extrinsic_call(substrate, kp_src, call, description=None,
         return receipt.block_hash
 
 
+# Generates a description for an arbitrary extrinsic call
 def generate_call_description(call):
     module = call.call_module.name
     function = call.call_function.name
     if module == 'Sudo':
+        print('============')
+        print(call.call_args)
+        print(type(call.call_args))
+        print('============')
+        print(call.call_args.value)
+        print(type(call.call_args.value))
+        print('============')
         # I don't like this solution, but unfortunately I was not able to access
         # call.call_args in that way to extract the module and function of the payload.
         desc = call.__str__().split('{')[3]
@@ -596,3 +604,24 @@ def _into_substrate(substrate_or_url) -> SubstrateInterface:
         return substrate_or_url
     else:
         raise TypeError
+
+
+# Waits for an certain event and returns it if found, and None if not.
+# Method stops after given timeout and returns also None.
+def wait_for_event(substrate, module, event, timeout=30):
+    stime = time.time()
+    cur_bl = None
+    nxt_bl = substrate.get_block_hash()
+    while not (time.time() - stime) > timeout:
+        if nxt_bl != cur_bl:
+            cur_bl = nxt_bl
+            events = substrate.get_events(cur_bl)
+            for e in events:
+                module_id = e.value['event']['module_id']
+                event_id = e.value['event']['event_id']
+                if module_id == module and event_id == event:
+                    return e.value['event']
+        time.sleep(1)
+        nxt_bl = substrate.get_block_hash()
+    return None
+

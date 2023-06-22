@@ -4,14 +4,18 @@ import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL
-from tools.utils import compose_call, compose_sudo_call, execute_extrinsic_call 
-from tools.utils import peaq, mpeaq, show_extrinsic
+from tools.utils import compose_call, compose_sudo_call, execute_call 
+from tools.utils import peaq, mpeaq, show_extrinsic, wait_for_event
 
 sys.path.append('./')
 
 
 PEAQ_PARACHAIN_ID = 2000
 BIFROST_PARACHAIN_ID = 3000
+
+
+def println(data):
+    print(f'\n{data}')
 
 
 def compose_zdex_lppair_params(tok_idx):
@@ -130,7 +134,7 @@ def state_tokens_accounts(si_para, kp_user, token):
 def state_znlnkprot_lppair_assetidx(si_para, tok_idx):
     asset0, asset1 = compose_zdex_lppair_params(tok_idx)
     query = si_para.query('ZenlinkProtocol', 'LiquidityPairs', [[asset0, asset1]])
-    if query is None:
+    if query.value is None:
         return 0
     else:
         return int(query['asset_index'].value)
@@ -154,30 +158,31 @@ def relaychain2parachain_test(si_relay, si_para):
     balance = state_system_account(si_para, kp_beneficiary)
     if balance < mpeaq(200):
         call = compose_balances_transfer(si_para, kp_beneficiary, amnt_peaq)
-        execute_extrinsic_call(si_para, kp_para_sudo, call)
-        assert state_balances_account(si_para, kp_beneficiary) == balance + amnt_peaq
+        execute_call(si_para, kp_para_sudo, call)
+        assert state_system_account(si_para, kp_beneficiary) == balance + amnt_peaq
     
-    # Transfer tokens from relaychain to parachain
+    # # Transfer tokens from relaychain to parachain
     call = compose_xcm_rta_relay2para(si_relay, kp_beneficiary, amnt_dot)
-    execute_extrinsic_call(si_relay, kp_sender, call)
-    time.sleep(5)
+    execute_call(si_relay, kp_sender, call)
+    assert not wait_for_event(si_para, 'Tokens', 'Deposited', 20) is None
     dot_balance = state_tokens_accounts(si_para, kp_beneficiary, 'DOT')
     assert dot_balance > int(amnt_dot * 0.8)
 
     # Create a liquidity pair with pallet Zenlink-Protocol
     if not state_znlnkprot_lppair_assetidx(si_para, tok_idx):
         call = compose_zdex_create_lppair(si_para, tok_idx)
-        execute_extrinsic_call(si_para, kp_para_sudo, call)
+        execute_call(si_para, kp_para_sudo, call)
 
     # Add liquidity to created token pair on Zenlink-DEX
     call = compose_zdex_add_liquidity(si_para, tok_idx, dot_balance)
-    execute_extrinsic_call(si_para, kp_beneficiary, call)
+    execute_call(si_para, kp_beneficiary, call)
     lpstatus = state_znlnkprot_lppair_status(si_para, tok_idx)
     assert int(lpstatus['total_supply']) == dot_balance
 
     # Swap liquidity pair on Zenlink-DEX
+    dot_balance = 1000000000
     call = compose_zdex_swap_lppair(si_para, kp_beneficiary, tok_idx, dot_balance)
-    execute_extrinsic_call(si_para, kp_para_sudo, call)
+    execute_call(si_para, kp_beneficiary, call)
     
     # Remove liquidity from Zenlink-DEX
     # amount = 1000 # ???
@@ -208,7 +213,7 @@ def zenlink_dex_test():
         _, _, tb = sys.exc_info()
         tb_info = traceback.extract_tb(tb)
         filename, line, func, text = tb_info[1]
-        print(f'🔥 Test/{func}, Failed')
+        print(f'🔥 Test/{func} in line {line}, Failed')
 
 
 if __name__ == '__main__':
