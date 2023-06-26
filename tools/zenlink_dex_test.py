@@ -166,7 +166,6 @@ def relaychain2parachain_test(si_relay, si_para):
     lpstatus = state_znlnkprot_lppair_status(si_para, dot_idx)
     if not lpstatus['total_supply'] >= amnt_liquidity:
         request = relay_amount_w_fees(amnt_liquidity)
-        print('Request from relaychain: ', request)
         call = compose_xcm_rta_relay2para(si_relay, kp_para_sudo, request)
         execute_call(si_relay, kp_sender, call)
         assert not wait_for_event(si_para, 'Tokens', 'Deposited', xcm_rta_to) is None
@@ -195,6 +194,8 @@ def relaychain2parachain_test(si_relay, si_para):
     # Swap liquidity pair on Zenlink-DEX
     call = compose_zdex_swap_lppair(si_para, kp_beneficiary, dot_idx, amnt_dot)
     execute_call(si_para, kp_beneficiary, call)
+    event = wait_for_event(si_para, 'ZenlinkProtocol', 'AssetSwap')
+    assert event['attributes'][3][1] > 0
 
 
 # def parachain2parachain_test():
