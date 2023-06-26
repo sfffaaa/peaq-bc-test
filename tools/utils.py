@@ -66,21 +66,6 @@ SCALE_CODEC = {
 }
 
 
-# Returns the value for x PEAQ
-def peaq(x):
-    return x * TOKEN_NUM_BASE_DEV
-
-
-# Returns the value for x milli-PEAQ (mPEAQ)
-def mpeaq(x):
-    return peaq(x) / 1000
-
-
-# Returns the value for x nano-PEAQ (nPEAQ)
-def npeaq(x):
-    return peaq(x) / 1000000000
-
-
 def show_extrinsic(receipt, info_type):
     if receipt.is_success:
         print(f'✅ {info_type}, Success: {receipt.get_extrinsic_identifier()}')
@@ -542,6 +527,8 @@ def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
 # Executes a single extrinsic call on substrate
 def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
                     description=None, wait_for_finalization=False) -> int:
+    if description is None:
+        description = generate_call_description(call)
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -552,8 +539,6 @@ def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
     receipt = substrate.submit_extrinsic(
         extrinsic, wait_for_inclusion=True,
         wait_for_finalization=wait_for_finalization)
-    if description is None:
-        description = generate_call_description(call)
     show_extrinsic(receipt, description)
 
     if not receipt.is_success:
@@ -568,13 +553,6 @@ def generate_call_description(call):
     module = call.call_module.name
     function = call.call_function.name
     if module == 'Sudo':
-        print('============')
-        print(call.call_args)
-        print(type(call.call_args))
-        print('============')
-        print(call.call_args.value)
-        print(type(call.call_args.value))
-        print('============')
         # I don't like this solution, but unfortunately I was not able to access
         # call.call_args in that way to extract the module and function of the payload.
         desc = call.__str__().split('{')[3]
@@ -620,8 +598,22 @@ def wait_for_event(substrate, module, event, timeout=30):
                 module_id = e.value['event']['module_id']
                 event_id = e.value['event']['event_id']
                 if module_id == module and event_id == event:
+                    time.sleep(1) # To make sure everything has been processed
                     return e.value['event']
         time.sleep(1)
         nxt_bl = substrate.get_block_hash()
     return None
+
+
+# Waits until the next block has been created
+def wait_for_n_blocks(substrate, n=1):
+    hash = substrate.get_block_hash()
+    past = 0
+    while past < n:
+        next_hash = substrate.get_block_hash()
+        if hash == next_hash:
+            time.sleep(1)
+        else:
+            hash = next_hash
+            past = past + 1
 
