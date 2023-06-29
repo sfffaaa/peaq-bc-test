@@ -144,7 +144,10 @@ def state_znlnkprot_lppair_assetidx(si_para, tok_idx):
 def state_znlnkprot_lppair_status(si_para, tok_idx):
     asset0, asset1 = compose_zdex_lppair_params(tok_idx)
     query = si_para.query('ZenlinkProtocol', 'PairStatuses', [[asset0, asset1]])
-    return query.value['Trading']
+    if isinstance(query.value, dict):
+        return query.value['Trading']
+    else:
+        return query.value
 
 
 def relaychain2parachain_test(si_relay, si_para):
