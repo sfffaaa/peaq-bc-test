@@ -8,14 +8,14 @@ DST_PK = w3.toChecksumAddress('0xc5bdf22635df81f897c1bb2b24b758deb21f522d')
 w3_obj = Web3(Web3.HTTPProvider("http://127.0.0.1:9933"))
 
 signed_txn = w3.eth.account.signTransaction(dict(
-    nonce=w3_obj.eth.getTransactionCount(PK),
+    nonce=w3_obj.eth.get_transaction_count(PK),
     gasPrice=10,
     gas=100000,
     to=DST_PK,
-    value=Web3.toWei(12345, 'ether'),
+    value=Web3.to_wei(12345, 'ether'),
     chainId=9999,
 ), SK)
 
-w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+w3.eth.send_raw_transaction(signed_txn.rawTransaction)
 
 # Why cannot work??

@@ -336,10 +336,18 @@ def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base
     return receipt
 
 
-def calculate_evm_account(addr):
+def _calculate_evm_account(addr):
     evm_addr = b'evm:' + bytes.fromhex(addr[2:].upper())
     hash_key = hasher.blake2_256(evm_addr)
-    return ss58.ss58_encode(hash_key)
+    return hash_key
+
+
+def calculate_evm_account(addr):
+    return ss58.ss58_encode(calculate_evm_account_hex(addr))
+
+
+def calculate_evm_account_hex(addr):
+    return '0x' + _calculate_evm_account(addr).hex()
 
 
 def calculate_evm_addr(addr):

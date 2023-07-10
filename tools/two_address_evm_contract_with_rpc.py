@@ -3,8 +3,9 @@ sys.path.append('./')
 import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
 from tools.utils import WS_URL, ETH_URL, ETH_CHAIN_ID
+from tools.peaq_eth_utils import call_eth_transfer_a_lot
 from web3 import Web3
 
 import pprint
@@ -26,42 +27,9 @@ MNEMONIC = [
 ]
 
 
-def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
-        call_module='EVM',
-        call_function='call',
-        call_params={
-            'source': eth_src,
-            'target': eth_dst,
-            'input': '0x',
-            'value': '0xffffffffffffffffff0000000000000000000000000000000000000000000000',
-            'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': "0xfffffff000000000000000000000000000000000000000000000000000000000",
-            'max_priority_fee_per_gas': None,
-            'nonce': None,
-            'access_list': []
-        })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'evm_call')
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
-
-
 def send_eth_token(w3, kp_src, kp_dst, token_num):
-    nonce = w3.eth.getTransactionCount(kp_src.ss58_address)
-    # gas = web3.toWei(Decimal('0.000000005'), 'ether')
+    nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
+    # gas = web3.to_wei(Decimal('0.000000005'), 'ether')
     gas = GAS_LIMIT
     price = 1000
     print(token_num + gas * price)
@@ -70,14 +38,14 @@ def send_eth_token(w3, kp_src, kp_dst, token_num):
         'to': kp_dst.ss58_address,
         'value': token_num,
         'gas': gas,
-        'maxFeePerGas': w3.toWei(250, 'gwei'),
-        'maxPriorityFeePerGas': w3.toWei(2, 'gwei'),
+        'maxFeePerGas': w3.to_wei(250, 'gwei'),
+        'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
         'chainId': CHAIN_ID
     }
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
-    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     if tx_receipt['status'] != 1:
         print(tx_receipt)
         raise IOError
@@ -94,18 +62,18 @@ def deploy_contract(w3, kp_src):
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
     tx = w3.eth.contract(
         abi=abi,
-        bytecode=bytecode).constructor().buildTransaction({
+        bytecode=bytecode).constructor().build_transaction({
             'from': kp_src.ss58_address,
             'gas': 429496,
-            'maxFeePerGas': w3.toWei(250, 'gwei'),
-            'maxPriorityFeePerGas': w3.toWei(2, 'gwei'),
+            'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
             'chainId': CHAIN_ID})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
-    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     print(f'create_contract: {tx_hash.hex()}')
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
     address = tx_receipt['contractAddress']
     if not address:
@@ -123,18 +91,18 @@ def call_copy(w3, address, kp_src):
     assert(data == b'')
 
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
-    tx = contract.functions.callDatacopy(HEX_STR).buildTransaction({
+    tx = contract.functions.callDatacopy(bytes.fromhex(HEX_STR)).build_transaction({
         'from': kp_src.ss58_address,
         'gas': GAS_LIMIT,
-        'maxFeePerGas': w3.toWei(250, 'gwei'),
-        'maxPriorityFeePerGas': w3.toWei(2, 'gwei'),
+        'maxFeePerGas': w3.to_wei(250, 'gwei'),
+        'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
         'chainId': CHAIN_ID})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
-    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     print(f'call: {tx_hash.hex()}')
-    w3.eth.waitForTransactionReceipt(tx_hash)
+    w3.eth.wait_for_transaction_receipt(tx_hash)
 
     data = contract.functions.memoryStored().call()
     assert(data.hex() == HEX_STR)

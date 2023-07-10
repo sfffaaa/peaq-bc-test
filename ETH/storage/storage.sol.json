@@ -1,0 +1,136 @@
+[
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "account",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "item_type",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "item",
+				"type": "bytes"
+			}
+		],
+		"name": "ItemAdded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "account",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "item_type",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "item",
+				"type": "bytes"
+			}
+		],
+		"name": "ItemUpdated",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "item_type",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "item",
+				"type": "bytes"
+			}
+		],
+		"name": "add_item",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "account",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "item_type",
+				"type": "bytes"
+			}
+		],
+		"name": "get_item",
+		"outputs": [
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "item_type",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "item",
+				"type": "bytes"
+			}
+		],
+		"name": "update_item",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
