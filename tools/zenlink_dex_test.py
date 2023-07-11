@@ -1,14 +1,12 @@
 import sys
-import time
 import traceback
+# sys.path.ppend('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL
-from tools.utils import compose_call, compose_sudo_call, execute_call, show_extrinsic
+from tools.utils import compose_call, compose_sudo_call, execute_call
 from tools.utils import wait_for_event, wait_for_n_blocks
-from tools.currency import peaq, mpeaq, ksm, mksm
-
-sys.path.append('./')
+from tools.currency import peaq, mpeaq, dot, mdot
 
 
 PEAQ_PARACHAIN_ID = 2000
@@ -16,7 +14,7 @@ BIFROST_PARACHAIN_ID = 3000
 
 
 def relay_amount_w_fees(x):
-    return x + ksm(0.025)
+    return x + mdot(25)
 
 
 def compose_zdex_lppair_params(tok_idx):
@@ -69,7 +67,6 @@ def compose_xcm_rta_relay2para(si_relay, kp_beneficiary, amount):
 
 
 def compose_zdex_create_lppair(si_para, tok_idx):
-    # print(si_para.get_metadata_call_function('ZenlinkProtocol', 'create_pair'))
     asset0, asset1 = compose_zdex_lppair_params(tok_idx)
     params = {
             'asset_0': asset0,
@@ -154,9 +151,9 @@ def relaychain2parachain_test(si_relay, si_para):
     kp_sender = Keypair.create_from_uri('//Alice')
     kp_beneficiary = Keypair.create_from_uri('//Dave')
     kp_para_sudo = Keypair.create_from_uri('//Alice')
-    amnt_liquidity = ksm(1)
+    amnt_liquidity = dot(20)
     amnt_peaq = peaq(1)
-    amnt_dot = ksm(2)
+    amnt_dot = dot(1)
     dot_idx = 576
     xcm_rta_to = 45 # timeout for xcm-rta
 
@@ -227,3 +224,4 @@ def zenlink_dex_test():
 
 if __name__ == '__main__':
     zenlink_dex_test()
+
