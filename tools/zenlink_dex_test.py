@@ -11,6 +11,7 @@ from tools.currency import peaq, mpeaq, dot, mdot
 
 PEAQ_PARACHAIN_ID = 2000
 BIFROST_PARACHAIN_ID = 3000
+XCM_VER = 'V3'
 
 
 def relay_amount_w_fees(x):
@@ -42,18 +43,19 @@ def compose_balances_transfer(si_para, kp_beneficiary, amount):
         }
     return compose_call(si_para, 'Balances', 'transfer', params)
 
+
 # Composes a XCM Reserve-Transfer-Asset call to transfer DOT-tokens
 # from relaychain to parachain
 def compose_xcm_rta_relay2para(si_relay, kp_beneficiary, amount):
-    dest = { 'V3': {
+    dest = { XCM_VER: {
             'parents': '0',
             'interior': { 'X1': { 'Parachain': f'{PEAQ_PARACHAIN_ID}' }}
         }}
-    beneficiary = { 'V3': {
+    beneficiary = { XCM_VER: {
             'parents': '0',
             'interior': { 'X1': { 'AccountId32': (None, kp_beneficiary.public_key) }}
         }}
-    assets = { 'V3': [[{
+    assets = { XCM_VER: [[{
             'id': { 'Concrete': { 'parents': '0', 'interior': 'Here' }},
             'fun': { 'Fungible': f'{amount}' }
             }]]}
