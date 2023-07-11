@@ -68,9 +68,19 @@ SCALE_CODEC = {
 
 def show_extrinsic(receipt, info_type):
     if receipt.is_success:
-        print(f'✅ {info_type}, Success: {receipt.get_extrinsic_identifier()}')
+        print(f'🤖 {info_type}, Success: {receipt.get_extrinsic_identifier()}')
     else:
         print(f'⚠️  {info_type}, Extrinsic Failed: {receipt.error_message} {receipt.get_extrinsic_identifier()}')
+
+
+def show_test(name, success, line=0):
+    if success:
+        print(f'✅ Test/{name}, Passed')
+    else:
+        if line != 0:
+            print(f'🔥 Test/{name}, Failed in line {line}')
+        else:
+            print(f'🔥 Test/{name}, Failed')
 
 
 def calculate_multi_sig(kps, threshold):

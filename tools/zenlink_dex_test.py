@@ -4,18 +4,18 @@ import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL
-from tools.utils import compose_call, compose_sudo_call, execute_call
+from tools.utils import compose_call, compose_sudo_call, execute_call, show_test
 from tools.utils import wait_for_event, wait_for_n_blocks
-from tools.currency import peaq, mpeaq, dot, mdot
+from tools.currency import peaq, mpeaq, dot
 
 
 PEAQ_PARACHAIN_ID = 2000
 BIFROST_PARACHAIN_ID = 3000
-XCM_VER = 'V3'
+XCM_VER = 'V3'  # So far not tested with V2!
 
 
 def relay_amount_w_fees(x):
-    return x + mdot(25)
+    return x + dot(2.5)
 
 
 def compose_zdex_lppair_params(tok_idx):
@@ -197,11 +197,14 @@ def relaychain2parachain_test(si_relay, si_para):
     call = compose_zdex_swap_lppair(si_para, kp_beneficiary, dot_idx, amnt_dot)
     execute_call(si_para, kp_beneficiary, call)
     event = wait_for_event(si_para, 'ZenlinkProtocol', 'AssetSwap')
+    assert not event is None
     assert event['attributes'][3][1] > 0
+    
+    show_test('relaychain2parachain_test', True)
 
 
-# def parachain2parachain_test():
-    # TODO
+def parachain2parachain_test():
+    pass
 
 
 def zenlink_dex_test():
@@ -210,7 +213,7 @@ def zenlink_dex_test():
         with SubstrateInterface(url=RELAYCHAIN_WS_URL) as si_relay:
             with SubstrateInterface(url=PARACHAIN_WS_URL) as si_para:
                 relaychain2parachain_test(si_relay, si_para)
-                # parachain2parachain_test()
+                parachain2parachain_test()
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, \
@@ -220,8 +223,9 @@ def zenlink_dex_test():
     except AssertionError:
         _, _, tb = sys.exc_info()
         tb_info = traceback.extract_tb(tb)
-        filename, line, func, text = tb_info[1]
-        print(f'🔥 Test/{func} in line {line}, Failed')
+        _, line, func = tb_info[1]
+        show_test(func, False, line)
+        # print(f'🔥 Test/{func} in line {line}, Failed')
 
 
 if __name__ == '__main__':
