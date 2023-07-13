@@ -7,6 +7,7 @@ from substrateinterface import SubstrateInterface, Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+
 from scalecodec.utils.ss58 import ss58_encode
 
 # Monkey patch
@@ -81,6 +82,10 @@ def show_test(name, success, line=0):
             print(f'🔥 Test/{name}, Failed in line {line}')
         else:
             print(f'🔥 Test/{name}, Failed')
+
+
+def show_title(name):
+    print(f'\n========== {name} ==========')
 
 
 def calculate_multi_sig(kps, threshold):
@@ -414,25 +419,29 @@ def show_account(substrate, addr, out_str):
     return int(result['data']['free'].value)
 
 
-# ExtrinsicStack class for simple creation of extrinsic-stacks to be executed
-# When initialising, pass either an existing SubstrateInterface/WS-URL and
-# optional Keypair/URI, or use the defaults
-# Example 1:    ex_stack = ExtrinsicStack(substrate, kp_src)
-# Example 2:    ex_stack = ExtrinsicStack(WS_URL, '//Bob')
-# Example 3:    ex_stack = ExtrinsicStack()
 @dataclass
-class ExtrinsicStack:
-    substrate: SubstrateInterface
-    keypair: Keypair
-    stack: list
-    description: str
+class ExtrinsicBatch:
+    """
+    ExtrinsicBatch class for simple creation of extrinsic-batch to be executed.
 
-    # Default initialisation methods
+    When initialising, pass either an existing SubstrateInterface/WS-URL and
+    optional Keypair/URI, or use the defaults. The ExtrinsicBatch is designed
+    to be used on one chain (relaychain/parachain), because the usage of one
+    SubstrateInterface. It is also designed for one user to execute the batch,
+    because the Utility pallet does not varying users unfortunately.
+
+    Example 1:    ex_stack = ExtrinsicStack(substrate, kp_src)
+    Example 2:    ex_stack = ExtrinsicStack(WS_URL, '//Bob')
+    Example 3:    ex_stack = ExtrinsicStack()
+    """
+    substrate: SubstrateInterface
+    kp_default: Keypair
+    batch: list
+
     def __init__(self, substrate_or_url=WS_URL, keypair_or_uri='//Alice'):
         self.substrate = _into_substrate(substrate_or_url)
-        self.keypair = _into_keypair(keypair_or_uri)
-        self.stack = []
-        self.description = []
+        self.kp_default = _into_keypair(keypair_or_uri)
+        self.batch = []
 
     def __enter__(self):
         return self
@@ -440,49 +449,55 @@ class ExtrinsicStack:
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self
 
-    # Composes and appends an extrinsic call to this stack
+    def __str__(self):
+        return 'ExtrinsicBatch@{}, batch: {}'.format(self.substrate, self.batch)
+
     def compose_call(self, module, extrinsic, params):
-        if module == 'Sudo':
-            desc = params['call']['call_function']
-            desc = f'sudo-{desc}'
-        else:
-            desc = extrinsic
-        self.description.append(desc)
-        self.stack.append(compose_call(
+        """Composes and appends an extrinsic call to this stack"""
+        self.batch.append(compose_call(
             self.substrate, module, extrinsic, params))
 
-    # Composes a sudo-user extrinsic call and adds it this stack
     def compose_sudo_call(self, module, extrinsic, params):
-        payload = compose_call(self.substrate, module, extrinsic, params)
-        self.compose_call('Sudo', 'sudo', {'call': payload.value})
+        """Composes a sudo-user extrinsic call and adds it this stack"""
+        self.batch.append(compose_sudo_call(
+            self.substrate, module, extrinsic, params))
 
-    # Executes the extrinsic-stack
-    def execute(self, alt_keypair=None, wait_for_finalization=False) -> int:
+    def execute(self, wait_for_finalization=False, alt_keypair=None) -> str:
+        """Executes the extrinsic-stack"""
+        if not self.batch:
+            return ''
         if alt_keypair is None:
-            alt_keypair = self.keypair
-        description = 'Stack: ' + ' '.join(self.description)
-        return execute_extrinsic_stack(
-            self.substrate, alt_keypair, self.stack,
-            description, wait_for_finalization)
+            alt_keypair = self.kp_default
+        return execute_extrinsic_batch(
+            self.substrate, alt_keypair, self.batch, wait_for_finalization)
 
-    # Combination of execute() and clear()
-    def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> int:
-        bl_hash = self.execute(alt_keypair, wait_for_finalization)
+    def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> str:
+        """Combination of execute() and clear()"""
+        if alt_keypair is None:
+            alt_keypair = self.kp_default
+        bl_hash = self.execute(wait_for_finalization, alt_keypair)
         self.clear()
         return bl_hash
 
-    # Clears the current extrinsic-stack
     def clear(self):
-        self.stack = []
-        self.description = []
+        """Clears the current extrinsic-stack"""
+        self.batch = []
+
+    def clone(self, keypair_or_uri=None):
+        """Creates a duplicate, by using the same SubstrateInterface"""
+        if keypair_or_uri is None:
+            keypair_or_uri = self.kp_default
+        return ExtrinsicBatch(self.substrate, keypair_or_uri)
 
 
-# Composes a substrate-extrinsic-call on any module
-# Example:
-#   module = 'Rbac'
-#   extrinsic = 'add_role'
-#   params = {'role_id': entity_id, 'name': name }
 def compose_call(substrate, module, extrinsic, params):
+    """
+    Composes a substrate-extrinsic-call on any module
+    Example:
+      module = 'Rbac'
+      extrinsic = 'add_role'
+      params = {'role_id': entity_id, 'name': name }
+    """
     return substrate.compose_call(
         call_module=module,
         call_function=extrinsic,
@@ -490,26 +505,30 @@ def compose_call(substrate, module, extrinsic, params):
     )
 
 
-# Composes a substrate-sudo-extrinsic-call on any module
-# Parameters same as in compose_call, see above
 def compose_sudo_call(substrate, module, extrinsic, params):
+    """
+    Composes a substrate-sudo-extrinsic-call on any module
+    Parameters same as in compose_call, see above
+    """
     payload = compose_call(substrate, module, extrinsic, params)
     return compose_call(substrate, 'Sudo', 'sudo', {'call': payload.value})
 
 
-# Executes a extrinsic-stack/batch-call on substrate
-# Parameters:
-#   substrate:  SubstrateInterface
-#   kp_src:     Keypair
-#   stack:      list[compose_call(), compose_call(), ...]
-def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
-                            wait_for_finalization=False) -> int:
-    # Wrape payload into a utility batch cal
+def execute_extrinsic_batch(substrate, kp_src, batch,
+                            wait_for_finalization=False) -> str:
+    """
+    Executes a extrinsic-stack/batch-call on substrate
+    Parameters:
+      substrate:  SubstrateInterface
+      kp_src:     Keypair
+      batch:      list[compose_call(), compose_call(), ...]
+    """
+    # Wrap payload into a utility batch cal
     call = substrate.compose_call(
         call_module='Utility',
         call_function='batch_all',
         call_params={
-            'calls': stack,
+            'calls': batch,
         })
 
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -523,8 +542,10 @@ def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
     receipt = substrate.submit_extrinsic(
         extrinsic, wait_for_inclusion=True,
         wait_for_finalization=wait_for_finalization)
-    if description is None:
-        description = 'Execute extrinsic-stack'
+    if len(batch) == 1:
+        description = generate_call_description(batch[0])
+    else:
+        description = generate_batch_description(batch)
     show_extrinsic(receipt, description)
 
     if not receipt.is_success:
@@ -534,11 +555,9 @@ def execute_extrinsic_stack(substrate, kp_src, stack, description=None,
         return receipt.block_hash
 
 
-# Executes a single extrinsic call on substrate
 def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
-                    description=None, wait_for_finalization=False) -> int:
-    if description is None:
-        description = generate_call_description(call)
+                 wait_for_finalization=False) -> str:
+    """Executes a single extrinsic call on substrate"""
     nonce = substrate.get_account_nonce(kp_src.ss58_address)
     extrinsic = substrate.create_signed_extrinsic(
         call=call,
@@ -549,6 +568,7 @@ def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
     receipt = substrate.submit_extrinsic(
         extrinsic, wait_for_inclusion=True,
         wait_for_finalization=wait_for_finalization)
+    description = generate_call_description(call)
     show_extrinsic(receipt, description)
 
     if not receipt.is_success:
@@ -558,8 +578,10 @@ def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
         return receipt.block_hash
 
 
-# Generates a description for an arbitrary extrinsic call
 def generate_call_description(call):
+    """Generates a description for an arbitrary extrinsic call"""
+    # print(type(call), call)
+    # assert type(call) == "scalecodec.types.GenericCall"
     module = call.call_module.name
     function = call.call_function.name
     if module == 'Sudo':
@@ -574,8 +596,16 @@ def generate_call_description(call):
         return f'{module}.{function}'
 
 
-# Takes either a Keypair, or transforms a given uri into one
+def generate_batch_description(batch):
+    """Generates a description for an extrinsic batch"""
+    desc = []
+    for b in batch:
+        desc.append(f'{generate_call_description(b)}')
+    desc = ', '.join(desc)
+    desc = f'Batch[ {desc} ]'
+
 def _into_keypair(keypair_or_uri) -> Keypair:
+    """Takes either a Keypair, or transforms a given uri into one"""
     if isinstance(keypair_or_uri, str):
         return Keypair.create_from_uri(keypair_or_uri)
     elif isinstance(keypair_or_uri, Keypair):
@@ -584,8 +614,8 @@ def _into_keypair(keypair_or_uri) -> Keypair:
         raise TypeError
 
 
-# Takes a SubstrateInterface, or takes into one by given url
 def _into_substrate(substrate_or_url) -> SubstrateInterface:
+    """Takes a SubstrateInterface, or takes into one by given url"""
     if isinstance(substrate_or_url, str):
         return SubstrateInterface(substrate_or_url)
     elif isinstance(substrate_or_url, SubstrateInterface):
@@ -594,9 +624,15 @@ def _into_substrate(substrate_or_url) -> SubstrateInterface:
         raise TypeError
 
 
-# Waits for an certain event and returns it if found, and None if not.
-# Method stops after given timeout and returns also None.
-def wait_for_event(substrate, module, event, timeout=30):
+def wait_for_event(substrate, module, event, attributes={}, timeout=30):
+    """
+    Waits for an certain event and returns it if found, and None if not.
+    Method stops after given timeout and returns also None.
+    Parameters:
+    - module:       name of the module to filter
+    - event:        name of the event to filter
+    - attributes:   dict with attributes and expected values to filter
+    """
     stime = time.time()
     cur_bl = None
     nxt_bl = substrate.get_block_hash()
@@ -605,9 +641,7 @@ def wait_for_event(substrate, module, event, timeout=30):
             cur_bl = nxt_bl
             events = substrate.get_events(cur_bl)
             for e in events:
-                module_id = e.value['event']['module_id']
-                event_id = e.value['event']['event_id']
-                if module_id == module and event_id == event:
+                if _is_it_this_event(e, module, event, attributes):
                     time.sleep(1) # To make sure everything has been processed
                     return e.value['event']
         time.sleep(1)
@@ -615,8 +649,26 @@ def wait_for_event(substrate, module, event, timeout=30):
     return None
 
 
-# Waits until the next block has been created
+def _is_it_this_event(e_obj, module, event, attributes) -> bool:
+    module_id = e_obj.value['event']['module_id']
+    event_id = e_obj.value['event']['event_id']
+    attrib_id = e_obj.value['event']['attributes']
+    if module_id == module and event_id == event:
+        if attributes:
+            for key in attributes.keys():
+                if not key in attrib_id.keys():
+                    raise KeyError
+                if attrib_id[key] != attributes[key]:
+                    return False
+            return True
+        else:
+            return True
+    else:
+        return False
+
+
 def wait_for_n_blocks(substrate, n=1):
+    """Waits until the next block has been created"""
     hash = substrate.get_block_hash()
     past = 0
     while past < n:
