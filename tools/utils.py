@@ -602,7 +602,8 @@ def generate_batch_description(batch):
     for b in batch:
         desc.append(f'{generate_call_description(b)}')
     desc = ', '.join(desc)
-    desc = f'Batch[ {desc} ]'
+    return f'Batch[ {desc} ]'
+
 
 def _into_keypair(keypair_or_uri) -> Keypair:
     """Takes either a Keypair, or transforms a given uri into one"""
