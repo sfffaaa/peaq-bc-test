@@ -10,12 +10,14 @@ from tools.utils import deposit_money_to_multsig_wallet
 from tools.utils import _approve_token
 from threading import Thread
 import requests
-
-import eventlet
-eventlet.monkey_patch()
+import pytest
 
 
+@pytest.mark.skip(reason="Only test for the charging simulator")
 def user_simulation_test(kp_consumer):
+    import eventlet
+    eventlet.monkey_patch()
+
     try:
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
