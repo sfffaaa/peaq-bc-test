@@ -7,6 +7,7 @@ from tools.utils import TOKEN_NUM_BASE_DEV
 
 TOKEN_NUM_BASE_DEV_DOT = pow(10, 10)
 TOKEN_NUM_BASE_DEV_KSM = pow(10, 12)
+TOKEN_NUM_BASE_DEV_BNC = pow(10, 12)
 
 
 # Returns the value for x PEAQ
@@ -38,3 +39,8 @@ def ksm(x) -> int:
 
 def mksm(x) -> int:
     return int(ksm(x) / 1000)
+
+
+def bnc(x) -> int:
+    return int(x * TOKEN_NUM_BASE_DEV_BNC)
+

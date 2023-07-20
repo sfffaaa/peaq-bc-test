@@ -85,7 +85,11 @@ def show_test(name, success, line=0):
 
 
 def show_title(name):
-    print(f'\n========== {name} ==========')
+    print(f'========== {name} ==========')
+
+
+def show_subtitle(name):
+    print(f'----- {name} -----')
 
 
 def calculate_multi_sig(kps, threshold):
