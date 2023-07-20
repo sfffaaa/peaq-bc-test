@@ -18,10 +18,8 @@ BNC_IDX = 641  # u8 value for BNC-token (CurrencyId/TokenSymbol)
 BIFROST_WS_URL = 'ws://127.0.0.1:10047'
 # Test parameter configurations
 BENEFICIARY = '//Dave'
-DOT_LIQUIDITY = dot(20)
-AMNT_DOT = dot(5)
-BNC_LIQUIDITY = bnc(20)
-AMNT_BNC = bnc(5)
+TOK_LIQUIDITY = 20  # generic amount of tokens
+TOK_SWAP = 5  # generic amount of tokens
 
 
 def relay_amount_w_fees(x):
@@ -109,22 +107,22 @@ def compose_xtokens_transfer(batch, kp_beneficiary, amount):
 
 
 def compose_zdex_create_lppair(batch, tok_idx):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     params = {
-            'asset_0': asset0,
-            'asset_1': asset1,
+            'asset_0': asset_0,
+            'asset_1': asset_1,
         }
     batch.compose_sudo_call('ZenlinkProtocol', 'create_pair', params)
 
 
-def compose_zdex_add_liquidity(batch, tok_idx, liquidity):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
+def compose_zdex_add_liquidity(batch, tok_idx, liquidity0, liquidity1):
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-            'asset_0': asset0,
-            'asset_1': asset1,
-            'amount_0_desired': str(liquidity),
-            'amount_1_desired': str(liquidity),
+            'asset_0': asset_0,
+            'asset_1': asset_1,
+            'amount_0_desired': str(liquidity0),
+            'amount_1_desired': str(liquidity1),
             'amount_0_min': '0',
             'amount_1_min': '0',
             'deadline': str(deadline),
@@ -132,25 +130,25 @@ def compose_zdex_add_liquidity(batch, tok_idx, liquidity):
     batch.compose_call('ZenlinkProtocol', 'add_liquidity', params)
 
 
-def compose_zdex_swap_lppair(batch, kp_beneficiary, tok_idx, amount):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
+def compose_zdex_swap_lppair(batch, tok_idx, amount):
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
             'amount_in': str(amount),
             'amount_out_min': '0',
-            'path': [asset1, asset0],
-            'recipient': kp_beneficiary.ss58_address,
+            'path': [asset_1, asset_0],
+            'recipient': batch.kp_default.ss58_address,
             'deadline': deadline,
         }
     batch.compose_call('ZenlinkProtocol', 'swap_exact_assets_for_assets', params)
 
 
 def compose_zdex_remove_liquidity(batch, kp_beneficiary, tok_idx, amount):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-            'asset_0': asset0,
-            'asset_1': asset1,
+            'asset_0': asset_0,
+            'asset_1': asset_1,
             'liquidity': str(amount),
             'amount_0_min': '0',
             'amount_1_min': '1',
@@ -160,33 +158,33 @@ def compose_zdex_remove_liquidity(batch, kp_beneficiary, tok_idx, amount):
     batch.compose_call('ZenlinkProtocol', 'remove_liquidity', params)
 
 
-def compose_bootstrap_create_call(batch, tok_idx):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
-    target0 = str(BNC_LIQUIDITY)
-    target1 = str(BNC_LIQUIDITY)
-    capacity0 = str(BNC_LIQUIDITY*100)  # no clue on this
-    capacity1 = str(BNC_LIQUIDITY*100)  # no clue on this
-    end = batch.substrate.get_block_number(None) + 2
+def compose_bootstrap_create_call(batch, tok_idx, target0, target1, limit0, limit1):
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
+    target_0 = str(target0)
+    target_1 = str(target1)
+    capacity_0 = str(target0*100)
+    capacity_1 = str(target1*100)
+    end = batch.substrate.get_block_number(None) + 100
     params = {
-        'asset_0': asset0,
-        'asset_1': asset1,
-        'target_supply_0': target0,
-        'target_supply_1': target1,
-        'capacity_supply_0': capacity0,
-        'capacity_supply_1': capacity1,
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+        'target_supply_0': target_0,
+        'target_supply_1': target_1,
+        'capacity_supply_0': capacity_0,
+        'capacity_supply_1': capacity_1,
         'end': end,
-        'rewards': [asset0],
-        'limits': [],
+        'rewards': [asset_0],
+        'limits': [(asset_0, limit0), (asset_1, limit1)],
     }
     batch.compose_sudo_call('ZenlinkProtocol', 'bootstrap_create', params)
 
 
 def compose_bootstrap_contribute_call(batch, tok_idx, amount0, amount1):
-    asset0, asset1 = compose_zdex_lppair_params(tok_idx)
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-        'asset_0': asset0,
-        'asset_1': asset1,
+        'asset_0': asset_0,
+        'asset_1': asset_1,
         'amount_0_contribute': str(amount0),
         'amount_1_contribute': str(amount1),
         'deadline': deadline,
@@ -218,7 +216,12 @@ def state_znlnkprot_lppair_status(si_peaq, tok_idx):
     asset0, asset1 = compose_zdex_lppair_params(tok_idx)
     query = si_peaq.query('ZenlinkProtocol', 'PairStatuses', [[asset0, asset1]])
     if isinstance(query.value, dict):
-        return query.value['Trading']
+        if 'Trading' in query.value.keys():
+            return query.value['Trading']
+        elif 'Bootstrap' in query.value.keys():
+            return query.value['Bootstrap']
+        else:
+            raise KeyError
     else:
         return query.value
 
@@ -285,11 +288,11 @@ def currency_transfer_test(si_relay, si_peaq, si_bifrost):
 
     kp_beneficiary = Keypair.create_from_uri(BENEFICIARY)
     kp_peaq_sudo = Keypair.create_from_uri('//Alice')
-    kp_sender = Keypair.create_from_uri('//Bob')  # Bob exists everywhere
+    kp_bob = Keypair.create_from_uri('//Bob')  # Bob exists everywhere
 
-    bat_relay = ExtrinsicBatch(si_relay, kp_sender)
-    bat_bifrost = ExtrinsicBatch(si_bifrost, kp_sender)
-    bat_peaq = ExtrinsicBatch(si_peaq, kp_sender)
+    bat_relay = ExtrinsicBatch(si_relay, kp_bob)
+    bat_bifrost = ExtrinsicBatch(si_bifrost, kp_bob)
+    bat_peaq = ExtrinsicBatch(si_peaq, kp_bob)
 
     # Currently we cannot pay in foreign currencies, so we have to make
     # sure, that our recipient has enough tokens on his account...
@@ -303,20 +306,23 @@ def currency_transfer_test(si_relay, si_peaq, si_bifrost):
     # 1.) Transfer tokens from relaychain to peaq-parachain
     # Tokens to the sudo, to test if he can add liquidity
     compose_xcm_rta_relay2para(bat_relay, kp_peaq_sudo,
-                               relay_amount_w_fees(DOT_LIQUIDITY))
+                               relay_amount_w_fees(dot(TOK_LIQUIDITY)))
     # Tokens to the user, to test if he can swap them
     compose_xcm_rta_relay2para(bat_relay, kp_beneficiary,
-                               relay_amount_w_fees(AMNT_DOT))
+                               relay_amount_w_fees(dot(TOK_SWAP)))
     bat_relay.execute_n_clear()
     wait_n_check_token_deposit(si_peaq, kp_beneficiary, 'DOT')
 
     # 2.) Transfer tokens from bifrost-parachain to peaq-parachain
     # Tokens to the sudo, to test if he can add liquidity
     compose_xtokens_transfer(bat_bifrost, kp_peaq_sudo,
-                             bifrost_amount_w_fees(BNC_LIQUIDITY))
+                             bifrost_amount_w_fees(bnc(TOK_LIQUIDITY/2)))
     # Tokens to the user, to test if he can swap them
     compose_xtokens_transfer(bat_bifrost, kp_beneficiary,
-                             bifrost_amount_w_fees(AMNT_BNC))
+                             bifrost_amount_w_fees(bnc(TOK_SWAP)))
+    # Tokens to some additional bootstrap contributer
+    compose_xtokens_transfer(bat_bifrost, kp_bob,
+                             bifrost_amount_w_fees(bnc(TOK_LIQUIDITY/2)))
     bat_bifrost.execute_n_clear()
     wait_n_check_token_deposit(si_peaq, kp_beneficiary, 'BNC')
 
@@ -338,26 +344,27 @@ def create_pair_n_swap_test(si_peaq):
 
     # Check that DOT tokens for liquidity have been transfered succesfully
     dot_liquidity = state_tokens_accounts(si_peaq, kp_para_sudo, 'DOT')
-    assert dot_liquidity > DOT_LIQUIDITY
+    assert dot_liquidity > dot(TOK_LIQUIDITY)
     # Check that beneficiary has DOT and PEAQ tokens available
     dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, 'DOT')
-    assert dot_balance > AMNT_DOT
+    assert dot_balance > dot(TOK_SWAP)
     peaq_balance = get_account_balance(si_peaq, kp_beneficiary.ss58_address)
     assert peaq_balance > mpeaq(100)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
     compose_zdex_create_lppair(bat_para_sudo, DOT_IDX)
-    compose_zdex_add_liquidity(bat_para_sudo, DOT_IDX, dot_liquidity)
+    # Check different amounts of liquidity!!!
+    compose_zdex_add_liquidity(bat_para_sudo, DOT_IDX, dot_liquidity, dot_liquidity)
     bat_para_sudo.execute_n_clear()
 
     # Check that liquidity pool is filled with DOT-tokens
     lpstatus = state_znlnkprot_lppair_status(si_peaq, DOT_IDX)
-    assert lpstatus['total_supply'] >= DOT_LIQUIDITY
+    assert lpstatus['total_supply'] >= dot(TOK_LIQUIDITY)
     
     # 2.) Swap liquidity pair on Zenlink-DEX
-    compose_zdex_swap_lppair(bat_para_bene, kp_beneficiary, DOT_IDX, dot_balance)
+    compose_zdex_swap_lppair(bat_para_bene, DOT_IDX, dot_balance)
     bat_para_bene.execute_n_clear()
-    wait_n_check_swap_event(si_peaq, int(AMNT_DOT*0.4))
+    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
     
     show_test('create_pair_n_swap_test', True)
 
@@ -368,20 +375,60 @@ def bootstrap_pair_n_swap_test(si_peaq):
     """
     show_subtitle('bootstrap_pair_n_swap_test')
 
+    tok_limit = 5
+    assert TOK_LIQUIDITY / 2 > tok_limit
+
     kp_sudo = Keypair.create_from_uri('//Alice')
-    kp_user = Keypair.create_from_uri('//Bob')
+    kp_cont = Keypair.create_from_uri('//Bob')
+    kp_user = Keypair.create_from_uri(BENEFICIARY)
 
     bat_peaq_sudo = ExtrinsicBatch(si_peaq, kp_sudo)
+    bat_peaq_cont = ExtrinsicBatch(si_peaq, kp_cont)
     bat_peaq_user = ExtrinsicBatch(si_peaq, kp_user)
 
-    # 1.) Create bootstrap-liquidity-pair and contribute to
-    compose_bootstrap_create_call(bat_peaq_sudo, BNC_IDX)
-    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX, 5*pow(10, 22), 0)
+    # 1.) Create bootstrap-liquidity-pair
+    compose_bootstrap_create_call(bat_peaq_sudo, BNC_IDX,
+                                  peaq(TOK_LIQUIDITY), bnc(TOK_LIQUIDITY),
+                                  peaq(tok_limit), bnc(tok_limit))
     bat_peaq_sudo.execute_n_clear()
 
-    # Check that pool has been created when goal is reached
+    # Check that bootstrap-liquidity-pair has been created
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    assert lpstatus['target_supply'][0] == peaq(TOK_LIQUIDITY)
+    assert lpstatus['target_supply'][1] == bnc(TOK_LIQUIDITY)
+    assert lpstatus['capacity_supply'][0] == peaq(TOK_LIQUIDITY) * 100
+    assert lpstatus['capacity_supply'][1] == bnc(TOK_LIQUIDITY) * 100
+    assert lpstatus['accumulated_supply'][0] == 0
+    assert lpstatus['accumulated_supply'][1] == 0
+
+    # 2.) Contribute to bootstrap-liquidity-pair until goal is reached
+    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
+                                      0, bnc(TOK_LIQUIDITY/2))
+    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
+                                      peaq(TOK_LIQUIDITY/2), 0)
+    bat_peaq_sudo.execute_n_clear()
+
+    # Check that bootstrap-liquidity-pair has been created
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
+    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
+
+    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
+                                      0, bnc(TOK_LIQUIDITY/2))
+    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
+                                      peaq(TOK_LIQUIDITY/2), 0)
+    bat_peaq_cont.execute_n_clear()
+
+    # Check that pool has been fully created after goal was reached
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    print(lpstatus)
 
     # 2.) User swaps tokens by using the created pool
+    compose_zdex_swap_lppair(bat_peaq_user, BNC_IDX, TOK_SWAP)
+    bat_peaq_user.execute_n_clear()
+
+    # Check tokens have been swaped and transfered to user's account
+    # TODO
 
     show_test('bootstrap_pair_n_swap_test', True)
 
@@ -393,9 +440,12 @@ def zenlink_dex_test():
             with SubstrateInterface(url=PARACHAIN_WS_URL) as si_peaq:
                 with SubstrateInterface(url=BIFROST_WS_URL) as si_bifrost:
                     # Order of tests is important (they're structured)
+                    # 1.) currency_transfer_test for proper balances
                     currency_transfer_test(si_relay, si_peaq, si_bifrost)
+                    # 2.) all zenlink-specific tests
                     # create_pair_n_swap_test(si_peaq)
-                    # bootstrap_pair_n_swap_test(si_peaq)
+                    bootstrap_pair_n_swap_test(si_peaq)
+                    # 3.) finally test on zenlink-rpc
                     # zenlink_dex_rpc_test(si_peaq)
 
     except ConnectionRefusedError:
