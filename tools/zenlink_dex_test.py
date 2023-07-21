@@ -3,8 +3,7 @@ import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ExtrinsicBatch, get_account_balance
-from tools.utils import show_test, show_title, show_subtitle, wait_for_event
-# from tools.utils import wait_for_n_blocks
+from tools.utils import show_test, show_title, show_subtitle, wait_for_event, wait_for_n_blocks
 from tools.currency import peaq, mpeaq, dot, bnc
 
 
@@ -42,15 +41,15 @@ def compose_zdex_lppair_params(tok_idx, w_str=True):
         two = 2
         asset_idx = tok_idx
     asset0 = {
-            'chain_id': chain_id,
-            'asset_type': zero,
-            'asset_index': zero,
-        }
+        'chain_id': chain_id,
+        'asset_type': zero,
+        'asset_index': zero,
+    }
     asset1 = {
-            'chain_id': chain_id,
-            'asset_type': two,
-            'asset_index': asset_idx,
-        }
+        'chain_id': chain_id,
+        'asset_type': two,
+        'asset_index': asset_idx,
+    }
     return asset0, asset1
 
 
@@ -60,9 +59,9 @@ def calc_deadline(substrate):
 
 def compose_balances_transfer(batch, kp_beneficiary, amount):
     params = {
-            'dest': kp_beneficiary.ss58_address,
-            'value': str(amount),
-        }
+        'dest': kp_beneficiary.ss58_address,
+        'value': str(amount),
+    }
     batch.compose_call('Balances', 'transfer', params)
 
 
@@ -70,48 +69,48 @@ def compose_balances_transfer(batch, kp_beneficiary, amount):
 # from relaychain to parachain
 def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
     dest = { XCM_VER: {
-            'parents': '0',
-            'interior': { 'X1': { 'Parachain': f'{PEAQ_PARACHAIN_ID}' }}
-        }}
+        'parents': '0',
+        'interior': { 'X1': { 'Parachain': f'{PEAQ_PARACHAIN_ID}' }}
+    }}
     beneficiary = { XCM_VER: {
-            'parents': '0',
-            'interior': { 'X1': { 'AccountId32': (None, kp_beneficiary.public_key) }}
-        }}
+        'parents': '0',
+        'interior': { 'X1': { 'AccountId32': (None, kp_beneficiary.public_key) }}
+    }}
     assets = { XCM_VER: [[{
-            'id': { 'Concrete': { 'parents': '0', 'interior': 'Here' }},
-            'fun': { 'Fungible': f'{amount}' }
-            }]]}
+        'id': { 'Concrete': { 'parents': '0', 'interior': 'Here' }},
+        'fun': { 'Fungible': f'{amount}' }
+        }]]}
     params = {
-            'dest': dest,
-            'beneficiary': beneficiary,
-            'assets': assets,
-            'fee_asset_item': '0'
-        }
+        'dest': dest,
+        'beneficiary': beneficiary,
+        'assets': assets,
+        'fee_asset_item': '0'
+    }
     batch.compose_call('XcmPallet', 'reserve_transfer_assets', params)
 
 
 def compose_xtokens_transfer(batch, kp_beneficiary, amount):
     params = {
-            'currency_id': { 'Native': 'BNC' },
-            'amount': str(amount),
-            'dest': { XCM_VER: {
-                'parents': '1',
-                'interior': { 'X2': [
-                    {'Parachain': f'{PEAQ_PARACHAIN_ID}'},
-                    {'AccountId32': (None, kp_beneficiary.public_key)}
-                    ]}
-                }},
-            'dest_weight_limit': 'Unlimited',
-        }
+        'currency_id': { 'Native': 'BNC' },
+        'amount': str(amount),
+        'dest': { XCM_VER: {
+            'parents': '1',
+            'interior': { 'X2': [
+                {'Parachain': f'{PEAQ_PARACHAIN_ID}'},
+                {'AccountId32': (None, kp_beneficiary.public_key)}
+                ]}
+            }},
+        'dest_weight_limit': 'Unlimited',
+    }
     batch.compose_call('XTokens', 'transfer', params)
 
 
 def compose_zdex_create_lppair(batch, tok_idx):
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     params = {
-            'asset_0': asset_0,
-            'asset_1': asset_1,
-        }
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+    }
     batch.compose_sudo_call('ZenlinkProtocol', 'create_pair', params)
 
 
@@ -119,14 +118,14 @@ def compose_zdex_add_liquidity(batch, tok_idx, liquidity0, liquidity1):
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-            'asset_0': asset_0,
-            'asset_1': asset_1,
-            'amount_0_desired': str(liquidity0),
-            'amount_1_desired': str(liquidity1),
-            'amount_0_min': '0',
-            'amount_1_min': '0',
-            'deadline': str(deadline),
-        }
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+        'amount_0_desired': str(liquidity0),
+        'amount_1_desired': str(liquidity1),
+        'amount_0_min': '0',
+        'amount_1_min': '0',
+        'deadline': str(deadline),
+    }
     batch.compose_call('ZenlinkProtocol', 'add_liquidity', params)
 
 
@@ -134,12 +133,12 @@ def compose_zdex_swap_lppair(batch, tok_idx, amount):
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-            'amount_in': str(amount),
-            'amount_out_min': '0',
-            'path': [asset_1, asset_0],
-            'recipient': batch.kp_default.ss58_address,
-            'deadline': deadline,
-        }
+        'amount_in': str(amount),
+        'amount_out_min': '0',
+        'path': [asset_1, asset_0],
+        'recipient': batch.kp_default.ss58_address,
+        'deadline': deadline,
+    }
     batch.compose_call('ZenlinkProtocol', 'swap_exact_assets_for_assets', params)
 
 
@@ -147,14 +146,14 @@ def compose_zdex_remove_liquidity(batch, kp_beneficiary, tok_idx, amount):
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
-            'asset_0': asset_0,
-            'asset_1': asset_1,
-            'liquidity': str(amount),
-            'amount_0_min': '0',
-            'amount_1_min': '1',
-            'recipient': kp_beneficiary.ss58_address,
-            'deadline': deadline,
-        }
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+        'liquidity': str(amount),
+        'amount_0_min': '0',
+        'amount_1_min': '1',
+        'recipient': kp_beneficiary.ss58_address,
+        'deadline': deadline,
+    }
     batch.compose_call('ZenlinkProtocol', 'remove_liquidity', params)
 
 
@@ -164,7 +163,7 @@ def compose_bootstrap_create_call(batch, tok_idx, target0, target1, limit0, limi
     target_1 = str(target1)
     capacity_0 = str(target0*100)
     capacity_1 = str(target1*100)
-    end = batch.substrate.get_block_number(None) + 100
+    end = batch.substrate.get_block_number(None) + 500
     params = {
         'asset_0': asset_0,
         'asset_1': asset_1,
@@ -180,6 +179,7 @@ def compose_bootstrap_create_call(batch, tok_idx, target0, target1, limit0, limi
 
 
 def compose_bootstrap_contribute_call(batch, tok_idx, amount0, amount1):
+    assert amount0 == 0 or amount1 == 0
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
@@ -190,6 +190,40 @@ def compose_bootstrap_contribute_call(batch, tok_idx, amount0, amount1):
         'deadline': deadline,
     }
     batch.compose_call('ZenlinkProtocol', 'bootstrap_contribute', params)
+
+
+def compose_bootstrap_end_call(batch, tok_idx):
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
+    params = {
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+    }
+    batch.compose_call('ZenlinkProtocol', 'bootstrap_end', params)
+
+
+def compose_call_bootstrap_update_end(batch, tok_idx):
+    si = batch.substrate
+    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
+    lpstatus = state_znlnkprot_lppair_status(si, tok_idx)
+    target_0 = lpstatus['target_supply'][0]
+    target_1 = lpstatus['target_supply'][1]
+    capacity_0 = lpstatus['capacity_supply'][0]
+    capacity_1 = lpstatus['capacity_supply'][1]
+    query = si.query('ZenlinkProtocol', 'BootstrapLimits', [[asset_0, asset_1]])
+    limit_0 = str(query[0][1])
+    limit_1 = str(query[1][1])
+    params = {
+        'asset_0': asset_0,
+        'asset_1': asset_1,
+        'target_supply_0': target_0,
+        'target_supply_1': target_1,
+        'capacity_supply_0': capacity_0,
+        'capacity_supply_1': capacity_1,
+        'end': str(si.get_block_number(None)),
+        'rewards': [asset_0],
+        'limits': [(asset_0, limit_0), (asset_1, limit_1)],
+    }
+    batch.compose_sudo_call('ZenlinkProtocol', 'bootstrap_update', params)
 
 
 def state_system_account(si_peaq, kp_user):
@@ -386,10 +420,14 @@ def bootstrap_pair_n_swap_test(si_peaq):
     bat_peaq_cont = ExtrinsicBatch(si_peaq, kp_cont)
     bat_peaq_user = ExtrinsicBatch(si_peaq, kp_user)
 
-    # 1.) Create bootstrap-liquidity-pair
+    # 1.) Create bootstrap-liquidity-pair & start contributing
     compose_bootstrap_create_call(bat_peaq_sudo, BNC_IDX,
                                   peaq(TOK_LIQUIDITY), bnc(TOK_LIQUIDITY),
                                   peaq(tok_limit), bnc(tok_limit))
+    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
+                                      peaq(TOK_LIQUIDITY/2), 0)
+    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
+                                      0, bnc(TOK_LIQUIDITY/2))
     bat_peaq_sudo.execute_n_clear()
 
     # Check that bootstrap-liquidity-pair has been created
@@ -398,37 +436,40 @@ def bootstrap_pair_n_swap_test(si_peaq):
     assert lpstatus['target_supply'][1] == bnc(TOK_LIQUIDITY)
     assert lpstatus['capacity_supply'][0] == peaq(TOK_LIQUIDITY) * 100
     assert lpstatus['capacity_supply'][1] == bnc(TOK_LIQUIDITY) * 100
-    assert lpstatus['accumulated_supply'][0] == 0
-    assert lpstatus['accumulated_supply'][1] == 0
+    assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
+    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
+    # wait_for_n_blocks(si_peaq)
 
     # 2.) Contribute to bootstrap-liquidity-pair until goal is reached
-    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
-    compose_bootstrap_contribute_call(bat_peaq_sudo, BNC_IDX,
+    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
                                       peaq(TOK_LIQUIDITY/2), 0)
-    bat_peaq_sudo.execute_n_clear()
+    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
+                                      0, bnc(TOK_LIQUIDITY/2))
+    bat_peaq_cont.execute_n_clear()
 
     # Check that bootstrap-liquidity-pair has been created
     lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
-    assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
-    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
+    assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY)
+    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY)
 
-    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
-    compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,
-                                      peaq(TOK_LIQUIDITY/2), 0)
-    bat_peaq_cont.execute_n_clear()
+    # 3.) Pool should be filled up (both targets are reached). now end bootstrap
+    compose_call_bootstrap_update_end(bat_peaq_sudo, BNC_IDX)
+    compose_bootstrap_end_call(bat_peaq_sudo, BNC_IDX)
+    bat_peaq_sudo.execute_n_clear()
 
     # Check that pool has been fully created after goal was reached
     lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
-    print(lpstatus)
+    assert 'total_supply' in lpstatus.keys()  # means it is a true liquidity-pair
+    assert lpstatus['total_supply'] > 0
 
-    # 2.) User swaps tokens by using the created pool
+    # 4.) User swaps tokens by using the created pool
+    balance = get_account_balance(si_peaq, kp_user.ss58_address)
     compose_zdex_swap_lppair(bat_peaq_user, BNC_IDX, TOK_SWAP)
     bat_peaq_user.execute_n_clear()
 
     # Check tokens have been swaped and transfered to user's account
-    # TODO
+    new_balance  = get_account_balance(si_peaq, kp_user.ss58_address)
+    assert new_balance > balance
 
     show_test('bootstrap_pair_n_swap_test', True)
 
@@ -443,10 +484,10 @@ def zenlink_dex_test():
                     # 1.) currency_transfer_test for proper balances
                     currency_transfer_test(si_relay, si_peaq, si_bifrost)
                     # 2.) all zenlink-specific tests
-                    # create_pair_n_swap_test(si_peaq)
+                    create_pair_n_swap_test(si_peaq)
                     bootstrap_pair_n_swap_test(si_peaq)
                     # 3.) finally test on zenlink-rpc
-                    # zenlink_dex_rpc_test(si_peaq)
+                    zenlink_dex_rpc_test(si_peaq)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, \
