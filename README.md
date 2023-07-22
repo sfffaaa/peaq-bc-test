@@ -29,10 +29,6 @@ WS_URL =  'ws://127.0.0.1:9947'
 ```
 ETH_URL = 'http://127.0.0.1:9936'
 ```
-3.3. Please change the Ethereum chain ID for your targeted parachain/standalone chain.
-```
-ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
-```
 4. Run the integration test
 ```
 python3 test.py

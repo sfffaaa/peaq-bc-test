@@ -4,7 +4,7 @@ import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
-from tools.utils import WS_URL, ETH_URL, ETH_CHAIN_ID
+from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot
 from web3 import Web3
 
@@ -12,7 +12,6 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 ERC_TOKEN_TRANSFER = 34
-CHAIN_ID = ETH_CHAIN_ID
 HEX_STR = '1111'
 GAS_LIMIT = 4294967
 
@@ -27,7 +26,7 @@ MNEMONIC = [
 ]
 
 
-def send_eth_token(w3, kp_src, kp_dst, token_num):
+def send_eth_token(w3, kp_src, kp_dst, token_num, eth_chain_id):
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
     # gas = web3.to_wei(Decimal('0.000000005'), 'ether')
     gas = GAS_LIMIT
@@ -41,7 +40,7 @@ def send_eth_token(w3, kp_src, kp_dst, token_num):
         'maxFeePerGas': w3.to_wei(250, 'gwei'),
         'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
-        'chainId': CHAIN_ID
+        'chainId': eth_chain_id
     }
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -52,7 +51,7 @@ def send_eth_token(w3, kp_src, kp_dst, token_num):
     print('✅ send_eth_token, Success')
 
 
-def deploy_contract(w3, kp_src):
+def deploy_contract(w3, kp_src, eth_chain_id):
     with open('ETH/identity/bytecode') as f:
         bytecode = f.read().strip()
 
@@ -68,7 +67,7 @@ def deploy_contract(w3, kp_src):
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
             'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
-            'chainId': CHAIN_ID})
+            'chainId': eth_chain_id})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -82,7 +81,7 @@ def deploy_contract(w3, kp_src):
     return address
 
 
-def call_copy(w3, address, kp_src):
+def call_copy(w3, address, kp_src, eth_chain_id):
     with open('ETH/identity/abi') as f:
         abi = json.load(f)
 
@@ -97,7 +96,7 @@ def call_copy(w3, address, kp_src):
         'maxFeePerGas': w3.to_wei(250, 'gwei'),
         'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
-        'chainId': CHAIN_ID})
+        'chainId': eth_chain_id})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -114,6 +113,7 @@ def evm_rpc_test():
         # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
         # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
         with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC) as conn:
+            eth_chain_id = get_eth_chain_id(conn)
             # print('Check the get balance')
             kp_src = Keypair.create_from_uri('//Alice')
             eth_src = calculate_evm_addr(kp_src.ss58_address)
@@ -139,14 +139,14 @@ def evm_rpc_test():
             # Call eth transfer
             src_eth_balance = w3.eth.get_balance(kp_eth_src.ss58_address)
             print(f'src eth: {src_eth_balance}')
-            send_eth_token(w3, kp_eth_src, kp_eth_dst, token_num)
+            send_eth_token(w3, kp_eth_src, kp_eth_dst, token_num, eth_chain_id)
             dst_eth_after_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
             print(f'after, dst eth: {dst_eth_after_balance}')
             # In empty account, the token_num == token_num - enssential num
             assert(dst_eth_after_balance > dst_eth_before_balance)
 
-            address = deploy_contract(w3, kp_eth_src)
-            call_copy(w3, address, kp_eth_src)
+            address = deploy_contract(w3, kp_eth_src, eth_chain_id)
+            call_copy(w3, address, kp_eth_src, eth_chain_id)
 
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")

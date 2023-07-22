@@ -27,12 +27,12 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = "http://192.168.178.23:9933"
 # WS_URL = "wss://wss.test.peaq.network"
 # ETH_URL = "https://erpc.test.peaq.network:443"
-PEAQ_DEV_CHAIN_ID = 9999
-AGUNG_CHAIN_ID = 9999
-KREST_CHAIN_ID = 424242
-PEAQ_CHAIN_ID = 424242
-
-ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
+ETH_CHAIN_IDS = {
+    'peaq-dev': 9999,
+    'agung-network': 9999,
+    'krest-network': 424242,
+    'peaq-network': 424242,
+}
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -407,3 +407,8 @@ def show_account(substrate, addr, out_str):
     result = substrate.query("System", "Account", [addr])
     print(f'{addr} {out_str}: {result["data"]["free"]}')
     return int(result['data']['free'].value)
+
+
+def get_eth_chain_id(substrate):
+    chain_name = substrate.rpc_request(method="system_chain", params=[]).get('result')
+    return ETH_CHAIN_IDS[chain_name]

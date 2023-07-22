@@ -3,7 +3,7 @@ sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, SCALE_CODEC, calculate_evm_account_hex
-from tools.utils import WS_URL, ETH_URL, ETH_CHAIN_ID
+from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
 from web3 import Web3
 
@@ -22,7 +22,7 @@ ETH_PRIVATE_KEY = '0xa2899b053679427c8c446dc990c8990c75052fd3009e563c6a613d982d6
 ABI_FILE = 'ETH/storage/storage.sol.json'
 
 
-def _eth_add_item(w3, contract, eth_kp_src, item_type, item):
+def _eth_add_item(substrate, w3, contract, eth_kp_src, item_type, item):
     nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
     tx = contract.functions.add_item(item_type, item).build_transaction({
         'from': eth_kp_src.ss58_address,
@@ -30,7 +30,7 @@ def _eth_add_item(w3, contract, eth_kp_src, item_type, item):
         'maxFeePerGas': w3.to_wei(250, 'gwei'),
         'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
-        'chainId': ETH_CHAIN_ID})
+        'chainId': get_eth_chain_id(substrate)})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -42,7 +42,7 @@ def _eth_add_item(w3, contract, eth_kp_src, item_type, item):
     return tx_receipt['blockNumber']
 
 
-def _eth_update_item(w3, contract, eth_kp_src, item_type, item):
+def _eth_update_item(substrate, w3, contract, eth_kp_src, item_type, item):
     nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
     tx = contract.functions.update_item(item_type, item).build_transaction({
         'from': eth_kp_src.ss58_address,
@@ -50,7 +50,7 @@ def _eth_update_item(w3, contract, eth_kp_src, item_type, item):
         'maxFeePerGas': w3.to_wei(250, 'gwei'),
         'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
         'nonce': nonce,
-        'chainId': ETH_CHAIN_ID})
+        'chainId': get_eth_chain_id(substrate)})
 
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -74,7 +74,7 @@ def bridge_storage_test():
 
         contract = get_contract(w3, STORAGE_ADDRESS, ABI_FILE)
 
-        block_idx = _eth_add_item(w3, contract, eth_kp_src, ITEM_TYPE, ITEM)
+        block_idx = _eth_add_item(substrate, w3, contract, eth_kp_src, ITEM_TYPE, ITEM)
         account = calculate_evm_account_hex(eth_kp_src.ss58_address)
         data = contract.functions.get_item(account, ITEM_TYPE).call()
         assert(f'0x{data.hex()}' == ITEM)
@@ -84,7 +84,7 @@ def bridge_storage_test():
         assert(f"0x{events[0]['args']['item_type'].hex()}" == f"{ITEM_TYPE}")
         assert(f"0x{events[0]['args']['item'].hex()}" == f"{ITEM}")
 
-        block_idx = _eth_update_item(w3, contract, eth_kp_src, ITEM_TYPE, NEW_ITEM)
+        block_idx = _eth_update_item(substrate, w3, contract, eth_kp_src, ITEM_TYPE, NEW_ITEM)
         data = contract.functions.get_item(account, ITEM_TYPE).call()
         assert(f'0x{data.hex()}' == NEW_ITEM)
 

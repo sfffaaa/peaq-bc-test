@@ -5,7 +5,7 @@ import unittest
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, SCALE_CODEC
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
-from tools.utils import WS_URL, ETH_URL, ETH_CHAIN_ID
+from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from web3 import Web3
 
 
@@ -25,6 +25,7 @@ ABI_FILE = 'ETH/did/did.sol.json'
 
 
 class TestBridgeDid(unittest.TestCase):
+
     def _eth_add_attribute(self, contract, eth_kp_src, kp_src, key, value):
         w3 = self.w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
@@ -34,7 +35,7 @@ class TestBridgeDid(unittest.TestCase):
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
             'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
-            'chainId': ETH_CHAIN_ID})
+            'chainId': self.eth_chain_id})
 
         signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -52,7 +53,7 @@ class TestBridgeDid(unittest.TestCase):
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
             'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
-            'chainId': ETH_CHAIN_ID})
+            'chainId': self.eth_chain_id})
 
         signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -70,7 +71,7 @@ class TestBridgeDid(unittest.TestCase):
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
             'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
-            'chainId': ETH_CHAIN_ID})
+            'chainId': self.eth_chain_id})
 
         signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
@@ -82,6 +83,7 @@ class TestBridgeDid(unittest.TestCase):
     def setUp(self):
         self.w3 = Web3(Web3.HTTPProvider(ETH_URL))
         self.substrate = SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC)
+        self.eth_chain_id = get_eth_chain_id(self.substrate)
 
     def test_bridge_did(self):
         eth_src = calculate_evm_addr(KP_SRC.ss58_address)
