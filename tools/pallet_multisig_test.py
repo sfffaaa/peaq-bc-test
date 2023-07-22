@@ -5,7 +5,7 @@ from tools.utils import transfer, show_account
 import random
 
 
-class pallet_multisig_test(unittest.TestCase):
+class PalletMultiSig(unittest.TestCase):
 
     def send_proposal(self, substrate, kp_src, kp_dst, threshold, payload, timepoint=None):
         nonce = substrate.get_account_nonce(kp_src.ss58_address)
@@ -98,7 +98,3 @@ class pallet_multisig_test(unittest.TestCase):
         print(f'pre_multisig_token: {pre_multisig_token}, post_multisig_token: {post_multisig_token}')
         print(f'num: {num}, num * TOKEN_NUM_BASE: {num * TOKEN_NUM_BASE}')
         self.assertEqual(post_multisig_token + num * TOKEN_NUM_BASE, pre_multisig_token)
-
-
-if __name__ == '__main__':
-    pallet_multisig_test()

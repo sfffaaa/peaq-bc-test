@@ -165,9 +165,11 @@ CONSTANT_INFOS = [{
 
 
 class TokenEconomyTest(unittest.TestCase):
-    _substrate = SubstrateInterface(url=WS_URL)
-    _block_hash = _substrate.get_block_hash(block_id=0)
-    _chain_spec = _substrate.rpc_request(method="system_chain", params=[]).get('result')
+
+    def setUp(self):
+        self._substrate = SubstrateInterface(url=WS_URL)
+        self._block_hash = self._substrate.get_block_hash(block_id=0)
+        self._chain_spec = self._substrate.rpc_request(method="system_chain", params=[]).get('result')
 
     def test_chain_states(self):
         for test in STATE_INFOS:
