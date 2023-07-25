@@ -304,12 +304,6 @@ def zenlink_dex_rpc_test(si_peaq):
     )
     assert int(data['result'][2:], 16) > 0
     
-    data = si_peaq.rpc_request(
-        'zenlinkProtocol_calculateRemoveLiquidity',
-        [asset0, asset1, 10]
-    )
-    print(data['result'])
-
     show_test('zenlink_dex_rpc_test', True)
 
 
