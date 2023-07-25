@@ -456,16 +456,18 @@ def bootstrap_pair_n_swap_test(si_peaq):
     compose_call_bootstrap_update_end(bat_peaq_sudo, BNC_IDX)
     compose_bootstrap_end_call(bat_peaq_sudo, BNC_IDX)
     bat_peaq_sudo.execute_n_clear()
+    wait_for_event(si_peaq, 'ZenlinkProtocol', 'BootstrapEnd')
+
+    # 4.) User swaps tokens by using the created pool
+    balance = get_account_balance(si_peaq, kp_user.ss58_address)
+    compose_zdex_swap_lppair(bat_peaq_user, BNC_IDX, bnc(TOK_SWAP))
+    bat_peaq_user.execute_n_clear()
+    wait_n_check_swap_event(si_peaq, 1)
 
     # Check that pool has been fully created after goal was reached
     lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
     assert 'total_supply' in lpstatus.keys()  # means it is a true liquidity-pair
     assert lpstatus['total_supply'] > 0
-
-    # 4.) User swaps tokens by using the created pool
-    balance = get_account_balance(si_peaq, kp_user.ss58_address)
-    compose_zdex_swap_lppair(bat_peaq_user, BNC_IDX, TOK_SWAP)
-    bat_peaq_user.execute_n_clear()
 
     # Check tokens have been swaped and transfered to user's account
     new_balance  = get_account_balance(si_peaq, kp_user.ss58_address)
@@ -498,7 +500,6 @@ def zenlink_dex_test():
         _, _, tb = sys.exc_info()
         tb_info = traceback.extract_tb(tb)
         print(tb_info)
-        _, line, func = tb_info[1]
+        _, line, func = tb_info[0]
         show_test(func, False, line)
-        # print(f'🔥 Test/{func} in line {line}, Failed')
 
