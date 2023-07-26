@@ -2,7 +2,7 @@ from scalecodec.base import ScaleBytes
 from scalecodec.types import U8, U16, U32, U64, U128, U256
 
 
-def process_encode(self, value):
+def process_encode(self, value):  # noqa: C901
     data = ScaleBytes(bytearray())
 
     value = value or []

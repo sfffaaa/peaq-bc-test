@@ -1,0 +1,233 @@
+[
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "value",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint32",
+				"name": "validity",
+				"type": "uint32"
+			}
+		],
+		"name": "AddAttribute",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			}
+		],
+		"name": "RemoveAttribte",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes",
+				"name": "value",
+				"type": "bytes"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint32",
+				"name": "validity",
+				"type": "uint32"
+			}
+		],
+		"name": "UpdateAttribute",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "value",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint32",
+				"name": "validity_for",
+				"type": "uint32"
+			}
+		],
+		"name": "add_attribute",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			}
+		],
+		"name": "read_attribute",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes",
+						"name": "name",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bytes",
+						"name": "value",
+						"type": "bytes"
+					},
+					{
+						"internalType": "uint32",
+						"name": "validity",
+						"type": "uint32"
+					},
+					{
+						"internalType": "uint256",
+						"name": "created",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct DID.Attribute",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			}
+		],
+		"name": "remove_attribute",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "did_account",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "value",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint32",
+				"name": "validity_for",
+				"type": "uint32"
+			}
+		],
+		"name": "update_attribute",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]

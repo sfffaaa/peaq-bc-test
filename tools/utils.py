@@ -73,7 +73,7 @@ def calculate_multi_sig(kps, threshold):
     '''https://github.com/polkascan/py-scale-codec/blob/f063cfd47c836895886697e7d7112cbc4e7514b3/test/test_scale_types.py#L383'''
 
     addrs = [kp.ss58_address for kp in kps]
-    RuntimeConfiguration().update_type_registry(load_type_registry_preset("default"))
+    RuntimeConfiguration().update_type_registry(load_type_registry_preset("legacy"))
     multi_account_id = RuntimeConfiguration().get_decoder_class("MultiAccountId")
 
     multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
@@ -336,10 +336,18 @@ def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base
     return receipt
 
 
-def calculate_evm_account(addr):
+def _calculate_evm_account(addr):
     evm_addr = b'evm:' + bytes.fromhex(addr[2:].upper())
     hash_key = hasher.blake2_256(evm_addr)
-    return ss58.ss58_encode(hash_key)
+    return hash_key
+
+
+def calculate_evm_account(addr):
+    return ss58.ss58_encode(calculate_evm_account_hex(addr))
+
+
+def calculate_evm_account_hex(addr):
+    return '0x' + _calculate_evm_account(addr).hex()
 
 
 def calculate_evm_addr(addr):
@@ -375,6 +383,7 @@ def fund(substrate, kp_dst, token_num):
     show_extrinsic(receipt, 'fund')
 
 
+# TODO Rmeove
 def get_account_balance(substrate, addr):
     result = substrate.query("System", "Account", [addr])
     return int(result['data']['free'].value)
@@ -392,3 +401,9 @@ def check_and_fund_account(substrate, addr, min_bal, req_bal):
         print("account will be fund with an amount equalt to :", req_bal)
         fund(substrate, addr, req_bal)
         print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
+
+
+def show_account(substrate, addr, out_str):
+    result = substrate.query("System", "Account", [addr])
+    print(f'{addr} {out_str}: {result["data"]["free"]}')
+    return int(result['data']['free'].value)
