@@ -2,7 +2,7 @@ import sys
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, SCALE_CODEC, calculate_evm_account_hex
+from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
 from web3 import Web3
@@ -64,7 +64,7 @@ class TestBridgeStorage(unittest.TestCase):
     def setUp(self):
         self._eth_src = calculate_evm_addr(KP_SRC.ss58_address)
         self._w3 = Web3(Web3.HTTPProvider(ETH_URL))
-        self._substrate = SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC)
+        self._substrate = SubstrateInterface(url=WS_URL)
         self._eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
         self._account = calculate_evm_account_hex(self._eth_kp_src.ss58_address)
 

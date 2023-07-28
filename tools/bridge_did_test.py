@@ -3,7 +3,7 @@ sys.path.append('./')
 import unittest
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, SCALE_CODEC
+from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from web3 import Web3
@@ -82,7 +82,7 @@ class TestBridgeDid(unittest.TestCase):
 
     def setUp(self):
         self.w3 = Web3(Web3.HTTPProvider(ETH_URL))
-        self.substrate = SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC)
+        self.substrate = SubstrateInterface(url=WS_URL)
         self.eth_chain_id = get_eth_chain_id(self.substrate)
 
     def test_bridge_did(self):
