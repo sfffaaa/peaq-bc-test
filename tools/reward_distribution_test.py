@@ -1,11 +1,10 @@
-
 import sys
 import time
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance
-from tools.pallet_block_reward_test import setup_block_reward, set_max_currency_supply
+from tools.utils import set_max_currency_supply, setup_block_reward
 
 WAIT_BLOCK_NUMBER = 10
 COLLATOR_REWARD_RATE = 0.1
@@ -52,7 +51,8 @@ def _extend_max_supply(substrate, sudo_key):
         module='Balances',
         storage_function='TotalIssuance',
     )
-    set_max_currency_supply(substrate, sudo_key, int(str(total_issuance)) * 3)
+    receipt = set_max_currency_supply(substrate, sudo_key, int(str(total_issuance)) * 3)
+    assert receipt.is_success
 
 
 def transaction_fee_reward_test():
@@ -70,7 +70,8 @@ def transaction_fee_reward_test():
             )
             print(f'Current reward: {block_reward}')
             new_set_reward = 0
-            setup_block_reward(substrate, kp_src, new_set_reward)
+            receipt = setup_block_reward(substrate, kp_src, new_set_reward)
+            assert receipt.is_success
 
             time.sleep(WAIT_TIME_PERIOD)
             prev_balance = get_account_balance(substrate, kp_src.ss58_address)
@@ -83,7 +84,8 @@ def transaction_fee_reward_test():
             time.sleep(WAIT_TIME_PERIOD)
             _check_transaction_fee_reward_balance(substrate, kp_src.ss58_address, prev_balance, TIP)
 
-            setup_block_reward(substrate, kp_src, block_reward)
+            receipt = setup_block_reward(substrate, kp_src, block_reward)
+            assert receipt.is_success
             print('✅transaction fee reward test pass')
 
     except ConnectionRefusedError:
@@ -97,7 +99,8 @@ def block_reward_test():
     try:
         with SubstrateInterface(url=WS_URL) as substrate:
             kp_src = Keypair.create_from_uri('//Alice')
-            setup_block_reward(substrate, kp_src, 10000)
+            receipt = setup_block_reward(substrate, kp_src, 10000)
+            assert receipt.is_success
             _extend_max_supply(substrate, kp_src)
 
             block_reward = substrate.query(

@@ -1,103 +1,68 @@
-import sys
 import time
-sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import WS_URL
+from tools.utils import set_max_currency_supply, set_block_reward_configuration
+import unittest
 
 COLLATOR_REWARD_RATE = 0.1
 WAIT_TIME_PERIOD = 12 * 3
 
 
-def setup_block_reward(substrate, kp_src, block_reward):
-    payload = substrate.compose_call(
-        call_module='BlockReward',
-        call_function='set_block_issue_reward',
-        call_params={
-            'block_reward': block_reward
+class TestPalletBlockReward(unittest.TestCase):
+
+    def setUp(self):
+        self.substrate = SubstrateInterface(url=WS_URL)
+        self.kp_src = Keypair.create_from_uri('//Alice')
+
+    def test_config(self):
+        set_value = {
+            'treasury_percent': 10000000,
+            'dapps_percent': 20000000,
+            'collators_percent': 30000000,
+            'lp_percent': 40000000,
+            'machines_percent': 50000000,
+            'machines_subsidization_percent': 850000000,
         }
-    )
+        previous_value = self.substrate.query(
+            module='BlockReward',
+            storage_function='RewardDistributionConfigStorage',
+        )
+        receipt = set_block_reward_configuration(self.substrate, self.kp_src, set_value)
+        self.assertTrue(receipt.is_success,
+                        'cannot setup the block reward configuration')
+        now_value = self.substrate.query(
+            module='BlockReward',
+            storage_function='RewardDistributionConfigStorage',
+        )
+        self.assertEqual(set_value, now_value)
 
-    call = substrate.compose_call(
-        call_module='Sudo',
-        call_function='sudo',
-        call_params={
-            'call': payload.value,
-        }
-    )
+        # # Reset
+        # recepit = set_block_reward_configuration(
+        #     self.substrate, self.kp_src,
+        #     {k: int(str(previous_value[k])) for k in set_value.keys()})
+        # self.assertTrue(recepit.is_success,
+        #                 'cannot setup the block reward configuration')
 
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src
-    )
+    def test_change_max_currency_supply(self):
+        max_currency_supply = self.substrate.query(
+            module='BlockReward',
+            storage_function='MaxCurrencySupply',
+        )
+        print(f'Current max-currency-supply: {max_currency_supply}')
+        new_max_currency_supply = 500
+        receipt = set_max_currency_supply(self.substrate, self.kp_src, new_max_currency_supply)
+        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')
 
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    if not receipt.is_success:
-        raise IOError('cannot setup the receipt')
-    show_extrinsic(receipt, 'set reward')
+        time.sleep(WAIT_TIME_PERIOD)
 
+        for event in self.substrate.get_events():
+            if event.value['module_id'] != 'ParachainStaking' or \
+               event.value['event_id'] != 'Rewarded':
+                continue
+            now_reward = event['event'][1][1][1]
+            self.assertEqual(int(str(now_reward)), 0)
 
-def set_max_currency_supply(substrate, kp_src, max_currency_supply):
-    payload = substrate.compose_call(
-        call_module='BlockReward',
-        call_function='set_max_currency_supply',
-        call_params={
-            'limit': max_currency_supply
-        }
-    )
-
-    call = substrate.compose_call(
-        call_module='Sudo',
-        call_function='sudo',
-        call_params={
-            'call': payload.value,
-        }
-    )
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    if not receipt.is_success:
-        raise IOError('cannot setup the receipt')
-    show_extrinsic(receipt, 'set max_currency_supply')
-
-
-def pallet_change_max_currency_supply():
-    print('---- change max currency supply!! ----')
-    try:
-        with SubstrateInterface(url=WS_URL) as substrate:
-            kp_src = Keypair.create_from_uri('//Alice')
-            max_currency_supply = substrate.query(
-                module='BlockReward',
-                storage_function='MaxCurrencySupply',
-            )
-            print(f'Current max-currency-supply: {max_currency_supply}')
-            new_max_currency_supply = 500
-            set_max_currency_supply(substrate, kp_src, new_max_currency_supply)
-
-            time.sleep(WAIT_TIME_PERIOD)
-
-            for event in substrate.get_events():
-                if event.value['module_id'] != 'ParachainStaking' or \
-                   event.value['event_id'] != 'Rewarded':
-                    continue
-                now_reward = event['event'][1][1][1]
-                if int(str(now_reward)) != 0:
-                    raise IOError('Cannot get the correct number')
-
-            set_max_currency_supply(substrate, kp_src, max_currency_supply)
-
-    except ConnectionRefusedError:
-        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
-        sys.exit()
-
-
-def pallet_block_reward_test():
-    pallet_change_max_currency_supply()
-
-
-if __name__ == '__main__':
-    pallet_block_reward_test()
+        # reset
+        receipt = set_max_currency_supply(self.substrate, self.kp_src, max_currency_supply)
+        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')

@@ -412,3 +412,91 @@ def show_account(substrate, addr, out_str):
 def get_eth_chain_id(substrate):
     chain_name = substrate.rpc_request(method="system_chain", params=[]).get('result')
     return ETH_CHAIN_IDS[chain_name]
+
+
+def set_max_currency_supply(substrate, kp_src, max_currency_supply):
+    payload = substrate.compose_call(
+        call_module='BlockReward',
+        call_function='set_max_currency_supply',
+        call_params={
+            'limit': max_currency_supply
+        }
+    )
+
+    call = substrate.compose_call(
+        call_module='Sudo',
+        call_function='sudo',
+        call_params={
+            'call': payload.value,
+        }
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'set max_currency_supply')
+    return receipt
+
+
+def set_block_reward_configuration(substrate, kp_src, data):
+    payload = substrate.compose_call(
+        call_module='BlockReward',
+        call_function='set_configuration',
+        call_params={
+            'reward_distro_params': {
+                'treasury_percent': data['treasury_percent'],
+                'dapps_percent': data['dapps_percent'],
+                'collators_percent': data['collators_percent'],
+                'lp_percent': data['lp_percent'],
+                'machines_percent': data['machines_percent'],
+                'machines_subsidization_percent': data['machines_subsidization_percent'],
+            }
+        }
+    )
+
+    call = substrate.compose_call(
+        call_module='Sudo',
+        call_function='sudo',
+        call_params={
+            'call': payload.value,
+        }
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'set set_configuration')
+    return receipt
+
+
+def setup_block_reward(substrate, kp_src, block_reward):
+    payload = substrate.compose_call(
+        call_module='BlockReward',
+        call_function='set_block_issue_reward',
+        call_params={
+            'block_reward': block_reward
+        }
+    )
+
+    call = substrate.compose_call(
+        call_module='Sudo',
+        call_function='sudo',
+        call_params={
+            'call': payload.value,
+        }
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=call,
+        keypair=kp_src
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'set reward')
+    return receipt
