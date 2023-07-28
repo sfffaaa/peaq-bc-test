@@ -3,6 +3,8 @@ from tools.utils import show_extrinsic, WS_URL
 from substrateinterface import SubstrateInterface, Keypair
 import sys
 sys.path.append('./')
+
+import unittest
 # from tools.pallet_assets_test import pallet_assets_test
 
 
@@ -10,10 +12,10 @@ def utf8_to_ascii(utf8str):
     return [int(utf8str[i:i+2], 16) for i in range(0, len(utf8str), 2)]
 
 
-def storage_rpc_read(substrate, kp_src, item_type, item):
+def storage_rpc_read(substrate, kp_src, item_type):
     data = substrate.rpc_request('peaqstorage_readAttribute', [
                                  kp_src.ss58_address, item_type])
-    assert (data["result"]["item"] == item)
+    return data["result"]["item"]
 
 
 def storage_add_item(substrate, kp_src, item_type, item):
@@ -36,9 +38,7 @@ def storage_add_item(substrate, kp_src, item_type, item):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'add_item')
 
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
+    return receipt
 
 
 def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
@@ -86,28 +86,24 @@ def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'batch_transaction')
 
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
+    return receipt
 
 
-def pallet_storage_test():
-    print('---- pallet_storage_test!! ----')
-    try:
-        # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
-        # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url=WS_URL) as substrate:
-            kp_src = Keypair.create_from_uri('//Alice')
-            item_type = f'0x{int(time.time())}'
-            item = '0x032132'
+class TestPalletStorage(unittest.TestCase):
 
-            storage_add_item(substrate, kp_src, item_type, item)
-            storage_rpc_read(substrate, kp_src, item_type, item)
+    def setUp(self):
+        self._substrate = SubstrateInterface(url=WS_URL)
 
-            item_type = f'0x{int(time.time()) + 1}'
-            item = '0x032133'
-            storage_batch_transaction_ok(substrate, kp_src, item_type, item)
+    def test_storage(self):
+        kp_src = Keypair.create_from_uri('//Alice')
+        item_type = f'0x{int(time.time())}'
+        item = '0x032132'
 
-    except ConnectionRefusedError:
-        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
-        sys.exit()
+        receipt = storage_add_item(self._substrate, kp_src, item_type, item)
+        self.assertTrue(receipt.is_success, f'storage_add_item failed: {receipt.error_message}')
+        self.assertEqual(storage_rpc_read(self._substrate, kp_src, item_type), item)
+
+        item_type = f'0x{int(time.time()) + 1}'
+        item = '0x032133'
+        receipt = storage_batch_transaction_ok(self._substrate, kp_src, item_type, item)
+        self.assertTrue(receipt.is_success, f'storage_batch_transaction_ok failed: {receipt.error_message}')
