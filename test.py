@@ -37,7 +37,6 @@ if __name__ == '__main__':
         pallet_rbac_test()
         evm_rpc_test()
         evm_extrinsic_test()
-        block_creation_time_test()
         pallet_utility_test()
         pallet_storage_test()
         pallet_block_reward_test()
@@ -45,6 +44,7 @@ if __name__ == '__main__':
         pallet_treasury_test()
         pallet_vesting_test()
         zenlink_dex_test()
+        block_creation_time_test()
     else:
         for test in tests:
             exec(test)
