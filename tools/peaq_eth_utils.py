@@ -4,6 +4,7 @@ import binascii
 import os
 
 GAS_LIMIT = 4294967
+TX_SUCCESS_STATUS = 1
 
 
 def generate_random_hex(num_bytes=16):
@@ -48,3 +49,7 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError
+
+
+def get_eth_balance(substrate, eth_src):
+    return int(substrate.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)

@@ -4,6 +4,7 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
+from tools.peaq_eth_utils import get_eth_balance
 import unittest
 
 import pprint
@@ -120,10 +121,6 @@ def transfer_erc20_token(substrate, kp_src, eth_src, eth_dst, contract_addr):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'call')
     return receipt
-
-
-def get_eth_balance(conn, eth_src):
-    return int(conn.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)
 
 
 def get_erc20_balance(conn, contract_addr, slot_addr):

@@ -5,6 +5,7 @@ from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
+from tools.peaq_eth_utils import TX_SUCCESS_STATUS
 from web3 import Web3
 
 import unittest
@@ -23,7 +24,6 @@ STORAGE_ADDRESS = '0x0000000000000000000000000000000000000801'
 ETH_PRIVATE_KEY = '0xa2899b053679427c8c446dc990c8990c75052fd3009e563c6a613d982d6842fe'
 ABI_FILE = 'ETH/storage/storage.sol.json'
 TOKEN_NUM = 10000 * pow(10, 15)
-TX_SUCCESS_STATUS = 1
 
 
 def _calcualte_evm_basic_req(substrate, w3, addr):

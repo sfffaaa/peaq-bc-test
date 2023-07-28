@@ -6,7 +6,10 @@ from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot
+from tools.peaq_eth_utils import get_eth_balance, get_contract
+from tools.peaq_eth_utils import TX_SUCCESS_STATUS
 from web3 import Web3
+import unittest
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -14,6 +17,8 @@ pp = pprint.PrettyPrinter(indent=4)
 ERC_TOKEN_TRANSFER = 34
 HEX_STR = '1111'
 GAS_LIMIT = 4294967
+TOKEN_NUM = 10000 * pow(10, 15)
+ABI_FILE = 'ETH/identity/abi'
 
 
 MNEMONIC = [
@@ -21,8 +26,6 @@ MNEMONIC = [
     # 0x434DB4884Fa631c89E57Ea04411D6FF73eF0E297
     'lunar hobby hungry vacant imitate silly amused soccer face census keep kiwi',
     # 0xC5BDf22635Df81f897C1BB2B24b758dEB21f522d,
-    'mansion dynamic turkey army feel rescue choose achieve hurdle gentle phrase pair',
-    # 0xe3D5bca5420d451885bA73035F4F06d10cd72eb5,
 ]
 
 
@@ -30,8 +33,6 @@ def send_eth_token(w3, kp_src, kp_dst, token_num, eth_chain_id):
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
     # gas = web3.to_wei(Decimal('0.000000005'), 'ether')
     gas = GAS_LIMIT
-    price = 1000
-    print(token_num + gas * price)
     tx = {
         'from': kp_src.ss58_address,
         'to': kp_dst.ss58_address,
@@ -45,17 +46,11 @@ def send_eth_token(w3, kp_src, kp_dst, token_num, eth_chain_id):
     signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-    if tx_receipt['status'] != 1:
-        print(tx_receipt)
-        raise IOError
-    print('✅ send_eth_token, Success')
+    return tx_receipt
 
 
-def deploy_contract(w3, kp_src, eth_chain_id):
-    with open('ETH/identity/bytecode') as f:
-        bytecode = f.read().strip()
-
-    with open('ETH/identity/abi') as f:
+def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
+    with open(abi_file_name) as f:
         abi = json.load(f)
 
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
@@ -75,22 +70,20 @@ def deploy_contract(w3, kp_src, eth_chain_id):
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
     address = tx_receipt['contractAddress']
-    if not address:
-        raise IOError('Contract deploy fails')
-    print('✅ deploy, Success')
     return address
 
 
-def call_copy(w3, address, kp_src, eth_chain_id):
-    with open('ETH/identity/abi') as f:
-        abi = json.load(f)
-
-    contract = w3.eth.contract(address, abi=abi)
+def get_contract_data(w3, address, filename):
+    contract = get_contract(w3, address, filename)
     data = contract.functions.memoryStored().call()
-    assert(data == b'')
+    return data.hex()
+
+
+def call_copy(w3, address, kp_src, eth_chain_id, file_name, data):
+    contract = get_contract(w3, address, file_name)
 
     nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
-    tx = contract.functions.callDatacopy(bytes.fromhex(HEX_STR)).build_transaction({
+    tx = contract.functions.callDatacopy(bytes.fromhex(data)).build_transaction({
         'from': kp_src.ss58_address,
         'gas': GAS_LIMIT,
         'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -102,56 +95,84 @@ def call_copy(w3, address, kp_src, eth_chain_id):
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     print(f'call: {tx_hash.hex()}')
     w3.eth.wait_for_transaction_receipt(tx_hash)
-
-    data = contract.functions.memoryStored().call()
-    assert(data.hex() == HEX_STR)
-    print('✅ call_copy, Success')
+    return True
 
 
-def evm_rpc_test():
-    try:
-        # Check the type_registry_preset_dict = load_type_registry_preset(type_registry_name)
-        # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-        with SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC) as conn:
-            eth_chain_id = get_eth_chain_id(conn)
-            # print('Check the get balance')
-            kp_src = Keypair.create_from_uri('//Alice')
-            eth_src = calculate_evm_addr(kp_src.ss58_address)
+class TestEVMEthRPC(unittest.TestCase):
+    def setUp(self):
+        self._conn = SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC)
+        self._eth_chain_id = get_eth_chain_id(self._conn)
+        self._kp_src = Keypair.create_from_uri('//Alice')
+        self._eth_src = calculate_evm_addr(self._kp_src.ss58_address)
+        self._kp_eth_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
+        self._kp_eth_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
+        self._w3 = Web3(Web3.HTTPProvider(ETH_URL))
+        self._eth_deposited_src = calculate_evm_account(self._eth_src)
 
-            token_num = 10000 * pow(10, 15)
-            transfer(conn, kp_src, calculate_evm_account(eth_src), token_num)
+    def test_evm_rpc_transfer(self):
+        conn = self._conn
+        eth_chain_id = self._eth_chain_id
+        kp_src = self._kp_src
+        eth_src = self._eth_src
+        kp_eth_src = self._kp_eth_src
+        kp_eth_dst = self._kp_eth_dst
+        eth_deposited_src = self._eth_deposited_src
+        w3 = self._w3
 
-            kp_eth_src = Keypair.create_from_mnemonic(MNEMONIC[0], crypto_type=KeypairType.ECDSA)
+        # Setup
+        transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
 
-            call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
-            eth_after_balance = int(conn.rpc_request("eth_getBalance", [kp_eth_src.ss58_address]).get('result'), 16)
-            print(f'dst ETH balance: {eth_after_balance}')
+        call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        eth_after_balance = get_eth_balance(conn, kp_eth_src.ss58_address)
+        print(f'dst ETH balance: {eth_after_balance}')
 
-            w3 = Web3(Web3.HTTPProvider(ETH_URL))
-            block = w3.eth.get_block('latest')
-            assert(block['number'] != 0)
+        block = w3.eth.get_block('latest')
+        self.assertNotEqual(block['number'], 0)
 
-            kp_eth_dst = Keypair.create_from_mnemonic(MNEMONIC[1], crypto_type=KeypairType.ECDSA)
+        token_num = 10000000
+        dst_eth_before_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
 
-            token_num = 10000000
-            dst_eth_before_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
-            print(f'before, dst eth: {dst_eth_before_balance}')
-            # Call eth transfer
-            src_eth_balance = w3.eth.get_balance(kp_eth_src.ss58_address)
-            print(f'src eth: {src_eth_balance}')
-            send_eth_token(w3, kp_eth_src, kp_eth_dst, token_num, eth_chain_id)
-            dst_eth_after_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
-            print(f'after, dst eth: {dst_eth_after_balance}')
-            # In empty account, the token_num == token_num - enssential num
-            assert(dst_eth_after_balance > dst_eth_before_balance)
+        print(f'before, dst eth: {dst_eth_before_balance}')
+        src_eth_balance = w3.eth.get_balance(kp_eth_src.ss58_address)
+        print(f'src eth: {src_eth_balance}')
 
-            address = deploy_contract(w3, kp_eth_src, eth_chain_id)
-            call_copy(w3, address, kp_eth_src, eth_chain_id)
+        # Execute -> Call eth transfer
+        tx_receipt = send_eth_token(w3, kp_eth_src, kp_eth_dst, token_num, eth_chain_id)
+        self.assertEqual(tx_receipt['status'], TX_SUCCESS_STATUS, f'send eth token failed: {tx_receipt}')
 
-    except ConnectionRefusedError:
-        print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
-        sys.exit()
+        # Check
+        dst_eth_after_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
+        print(f'after, dst eth: {dst_eth_after_balance}')
+        # In empty account, the token_num == token_num - enssential num
+        self.assertGreater(dst_eth_after_balance, dst_eth_before_balance,
+                           f'{dst_eth_after_balance} <= {dst_eth_before_balance}')
 
+    def test_evm_rpc_identity_contract(self):
+        conn = self._conn
+        eth_chain_id = self._eth_chain_id
+        kp_src = self._kp_src
+        eth_src = self._eth_src
+        kp_eth_src = self._kp_eth_src
+        eth_deposited_src = self._eth_deposited_src
+        w3 = self._w3
 
-if __name__ == '__main__':
-    evm_rpc_test()
+        transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
+
+        call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+
+        with open('ETH/identity/bytecode') as f:
+            bytecode = f.read().strip()
+
+        # Execute -> Deploy contract
+        address = deploy_contract(w3, kp_eth_src, eth_chain_id, ABI_FILE, bytecode)
+        self.assertNotEqual(address, None, 'contract address is None')
+
+        # Check
+        data = get_contract_data(w3, address, ABI_FILE)
+        self.assertEqual(data, '', f'contract data is not empty {data}.hex()')
+
+        # Execute -> Call set
+        self.assertTrue(call_copy(w3, address, kp_eth_src, eth_chain_id, ABI_FILE, HEX_STR))
+
+        out = get_contract_data(w3, address, ABI_FILE)
+        self.assertEqual(out, HEX_STR, 'call copy failed')
