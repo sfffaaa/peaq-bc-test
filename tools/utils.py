@@ -383,9 +383,12 @@ def fund(substrate, kp_dst, token_num):
     show_extrinsic(receipt, 'fund')
 
 
-# TODO Rmeove
-def get_account_balance(substrate, addr):
-    result = substrate.query("System", "Account", [addr])
+def get_account_balance(substrate, addr, block_hash=None):
+    if not block_hash:
+        result = substrate.query("System", "Account", [addr])
+    else:
+        result = substrate.query(
+            "System", "Account", [addr], block_hash=block_hash)
     return int(result['data']['free'].value)
 
 
@@ -395,7 +398,6 @@ def get_account_balance_locked(substrate, addr):
 
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
-
     if get_account_balance(substrate, addr.ss58_address) < min_bal:
         print("Since sufficinet balance is not available in account: ", addr.ss58_address)
         print("account will be fund with an amount equalt to :", req_bal)
@@ -404,9 +406,9 @@ def check_and_fund_account(substrate, addr, min_bal, req_bal):
 
 
 def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}: {result["data"]["free"]}')
-    return int(result['data']['free'].value)
+    result = get_account_balance(substrate, addr)
+    print(f'{addr} {out_str}: {result}')
+    return result
 
 
 def get_eth_chain_id(substrate):
