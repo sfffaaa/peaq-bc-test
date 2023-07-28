@@ -1,6 +1,3 @@
-import sys
-sys.path.append('./')
-
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration

@@ -1,5 +1,3 @@
-import sys
-sys.path.append('./')
 import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType

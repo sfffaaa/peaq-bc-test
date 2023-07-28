@@ -1,6 +1,4 @@
-import sys
 import time
-sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance

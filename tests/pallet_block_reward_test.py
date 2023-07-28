@@ -37,12 +37,12 @@ class TestPalletBlockReward(unittest.TestCase):
         )
         self.assertEqual(set_value, now_value)
 
-        # # Reset
-        # recepit = set_block_reward_configuration(
-        #     self.substrate, self.kp_src,
-        #     {k: int(str(previous_value[k])) for k in set_value.keys()})
-        # self.assertTrue(recepit.is_success,
-        #                 'cannot setup the block reward configuration')
+        # Reset
+        recepit = set_block_reward_configuration(
+            self.substrate, self.kp_src,
+            {k: int(str(previous_value[k])) for k in set_value.keys()})
+        self.assertTrue(recepit.is_success,
+                        'cannot setup the block reward configuration')
 
     def test_change_max_currency_supply(self):
         max_currency_supply = self.substrate.query(

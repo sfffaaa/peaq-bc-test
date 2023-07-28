@@ -1,6 +1,4 @@
 import unittest
-import sys
-sys.path.append('./')
 import time
 
 from substrateinterface import SubstrateInterface, Keypair

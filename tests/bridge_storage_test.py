@@ -1,6 +1,3 @@
-import sys
-sys.path.append('./')
-
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id

@@ -1,6 +1,3 @@
-import sys
-sys.path.append('./')
-
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr

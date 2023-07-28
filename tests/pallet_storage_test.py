@@ -1,8 +1,6 @@
 import time
 from tools.utils import show_extrinsic, WS_URL
 from substrateinterface import SubstrateInterface, Keypair
-import sys
-sys.path.append('./')
 
 import unittest
 # from tools.pallet_assets_test import pallet_assets_test

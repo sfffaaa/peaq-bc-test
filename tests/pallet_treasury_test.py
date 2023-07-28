@@ -1,3 +1,6 @@
+import sys
+sys.path.append('.')
+
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV
 from tools.utils import check_and_fund_account

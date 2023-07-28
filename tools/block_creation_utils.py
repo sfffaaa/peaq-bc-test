@@ -1,7 +1,3 @@
-import sys
-sys.path.append('./')
-
-
 def get_block_height(substrate):
     latest_block = substrate.get_block()
     return latest_block['header']['number']

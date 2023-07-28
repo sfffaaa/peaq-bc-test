@@ -1,4 +1,3 @@
-import sys
 import traceback
 
 from substrateinterface import SubstrateInterface, Keypair
@@ -6,7 +5,6 @@ from tools.utils import show_extrinsic, WS_URL
 import time
 import unittest
 
-sys.path.append('./')
 
 RANDOM_PREFIX = hex(int(time.time()))[2:] * 3
 
