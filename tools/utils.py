@@ -556,6 +556,3 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'approve_as_multi')
     return receipt
-    self.assertTrue(receipt.is_success,
-                    f'approve_as_multi failed: {receipt.error_message} + ' +
-                    f'{self.substrate.get_events(receipt.block_hash)}')
