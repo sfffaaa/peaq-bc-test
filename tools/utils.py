@@ -499,3 +499,63 @@ def setup_block_reward(substrate, kp_src, block_reward):
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'set reward')
     return receipt
+
+
+def send_proposal(substrate, kp_src, kp_dst, threshold, payload, timepoint=None):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+
+    as_multi_call = substrate.compose_call(
+        call_module='MultiSig',
+        call_function='as_multi',
+        call_params={
+            'threshold': threshold,
+            'other_signatories': [kp_dst.ss58_address],
+            'maybe_timepoint': timepoint,
+            'call': payload.value,
+            'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=as_multi_call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'as_multi')
+    return receipt
+
+
+def get_as_multi_extrinsic_id(receipt):
+    info = receipt.get_extrinsic_identifier().split('-')
+    return {'height': int(info[0]), 'index': int(info[1])}
+
+
+def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
+    nonce = substrate.get_account_nonce(kp_src.ss58_address)
+
+    as_multi_call = substrate.compose_call(
+        call_module='MultiSig',
+        call_function='approve_as_multi',
+        call_params={
+            'threshold': threshold,
+            'other_signatories': [kp.ss58_address for kp in kps],
+            'maybe_timepoint': timepoint,
+            'call_hash': f'0x{payload.call_hash.hex()}',
+            'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
+        })
+
+    extrinsic = substrate.create_signed_extrinsic(
+        call=as_multi_call,
+        keypair=kp_src,
+        era={'period': 64},
+        nonce=nonce
+    )
+
+    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+    show_extrinsic(receipt, 'approve_as_multi')
+    return receipt
+    self.assertTrue(receipt.is_success,
+                    f'approve_as_multi failed: {receipt.error_message} + ' +
+                    f'{self.substrate.get_events(receipt.block_hash)}')

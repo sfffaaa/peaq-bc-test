@@ -7,11 +7,13 @@ from tools.utils import calculate_multi_sig, TOKEN_NUM_BASE
 from tools.utils import transfer
 import random
 from tools.utils import show_account
-from tools.pallet_multisig_test import send_proposal, send_approval
+from tools.utils import send_proposal, send_approval, get_as_multi_extrinsic_id
 from tools.block_creation_utils import get_block_creation_times
-from tools.block_creation_time_test import BLOCK_TRAVERSE, BLOCK_CREATION_MS, BLOCK_TOLERATE_PERCENTAGE
 
 THRESHOLD = 2
+BLOCK_TRAVERSE = 20
+BLOCK_CREATION_MS = 12000
+BLOCK_TOLERATE_PERCENTAGE = 10
 
 
 @given('Use the Alice keypair')
@@ -54,8 +56,9 @@ def send_transfer_proposal(context):
             'value': context._num * TOKEN_NUM_BASE
         })
 
-    timepoint = send_proposal(
+    receipt = send_proposal(
         context._substrate, context._sender, context._receiver, THRESHOLD, payload)
+    timepoint = get_as_multi_extrinsic_id(receipt)
 
     context._proposal_info = {
         'timepoint': timepoint,
