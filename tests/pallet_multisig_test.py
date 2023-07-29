@@ -5,7 +5,7 @@ from tools.utils import transfer, show_account, send_approval, send_proposal, ge
 import random
 
 
-class PalletMultiSig(unittest.TestCase):
+class PalletMultisig(unittest.TestCase):
 
     def setUp(self):
         self.substrate = SubstrateInterface(url=WS_URL,)

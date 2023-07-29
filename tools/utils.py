@@ -103,7 +103,7 @@ def send_spent_token_from_multisig_wallet(substrate, kp_consumer, kp_provider, t
     nonce = substrate.get_account_nonce(kp_provider.ss58_address)
 
     as_multi_call = substrate.compose_call(
-        call_module='MultiSig',
+        call_module='Multisig',
         call_function='as_multi',
         call_params={
             'threshold': threshold,
@@ -145,7 +145,7 @@ def send_refund_token_from_multisig_wallet(substrate, kp_consumer, kp_provider, 
     nonce = substrate.get_account_nonce(kp_provider.ss58_address)
 
     as_multi_call = substrate.compose_call(
-        call_module='MultiSig',
+        call_module='Multisig',
         call_function='as_multi',
         call_params={
             'threshold': threshold,
@@ -233,7 +233,7 @@ def send_refund_token_service_delievered(
 @user_extrinsic_send
 def _approve_token(substrate, kp_sign, other_signatories, threshold, info):
     return substrate.compose_call(
-        call_module='MultiSig',
+        call_module='Multisig',
         call_function='approve_as_multi',
         call_params={
             'threshold': threshold,
@@ -422,7 +422,7 @@ def setup_block_reward(substrate, block_reward):
 @user_extrinsic_send
 def send_proposal(substrate, kp_src, kp_dst, threshold, payload, timepoint=None):
     return substrate.compose_call(
-        call_module='MultiSig',
+        call_module='Multisig',
         call_function='as_multi',
         call_params={
             'threshold': threshold,
@@ -441,7 +441,7 @@ def get_as_multi_extrinsic_id(receipt):
 @user_extrinsic_send
 def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
     return substrate.compose_call(
-        call_module='MultiSig',
+        call_module='Multisig',
         call_function='approve_as_multi',
         call_params={
             'threshold': threshold,
