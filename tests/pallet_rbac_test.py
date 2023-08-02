@@ -1,7 +1,9 @@
 import traceback
+import sys
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import WS_URL
+from tools.payload import user_extrinsic_send
 import time
 import unittest
 
@@ -67,29 +69,15 @@ def comp_rbac_call(substrate, cl_fcn, cl_par):
 
 
 # Executes a stack-extrinsic-call on substrate
+@user_extrinsic_send
 def exec_stack_extrinsic_call(substrate, kp_src, stack):
     # Wrape payload into a utility batch cal
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='Utility',
         call_function='batch_all',
         call_params={
             'calls': stack,
         })
-
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'batch_transaction')
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
 
 
 ##############################################################################
@@ -232,7 +220,8 @@ class PalletRBACTest(unittest.TestCase):
         stack.append(self.rbac_role2user(f'0x{ROLE_ID3}', f'0x{USER_ID3}'))
 
         # Execute extrinsic-call-stack
-        exec_stack_extrinsic_call(self.substrate, kp_src, stack)
+        receipt = exec_stack_extrinsic_call(self.substrate, kp_src, stack)
+        self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
 
     def check_ok_and_return(self, data, cnt=1):
         self.assertIn('Ok', data['result'])
@@ -482,12 +471,7 @@ class PalletRBACTest(unittest.TestCase):
         show_success_msg('verify_rpc_fail_disabled_id')
 
     def setUp(self):
-        try:
-            self.substrate = SubstrateInterface(url=WS_URL)
-        except ConnectionRefusedError:
-            print("⚠️ No local Substrate node running, \
-                try running 'start_local_substrate_node.sh' first")
-            raise
+        self.substrate = SubstrateInterface(url=WS_URL)
 
     def test_pallet_rbac(self):
         print('---- pallet_rbac_test!! ----')

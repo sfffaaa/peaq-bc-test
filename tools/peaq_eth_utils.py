@@ -1,7 +1,7 @@
-from tools.utils import show_extrinsic
 import json
 import binascii
 import os
+from tools.payload import user_extrinsic_send
 
 GAS_LIMIT = 4294967
 TX_SUCCESS_STATUS = 1
@@ -18,10 +18,9 @@ def get_contract(w3, address, file_name):
     return w3.eth.contract(address, abi=abi)
 
 
+@user_extrinsic_send
 def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='EVM',
         call_function='call',
         call_params={
@@ -35,20 +34,6 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'nonce': None,
             'access_list': []
         })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'evm_call')
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
 
 
 def get_eth_balance(substrate, eth_src):

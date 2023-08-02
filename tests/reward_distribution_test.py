@@ -71,12 +71,12 @@ class TestRewardDistribution(unittest.TestCase):
             rewards_wo_tip, FEE_MAX_LIMIT,
             f'The transaction fee w/o tip is out of limit: {rewards_wo_tip} < {FEE_MAX_LIMIT}')
 
-    def _extend_max_supply(self, substrate, sudo_key):
+    def _extend_max_supply(self, substrate):
         total_issuance = substrate.query(
             module='Balances',
             storage_function='TotalIssuance',
         )
-        receipt = set_max_currency_supply(substrate, sudo_key, int(str(total_issuance)) * 3)
+        receipt = set_max_currency_supply(substrate, int(str(total_issuance)) * 3)
         return receipt
 
     def _check_block_reward_in_event(self, kp_src, block_reward):
@@ -108,9 +108,9 @@ class TestRewardDistribution(unittest.TestCase):
         kp_src = self._kp_src
 
         # Setup
-        receipt = setup_block_reward(self._substrate, kp_src, 10000)
+        receipt = setup_block_reward(self._substrate, 10000)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
-        receipt = self._extend_max_supply(self._substrate, kp_src)
+        receipt = self._extend_max_supply(self._substrate)
         self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
 
         # Execute
@@ -129,13 +129,13 @@ class TestRewardDistribution(unittest.TestCase):
         kp_charlie = self._kp_charlie
 
         # setup
-        receipt = self._extend_max_supply(self._substrate, kp_src)
+        receipt = self._extend_max_supply(self._substrate)
         self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
 
         block_reward = self.get_block_issue_reward()
         print(f'Current reward: {block_reward}')
         new_set_reward = 0
-        receipt = setup_block_reward(self._substrate, kp_src, new_set_reward)
+        receipt = setup_block_reward(self._substrate, new_set_reward)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
 
         time.sleep(WAIT_TIME_PERIOD)
@@ -145,6 +145,7 @@ class TestRewardDistribution(unittest.TestCase):
         receipt = transfer_with_tip(
             self._substrate, kp_bob, kp_charlie.ss58_address,
             1 * TOKEN_NUM_BASE, TIP, 1)
+        self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')
 
         # Check
@@ -153,5 +154,5 @@ class TestRewardDistribution(unittest.TestCase):
         self._check_transaction_fee_reward_balance(kp_src.ss58_address, prev_balance, TIP)
 
         # Reset
-        receipt = setup_block_reward(self._substrate, kp_src, block_reward)
+        receipt = setup_block_reward(self._substrate, block_reward)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')

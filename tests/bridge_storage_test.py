@@ -80,7 +80,8 @@ class TestBridgeStorage(unittest.TestCase):
 
         # setup
         transfer(substrate, KP_SRC, calculate_evm_account(eth_src), TOKEN_NUM)
-        call_eth_transfer_a_lot(substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
+        receipt = call_eth_transfer_a_lot(substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'Failed to transfer token to {eth_kp_src.ss58_address}')
 
         contract = get_contract(w3, STORAGE_ADDRESS, ABI_FILE)
 

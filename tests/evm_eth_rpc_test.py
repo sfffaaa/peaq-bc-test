@@ -1,7 +1,7 @@
 import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot
 from tools.peaq_eth_utils import get_eth_balance, get_contract
@@ -98,7 +98,7 @@ def call_copy(w3, address, kp_src, eth_chain_id, file_name, data):
 
 class TestEVMEthRPC(unittest.TestCase):
     def setUp(self):
-        self._conn = SubstrateInterface(url=WS_URL, type_registry=SCALE_CODEC)
+        self._conn = SubstrateInterface(url=WS_URL)
         self._eth_chain_id = get_eth_chain_id(self._conn)
         self._kp_src = Keypair.create_from_uri('//Alice')
         self._eth_src = calculate_evm_addr(self._kp_src.ss58_address)
@@ -120,7 +120,8 @@ class TestEVMEthRPC(unittest.TestCase):
         # Setup
         transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
 
-        call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        receipt = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'call_eth_transfer_a_lot failed: {receipt.error_message}')
         eth_after_balance = get_eth_balance(conn, kp_eth_src.ss58_address)
         print(f'dst ETH balance: {eth_after_balance}')
 
@@ -156,7 +157,8 @@ class TestEVMEthRPC(unittest.TestCase):
 
         transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
 
-        call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        receipt = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'call_eth_transfer_a_lot failed: {receipt.error_message}')
 
         with open('ETH/identity/bytecode') as f:
             bytecode = f.read().strip()

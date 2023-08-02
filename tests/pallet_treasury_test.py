@@ -1,19 +1,16 @@
-import sys
-sys.path.append('.')
-
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV
+from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from tools.utils import check_and_fund_account
+from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
 # Assumptions
-# 1. Alice is the sudo key
-# 2. Treasury address is:'5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
+# 1. Treasury address is:'5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 
 # Global Constants
 
 # accounts to carty out diffirent transactions
-KP_SUDO = Keypair.create_from_uri('//Alice')
+KP_USER = Keypair.create_from_uri('//Alice')
 KP_COUNCIL_FIRST_MEMBER = Keypair.create_from_uri('//Bob')
 KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
 KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
@@ -29,44 +26,62 @@ AMOUNT = 10
 DIVISION_FACTOR = pow(10, 7)
 
 
+@user_extrinsic_send
+def cast_vote(substrate, kp_member, proposal_hash, proposal_index, vote):
+    return substrate.compose_call(
+        call_module='Council',
+        call_function='vote',
+        call_params={
+            'proposal': proposal_hash,
+            'index': proposal_index,
+            'approve': vote
+        })
+
+
+# To set members of the council
+@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
+@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
+def set_members(substrate, members, kp_prime_member, old_count, kp_prime):
+    return substrate.compose_call(
+        call_module='Council',
+        call_function='set_members',
+        call_params={
+            'new_members': members,
+            'prime': kp_prime,
+            'old_count': len(members)
+        })
+
+
+@user_extrinsic_send
+def close_vote(substrate, kp_member, proposal_hash, proposal_index, weight_bond,
+               length_bond):
+    return substrate.compose_call(
+        call_module='Council',
+        call_function='close',
+        call_params={
+            'proposal_hash': proposal_hash,
+            'index': proposal_index,
+            'proposal_weight_bound': weight_bond,
+            'length_bound': length_bond
+        })
+
+
+# To directly spend funds from treasury
+@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
+@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
+def spend(substrate, value, beneficiary):
+    return substrate.compose_call(
+        call_module='Treasury',
+        call_function='spend',
+        call_params={
+            'amount': value * TOKEN_NUM_BASE_DEV,
+            'beneficiary': beneficiary.ss58_address
+        })
+
+
 class TestTreasury(unittest.TestCase):
     def setUp(self):
         self.substrate = SubstrateInterface(url=WS_URL)
-
-    # To set members of the council
-    def set_members_test(self, members, kp_prime_member, old_count, kp_sudo):
-
-        # add council members
-        payload = self.substrate.compose_call(
-            call_module='Council',
-            call_function='set_members',
-            call_params={
-                'new_members': members,
-                'prime': kp_sudo,
-                'old_count': len(members)
-            })
-
-        call = self.substrate.compose_call(
-            call_module='Sudo',
-            call_function='sudo',
-            call_params={
-                'call': payload.value,
-            }
-        )
-
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=KP_SUDO,
-            era={'period': 64},
-        )
-
-        receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-
-        self.assertTrue(receipt.is_success,
-                        f'Extrinsic Failed: {receipt.error_message}' +
-                        f'{self.substrate.get_events(receipt.block_hash)}')
-
-        show_extrinsic(receipt, 'setMembers')
 
     # To submit a spend proposal
     def propose_spend(self, value, beneficiary, kp_member):
@@ -111,61 +126,6 @@ class TestTreasury(unittest.TestCase):
         show_extrinsic(receipt, 'propose_spend')
         return (pi, ph)
 
-    def cast_vote(self, proposal_hash, proposal_index, vote, kp_member):
-        call = self.substrate.compose_call(
-            call_module='Council',
-            call_function='vote',
-            call_params={
-                'proposal': proposal_hash,
-                'index': proposal_index,
-                'approve': vote
-            })
-
-        nonce = self.substrate.get_account_nonce(kp_member.ss58_address)
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=kp_member,
-            era={'period': 64},
-            nonce=nonce
-        )
-
-        receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-
-        self.assertTrue(receipt.is_success,
-                        f'Extrinsic Failed: {receipt.error_message}' +
-                        f'{self.substrate.get_events(receipt.block_hash)}')
-
-        show_extrinsic(receipt, 'vote casted')
-
-    def close_vote(self, proposal_hash, proposal_index, weight_bond,
-                   length_bond, kp_member):
-
-        call = self.substrate.compose_call(
-            call_module='Council',
-            call_function='close',
-            call_params={
-                'proposal_hash': proposal_hash,
-                'index': proposal_index,
-                'proposal_weight_bound': weight_bond,
-                'length_bound': length_bond
-            })
-
-        nonce = self.substrate.get_account_nonce(kp_member.ss58_address)
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=kp_member,
-            era={'period': 64},
-            nonce=nonce
-        )
-
-        receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-
-        self.assertTrue(receipt.is_success,
-                        f'Extrinsic Failed: {receipt.error_message}' +
-                        f'{self.substrate.get_events(receipt.block_hash)}')
-
-        show_extrinsic(receipt, 'closed voting processes')
-
     def approve_proposal_test(self):
 
         proposal_index = None
@@ -174,27 +134,34 @@ class TestTreasury(unittest.TestCase):
         # submit a proposal
         proposal_index, proposal_hash = self.propose_spend(AMOUNT,
                                                            KP_BENEFICIARY,
-                                                           KP_SUDO)
+                                                           KP_USER)
 
         # To submit votes by all council member to APPORVE the motion
-        self.cast_vote(proposal_hash, proposal_index, True, KP_SUDO)
+        receipt = cast_vote(self.substrate, KP_USER, proposal_hash, proposal_index, True)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
 
-        self.cast_vote(proposal_hash,
-                       proposal_index,
-                       True,
-                       KP_COUNCIL_FIRST_MEMBER)
+        receipt = cast_vote(self.substrate, KP_COUNCIL_FIRST_MEMBER, proposal_hash,
+                            proposal_index,
+                            True)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
 
-        self.cast_vote(proposal_hash,
-                       proposal_index,
-                       False,
-                       KP_COUNCIL_SECOND_MEMBER)
+        receipt = cast_vote(self.substrate, KP_COUNCIL_SECOND_MEMBER, proposal_hash,
+                            proposal_index,
+                            False)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
 
         # To close voting processes
-        self.close_vote(proposal_hash,
-                        proposal_index,
-                        WEIGHT_BOND,
-                        LENGTH_BOND,
-                        KP_COUNCIL_FIRST_MEMBER)
+        receipt = close_vote(self.substrate, KP_COUNCIL_FIRST_MEMBER, proposal_hash,
+                             proposal_index,
+                             WEIGHT_BOND,
+                             LENGTH_BOND)
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
     def reject_proposal_test(self):
         proposal_index = None
@@ -203,64 +170,36 @@ class TestTreasury(unittest.TestCase):
         # submit a proposal
         proposal_index, proposal_hash = self.propose_spend(AMOUNT,
                                                            KP_BENEFICIARY,
-                                                           KP_SUDO)
+                                                           KP_USER)
 
         # To submit votes by all council member to REJECT the proposal
-        self.cast_vote(proposal_hash,
-                       proposal_index,
-                       True,
-                       KP_SUDO)
-
-        self.cast_vote(proposal_hash,
-                       proposal_index,
-                       False,
-                       KP_COUNCIL_FIRST_MEMBER)
-
-        self.cast_vote(proposal_hash,
-                       proposal_index,
-                       False,
-                       KP_COUNCIL_SECOND_MEMBER)
-
-        # To close voting processes
-        self.close_vote(proposal_hash,
-                        proposal_index,
-                        WEIGHT_BOND,
-                        LENGTH_BOND,
-                        KP_COUNCIL_SECOND_MEMBER)
-
-    # To directly spend funds from treasury
-    def spend_test(self, value, beneficiary, kp_sudo):
-
-        # add a spend extrinsic
-        payload = self.substrate.compose_call(
-            call_module='Treasury',
-            call_function='spend',
-            call_params={
-                'amount': value*TOKEN_NUM_BASE_DEV,
-                'beneficiary': beneficiary.ss58_address
-            })
-
-        call = self.substrate.compose_call(
-            call_module='Sudo',
-            call_function='sudo',
-            call_params={
-                'call': payload.value,
-            }
-        )
-
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=kp_sudo,
-            era={'period': 64}
-        )
-
-        receipt = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-
+        receipt = cast_vote(self.substrate, KP_USER, proposal_hash,
+                            proposal_index,
+                            True)
         self.assertTrue(receipt.is_success,
                         f'Extrinsic Failed: {receipt.error_message}' +
                         f'{self.substrate.get_events(receipt.block_hash)}')
 
-        show_extrinsic(receipt, 'spend')
+        receipt = cast_vote(self.substrate, KP_COUNCIL_FIRST_MEMBER, proposal_hash,
+                            proposal_index,
+                            False)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
+
+        receipt = cast_vote(self.substrate, KP_COUNCIL_SECOND_MEMBER, proposal_hash,
+                            proposal_index,
+                            False)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
+
+        # To close voting processes
+        receipt = close_vote(self.substrate, KP_COUNCIL_SECOND_MEMBER, proposal_hash,
+                             proposal_index,
+                             WEIGHT_BOND,
+                             LENGTH_BOND)
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
     def treasury_rewards_test(self):
 
@@ -306,7 +245,7 @@ class TestTreasury(unittest.TestCase):
         print()
         # To fund accounts, if sufficient  funds are not available
         check_and_fund_account(self.substrate,
-                               KP_SUDO,
+                               KP_USER,
                                100 * AMOUNT * TOKEN_NUM_BASE_DEV,
                                100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
@@ -321,14 +260,19 @@ class TestTreasury(unittest.TestCase):
                                100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
         print("--set member test started---")
-        council_members = [KP_SUDO.ss58_address,
+        council_members = [KP_USER.ss58_address,
                            KP_COUNCIL_FIRST_MEMBER.ss58_address,
                            KP_COUNCIL_SECOND_MEMBER.ss58_address]
 
-        self.set_members_test(council_members,
-                              KP_SUDO.ss58_address,
+        receipt = set_members(self.substrate,
+                              council_members,
+                              KP_USER.ss58_address,
                               0,
-                              KP_SUDO.ss58_address)
+                              KP_USER.ss58_address)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
+
         print("--set member test completed successfully!---")
         print()
 
@@ -343,7 +287,10 @@ class TestTreasury(unittest.TestCase):
         print()
 
         print("---Spend test started---")
-        self.spend_test(AMOUNT, KP_BENEFICIARY, KP_SUDO)
+        receipt = spend(self.substrate, AMOUNT, KP_BENEFICIARY)
+        self.assertTrue(receipt.is_success,
+                        f'Extrinsic Failed: {receipt.error_message}' +
+                        f'{self.substrate.get_events(receipt.block_hash)}')
         print("Spend test completed successfully")
         print()
 

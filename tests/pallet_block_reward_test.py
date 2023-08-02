@@ -28,7 +28,7 @@ class TestPalletBlockReward(unittest.TestCase):
             module='BlockReward',
             storage_function='RewardDistributionConfigStorage',
         )
-        receipt = set_block_reward_configuration(self.substrate, self.kp_src, set_value)
+        receipt = set_block_reward_configuration(self.substrate, set_value)
         self.assertTrue(receipt.is_success,
                         'cannot setup the block reward configuration')
         now_value = self.substrate.query(
@@ -39,19 +39,19 @@ class TestPalletBlockReward(unittest.TestCase):
 
         # Reset
         recepit = set_block_reward_configuration(
-            self.substrate, self.kp_src,
+            self.substrate,
             {k: int(str(previous_value[k])) for k in set_value.keys()})
         self.assertTrue(recepit.is_success,
                         'cannot setup the block reward configuration')
 
-    def test_change_max_currency_supply(self):
+    def test_over_max_currency_supply(self):
         max_currency_supply = self.substrate.query(
             module='BlockReward',
             storage_function='MaxCurrencySupply',
         )
         print(f'Current max-currency-supply: {max_currency_supply}')
         new_max_currency_supply = 500
-        receipt = set_max_currency_supply(self.substrate, self.kp_src, new_max_currency_supply)
+        receipt = set_max_currency_supply(self.substrate, new_max_currency_supply)
         self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')
 
         time.sleep(WAIT_TIME_PERIOD)
@@ -64,5 +64,5 @@ class TestPalletBlockReward(unittest.TestCase):
             self.assertEqual(int(str(now_reward)), 0)
 
         # reset
-        receipt = set_max_currency_supply(self.substrate, self.kp_src, max_currency_supply)
+        receipt = set_max_currency_supply(self.substrate, max_currency_supply)
         self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')

@@ -1,7 +1,8 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import WS_URL
 from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
 from tools.peaq_eth_utils import get_eth_balance
+from tools.payload import user_extrinsic_send
 import unittest
 
 import pprint
@@ -25,10 +26,9 @@ def get_byte_code_from_file(file):
 
 # For the ERC 20 token
 # https://github.com/paritytech/frontier/blob/master/template/examples/contract-erc20/truffle/contracts/MyToken.json#L259
+@user_extrinsic_send
 def create_constract(substrate, kp_src, eth_src, erc20_bytecode):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='EVM',
         call_function='create',
         call_params={
@@ -42,17 +42,6 @@ def create_constract(substrate, kp_src, eth_src, erc20_bytecode):
             'access_list': []
         })
 
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'evm_create')
-    return receipt
-
 
 def get_deployed_contract(substrate, receipt):
     created_event = [_ for _ in substrate.get_events(receipt.block_hash)
@@ -60,10 +49,9 @@ def get_deployed_contract(substrate, receipt):
     return created_event.value['attributes']['address']
 
 
+@user_extrinsic_send
 def call_eth_transfer(substrate, kp_src, eth_src, eth_dst):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='EVM',
         call_function='call',
         call_params={
@@ -78,22 +66,10 @@ def call_eth_transfer(substrate, kp_src, eth_src, eth_dst):
             'access_list': []
         })
 
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
 
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'evm_call')
-    return receipt
-
-
+@user_extrinsic_send
 def transfer_erc20_token(substrate, kp_src, eth_src, eth_dst, contract_addr):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='EVM',
         call_function='call',
         call_params={
@@ -107,17 +83,6 @@ def transfer_erc20_token(substrate, kp_src, eth_src, eth_dst, contract_addr):
             'nonce': None,
             'access_list': []
         })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'call')
-    return receipt
 
 
 def get_erc20_balance(conn, contract_addr, slot_addr):

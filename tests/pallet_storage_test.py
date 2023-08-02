@@ -1,6 +1,7 @@
 import time
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import WS_URL
 from substrateinterface import SubstrateInterface, Keypair
+from tools.payload import user_extrinsic_send
 
 import unittest
 # from tools.pallet_assets_test import pallet_assets_test
@@ -16,9 +17,9 @@ def storage_rpc_read(substrate, kp_src, item_type):
     return data["result"]["item"]
 
 
+@user_extrinsic_send
 def storage_add_item(substrate, kp_src, item_type, item):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='PeaqStorage',
         call_function='add_item',
         call_params={
@@ -26,22 +27,9 @@ def storage_add_item(substrate, kp_src, item_type, item):
             'item': item,
         })
 
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
 
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'add_item')
-
-    return receipt
-
-
+@user_extrinsic_send
 def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
     payload_first = substrate.compose_call(
         call_module='PeaqStorage',
         call_function='add_item',
@@ -66,25 +54,13 @@ def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
         })
 
     # Wrape payload into a utility batch cal
-    call = substrate.compose_call(
+    return substrate.compose_call(
         call_module='Utility',
         call_function='batch_all',
         call_params={
             'calls': [payload_first.value,
                       payload_second.value, payload_third.value],
         })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'batch_transaction')
-
-    return receipt
 
 
 class TestPalletStorage(unittest.TestCase):
