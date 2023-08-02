@@ -85,7 +85,7 @@ def exec_stack_extrinsic_call(substrate, kp_src, stack):
 # Check before:
 # type_registry_preset_dict = load_type_registry_preset(type_registry_name)
 # ~/venv.substrate/lib/python3.6/site-packages/substrateinterface/base.py
-class PalletRBACTest(unittest.TestCase):
+class TestPalletRBAC(unittest.TestCase):
 
     ##############################################################################
     # Adds a new role to the RBAC-pallet via extrinsic call

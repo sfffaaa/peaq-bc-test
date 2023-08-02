@@ -1,3 +1,6 @@
+import sys
+sys.path.append('..')
+
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
 from scalecodec.base import RuntimeConfiguration
@@ -14,17 +17,17 @@ TOKEN_NUM_BASE = pow(10, 3)
 TOKEN_NUM_BASE_DEV = pow(10, 18)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
-PARACHAIN_ETH_URL = "http://127.0.0.1:9936"
+PARACHAIN_ETH_URL = 'http://127.0.0.1:9936'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
-# PARACHAIN_ETH_URL = "https://rpcpc1.agung.peaq.network"
+# PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
-# ETH_URL = "http://127.0.0.1:9933"
+# ETH_URL = 'http://127.0.0.1:9933'
 WS_URL = PARACHAIN_WS_URL
 ETH_URL = PARACHAIN_ETH_URL
 # WS_URL = 'ws://192.168.178.23:9944'
-# ETH_URL = "http://192.168.178.23:9933"
-# WS_URL = "wss://wss.test.peaq.network"
-# ETH_URL = "https://erpc.test.peaq.network:443"
+# ETH_URL = 'http://192.168.178.23:9933'
+# WS_URL = 'wss://wss.test.peaq.network'
+# ETH_URL = 'https://erpc.test.peaq.network:443'
 ETH_CHAIN_IDS = {
     'peaq-dev': 9999,
     'agung-network': 9999,
@@ -48,8 +51,8 @@ def calculate_multi_sig(kps, threshold):
     '''https://github.com/polkascan/py-scale-codec/blob/f063cfd47c836895886697e7d7112cbc4e7514b3/test/test_scale_types.py#L383'''
 
     addrs = [kp.ss58_address for kp in kps]
-    RuntimeConfiguration().update_type_registry(load_type_registry_preset("legacy"))
-    multi_account_id = RuntimeConfiguration().get_decoder_class("MultiAccountId")
+    RuntimeConfiguration().update_type_registry(load_type_registry_preset('legacy'))
+    multi_account_id = RuntimeConfiguration().get_decoder_class('MultiAccountId')
 
     multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
     print(multi_sig_account)
@@ -314,25 +317,22 @@ def fund(substrate, kp_dst, token_num):
 
 
 def get_account_balance(substrate, addr, block_hash=None):
-    if not block_hash:
-        result = substrate.query("System", "Account", [addr])
-    else:
-        result = substrate.query(
-            "System", "Account", [addr], block_hash=block_hash)
+    result = substrate.query(
+        'System', 'Account', [addr], block_hash=block_hash)
     return int(result['data']['free'].value)
 
 
 def get_account_balance_locked(substrate, addr):
-    result = substrate.query("System", "Account", [addr])
+    result = substrate.query('System', 'Account', [addr])
     return int(result['data']['misc_frozen'].value)
 
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
     if get_account_balance(substrate, addr.ss58_address) < min_bal:
-        print("Since sufficinet balance is not available in account: ", addr.ss58_address)
-        print("account will be fund with an amount equalt to :", req_bal)
+        print('Since sufficinet balance is not available in account: ', addr.ss58_address)
+        print('account will be fund with an amount equalt to :', req_bal)
         fund(substrate, addr, req_bal)
-        print("account balance after funding: ", get_account_balance(substrate, addr.ss58_address))
+        print('account balance after funding: ', get_account_balance(substrate, addr.ss58_address))
 
 
 def show_account(substrate, addr, out_str):
@@ -342,7 +342,7 @@ def show_account(substrate, addr, out_str):
 
 
 def get_eth_chain_id(substrate):
-    chain_name = substrate.rpc_request(method="system_chain", params=[]).get('result')
+    chain_name = substrate.rpc_request(method='system_chain', params=[]).get('result')
     return ETH_CHAIN_IDS[chain_name]
 
 
@@ -420,3 +420,8 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'call_hash': f'0x{payload.call_hash.hex()}',
             'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
+
+
+if __name__ == '__main__':
+    data = '5F1e2nuSgxwWZiL9jTxv3jrMQHeHHhuwP7oDmU87SMp1Ncxv'
+    print(calculate_evm_addr(data))
