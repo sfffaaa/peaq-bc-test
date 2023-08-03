@@ -18,6 +18,7 @@ TOKEN_NUM_BASE_DEV = pow(10, 18)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
 PARACHAIN_ETH_URL = 'http://127.0.0.1:9936'
+RELAYCHAIN_WS_URL = 'ws://127.0.0.1:9944'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -253,8 +254,8 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
     _approve_token(substrate, kp_consumer, [provider_addr], threshold, refund_info)
 
 
-def transfer(substrate, kp_src, kp_dst_addr, token_num):
-    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0)
+def transfer(substrate, kp_src, kp_dst_addr, token_num, token_base=0):
+    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0, token_base)
 
 
 def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base=0):
