@@ -1,5 +1,5 @@
 import sys
-sys.path.append('..')
+sys.path.append('.')
 
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
@@ -317,6 +317,10 @@ def fund(substrate, kp_dst, token_num):
     )
 
 
+def get_block_hash(substrate, block_num):
+    return substrate.get_block_hash(block_id=block_num)
+
+
 def get_account_balance(substrate, addr, block_hash=None):
     result = substrate.query(
         'System', 'Account', [addr], block_hash=block_hash)
@@ -421,6 +425,27 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'call_hash': f'0x{payload.call_hash.hex()}',
             'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
+
+
+def get_chain(substrate):
+    return substrate.rpc_request(method='system_chain', params=[]).get('result')
+
+
+def get_collators(substrate, key):
+    return substrate.query(
+           module='ParachainStaking',
+           storage_function='CandidatePool',
+           params=[key.ss58_address]
+    )
+
+
+def get_block_height(substrate):
+    latest_block = substrate.get_block()
+    return latest_block['header']['number']
+
+
+def exist_pallet(substrate, pallet_name):
+    return substrate.get_block_metadata(decode=True).get_metadata_pallet(pallet_name)
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 import unittest
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL
+from tools.utils import WS_URL, get_chain, get_block_hash
 
 
 import pprint
@@ -166,8 +166,8 @@ class TokenEconomyTest(unittest.TestCase):
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._block_hash = self._substrate.get_block_hash(block_id=0)
-        self._chain_spec = self._substrate.rpc_request(method="system_chain", params=[]).get('result')
+        self._block_hash = get_block_hash(0)
+        self._chain_spec = get_chain(self._substrate)
 
     def test_chain_states(self):
         for test in STATE_INFOS:
