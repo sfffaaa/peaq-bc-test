@@ -166,7 +166,7 @@ class TokenEconomyTest(unittest.TestCase):
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._block_hash = get_block_hash(0)
+        self._block_hash = get_block_hash(self._subtrate, 0)
         self._chain_spec = get_chain(self._substrate)
 
     def test_chain_states(self):

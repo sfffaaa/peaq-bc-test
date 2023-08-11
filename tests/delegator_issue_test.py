@@ -3,7 +3,7 @@ import time
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, get_chain, get_collators, fund, get_block_height, get_account_balance, get_block_hash
-from tools.utils import KP_GLOBAL_SUDO, exist_pallet
+from tools.utils import KP_GLOBAL_SUDO, exist_pallet, KP_COLLATOR
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 from tools.restart import restart_parachain_launch
 import warnings
@@ -51,7 +51,7 @@ class TestDelegator(unittest.TestCase):
             url=WS_URL,
         )
         self.chain_name = get_chain(self.substrate)
-        self.collator = [Keypair.create_from_uri('//Bob')]
+        self.collator = [KP_COLLATOR]
         self.delegators = [
             Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
             Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -64,6 +64,7 @@ class TestDelegator(unittest.TestCase):
         current_height = get_block_height(self.substrate)
         current_block_hash = get_block_hash(self.substrate, current_height)
         now_balance = get_account_balance(self.substrate, addr, current_block_hash)
+
         previous_height = current_height - 1
         previous_block_hash = get_block_hash(self.substrate, previous_height)
         pre_balance = get_account_balance(self.substrate, addr, previous_block_hash)
@@ -76,10 +77,23 @@ class TestDelegator(unittest.TestCase):
                 return collator
         return None
 
+    def wait_get_reward(self, addr):
+        count_down = 0
+        wait_time = 120
+        prev_balance = get_account_balance(self.substrate, addr)
+        while count_down < wait_time:
+            if prev_balance != get_account_balance(self.substrate, addr):
+                return True
+            print(f'already wait about {count_down} seconds')
+            count_down += 12
+            time.sleep(12)
+        return False
+
     def test_issue_fixed_precentage(self):
         if not exist_pallet(self.substrate, 'StakingFixedRewardCalculator'):
             warnings.warn('StakingFixedRewardCalculator pallet not exist, skip the test')
             return
+
         collator_percentage = 80
         delegator_percentage = 20
 
@@ -100,11 +114,9 @@ class TestDelegator(unittest.TestCase):
         self.assertTrue(receipt.is_success, 'Add delegator failed')
         receipt = add_delegator(self.substrate, self.delegators[1], str(collator['id']), int(str(collator['stake'])))
         self.assertTrue(receipt.is_success, 'Add delegator failed')
-        # Check the delegator is added
-        # Wait for two session
-        print('Wait for two session')
-        sleep_time = 2 * 60
-        time.sleep(sleep_time)
+
+        print('Wait for delegator get reward')
+        self.assertTrue(self.wait_get_reward(self.delegators[0].ss58_address))
 
         delegators_reward = [self.get_balance_difference(delegator.ss58_address) for delegator in self.delegators]
         collator_reward = self.get_balance_difference(str(collator['id']))
@@ -124,7 +136,6 @@ class TestDelegator(unittest.TestCase):
         # setup
         # Get the collator account
         collator = self.get_one_collator_without_delegator(self.collator)
-        # {'id': '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', 'stake': 64000, 'delegators': [], 'total': 64000, 'status': 'Active'}
         self.assertNotEqual(collator, None)
         # Transfer token to new key
         fund(self.substrate, self.delegators[0], 10000 * 10 ** 18)
@@ -135,11 +146,9 @@ class TestDelegator(unittest.TestCase):
         self.assertTrue(receipt.is_success, 'Add delegator failed')
         receipt = add_delegator(self.substrate, self.delegators[1], str(collator['id']), int(str(collator['stake'])))
         self.assertTrue(receipt.is_success, 'Add delegator failed')
-        # Check the delegator is added
-        # Wait for two session
-        print('Wait for two session')
-        sleep_time = 2 * 60
-        time.sleep(sleep_time)
+
+        print('Wait for delegator get reward')
+        self.assertTrue(self.wait_get_reward(self.delegators[0].ss58_address))
 
         delegators_reward = [self.get_balance_difference(delegator.ss58_address) for delegator in self.delegators]
         collator_reward = self.get_balance_difference(str(collator['id']))

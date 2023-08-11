@@ -36,6 +36,7 @@ ETH_CHAIN_IDS = {
     'peaq-network': 424242,
 }
 KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
+KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
