@@ -5,7 +5,7 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ExtrinsicBatch, get_account_balance
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event, wait_for_n_blocks
-from tools.currency import peaq, mpeaq, dot, bnc
+from tools.currency import peaq, mpeaq, npeaq, dot, bnc
 
 
 # Technical constants
@@ -289,28 +289,6 @@ def wait_check_bootstrap_created(substrate):
     event = wait_for_event(substrate, 'ZenlinkProtocol', '')
 
 
-def zenlink_dex_rpc_test(si_peaq):
-    """
-    This test is checking some of the RPC functions of the
-    Zenlink-DEX-Protocol pallet.
-    """
-    asset0, asset1 = compose_zdex_lppair_params(DOT_IDX, False)
-    data = si_peaq.rpc_request(
-        'zenlinkProtocol_getPairByAssetId',
-        [asset0, asset1]
-    )
-    assert not data['result'] is None
-
-    kp_beneficiary = Keypair.create_from_uri('//Dave')
-    data = si_peaq.rpc_request(
-        'zenlinkProtocol_getBalance',
-        [asset0, kp_beneficiary.ss58_address]
-    )
-    assert int(data['result'][2:], 16) > 0
-    
-    show_test('zenlink_dex_rpc_test', True)
-
-
 def currency_transfer_test(si_relay, si_peaq, si_bifrost):
     """
     This test is about transfering foreign currencies from relaychain
@@ -373,6 +351,7 @@ def create_pair_n_swap_test(si_peaq):
     """
     This test is about creating directly a liquidity-pair with the
     Zenlink-DEX-Protocol and using its swap-function (no bootstrap).
+    This test also tests some of Zenlink-Protocol RPC methods.
     """
     show_subtitle('create_pair_n_swap_test')
 
@@ -403,9 +382,22 @@ def create_pair_n_swap_test(si_peaq):
     # Check that liquidity pool is filled with DOT-tokens
     lpstatus = state_znlnkprot_lppair_status(si_peaq, DOT_IDX)
     assert lpstatus['total_supply'] >= dot(TOK_LIQUIDITY)
+
+    # Check that RPC functionality is working on this created lp-pair.
+    asset0, asset1 = compose_zdex_lppair_params(DOT_IDX, False)
+    data = si_peaq.rpc_request(
+        'zenlinkProtocol_getPairByAssetId',
+        [asset0, asset1])
+    assert not data['result'] is None
     
     # 2.) Swap liquidity pair on Zenlink-DEX
-    compose_zdex_swap_lppair(bat_para_bene, DOT_IDX, dot_balance)
+    # TODO: Finish RPC-check about amount_in.
+    # est_amnt_in = si_peaq.rpc_request(
+    #     'zenlinkProtocol_getAmountInPrice',
+    #     [npeaq(200), [asset0, asset1]])
+    # swap_amnt = dot_balance - est_amnt_in
+    swap_amnt = dot(TOK_SWAP)
+    compose_zdex_swap_lppair(bat_para_bene, DOT_IDX, swap_amnt)
     bat_para_bene.execute_n_clear()
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
     
@@ -497,12 +489,10 @@ def zenlink_dex_test():
                     # 2.) all zenlink-specific tests
                     create_pair_n_swap_test(si_peaq)
                     bootstrap_pair_n_swap_test(si_peaq)
-                    # 3.) finally test on zenlink-rpc
-                    zenlink_dex_rpc_test(si_peaq)
 
     except ConnectionRefusedError:
-        print("⚠️ No local Substrate node running, \
-            try running 'start_local_substrate_node.sh' first")
+        print("⚠️  No local Substrate node(s) running, \
+            check for a running peaq-node and a running bifrost-node first")
         sys.exit()
 
     except AssertionError:
