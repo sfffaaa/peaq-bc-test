@@ -78,6 +78,7 @@ class TestDelegator(unittest.TestCase):
         return None
 
     def wait_get_reward(self, addr):
+        time.sleep(12 * 2)
         count_down = 0
         wait_time = 120
         prev_balance = get_account_balance(self.substrate, addr)

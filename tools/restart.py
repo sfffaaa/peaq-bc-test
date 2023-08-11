@@ -9,6 +9,7 @@ import time
 from python_on_whales import docker, DockerClient
 from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL
+from websocket import WebSocketConnectionClosedException
 
 
 def restart_parachain_launch():
@@ -30,7 +31,7 @@ def restart_parachain_launch():
                 url=WS_URL,
             )
             return
-        except ConnectionResetError as e:
+        except (ConnectionResetError, WebSocketConnectionClosedException) as e:
             print(f'Cannot connect to {WS_URL}, {e}')
             count_down += 5
             time.sleep(5)
