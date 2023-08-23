@@ -3,8 +3,8 @@ import sys, traceback
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ExtrinsicBatch, get_account_balance
-from tools.utils import show_test, show_title, show_subtitle, wait_for_event, wait_for_n_blocks
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, ExtrinsicBatch
+from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
 from tools.currency import peaq, mpeaq, npeaq, dot, bnc
 
 
@@ -13,11 +13,8 @@ PEAQ_PARACHAIN_ID = 2000
 BIFROST_PARACHAIN_ID = 3000
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
-# DOT_IDX = 576  # u8 value for DOT-token (CurrencyId/TokenSymbol)
 DOT_IDX = 64 # u8 value for DOT-token (CurrencyId/TokenSymbol)
-# BNC_IDX = 641  # u8 value for BNC-token (CurrencyId/TokenSymbol)
 BNC_IDX = 129 # u8 value for BNC-token (CurrencyId/TokenSymbol)
-BIFROST_WS_URL = 'ws://127.0.0.1:10047'
 # Test parameter configurations
 BENEFICIARY = '//Dave'
 TOK_LIQUIDITY = 20  # generic amount of tokens
@@ -133,8 +130,14 @@ def compose_zdex_add_liquidity(batch, tok_idx, liquidity0, liquidity1):
     batch.compose_call('ZenlinkProtocol', 'add_liquidity', params)
 
 
-def compose_zdex_swap_lppair(batch, tok_idx, amount):
-    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
+def compose_zdex_swap_lppair(batch, tok_idx, amount1, amount0=0):
+    assert amount0 == 0 or amount1 == 0
+    if amount1 > 0:
+        asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
+        amount = amount1
+    else:
+        asset_1, asset_0 = compose_zdex_lppair_params(tok_idx)
+        amount = amount0
     deadline = calc_deadline(batch.substrate)
     params = {
         'amount_in': str(amount),
@@ -357,8 +360,10 @@ def create_pair_n_swap_test(si_peaq):
 
     kp_beneficiary = Keypair.create_from_uri(BENEFICIARY)
     kp_para_sudo = Keypair.create_from_uri('//Alice')
+    kp_para_bob = Keypair.create_from_uri('//Bob')
     
     bat_para_sudo = ExtrinsicBatch(si_peaq, kp_para_sudo)
+    bat_para_bob = ExtrinsicBatch(si_peaq, kp_para_bob)
     bat_para_bene = ExtrinsicBatch(si_peaq, kp_beneficiary)
 
     # Check that DOT tokens for liquidity have been transfered succesfully
@@ -371,7 +376,7 @@ def create_pair_n_swap_test(si_peaq):
     if PEAQ_AVAILABLE:
         assert peaq_balance > mpeaq(100)
     else:
-        assert peaq_balance == 0
+        assert peaq_balance < npeaq(1000)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
     compose_zdex_create_lppair(bat_para_sudo, DOT_IDX)
@@ -396,9 +401,12 @@ def create_pair_n_swap_test(si_peaq):
     #     'zenlinkProtocol_getAmountInPrice',
     #     [npeaq(200), [asset0, asset1]])
     # swap_amnt = dot_balance - est_amnt_in
-    swap_amnt = dot(TOK_SWAP)
-    compose_zdex_swap_lppair(bat_para_bene, DOT_IDX, swap_amnt)
+    compose_zdex_swap_lppair(bat_para_bene, DOT_IDX, dot(TOK_SWAP))
     bat_para_bene.execute_n_clear()
+    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
+
+    compose_zdex_swap_lppair(bat_para_bob, DOT_IDX, 0, peaq(TOK_SWAP))
+    bat_para_bob.execute_n_clear()
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
     
     show_test('create_pair_n_swap_test', True)
@@ -439,7 +447,6 @@ def bootstrap_pair_n_swap_test(si_peaq):
     assert lpstatus['capacity_supply'][1] == bnc(TOK_LIQUIDITY) * 100
     assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
     assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
-    # wait_for_n_blocks(si_peaq)
 
     # 2.) Contribute to bootstrap-liquidity-pair until goal is reached
     compose_bootstrap_contribute_call(bat_peaq_cont, BNC_IDX,

@@ -17,11 +17,13 @@ FixedLengthArray.process_encode = new_process_encode
 
 TOKEN_NUM_BASE = pow(10, 3)
 TOKEN_NUM_BASE_DEV = pow(10, 18)
-STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 RELAYCHAIN_WS_URL = 'ws://127.0.0.1:9944'
+STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
+PARACHAIN_WS_URL = 'ws://127.0.0.1:10044'
+BIFROST_WS_URL = 'ws://127.0.0.1:10144'
 RELAYCHAIN_ETH_URL = 'http://127.0.0.1:9933'
-PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
-PARACHAIN_ETH_URL = "http://127.0.0.1:9936"
+PARACHAIN_ETH_URL = 'http://127.0.0.1:10033'
+BIFROST_ETH_URL = 'http://127.0.0.1:10133'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = "https://rpcpc1.agung.peaq.network"
 # WS_URL = 'ws://127.0.0.1:9944'
