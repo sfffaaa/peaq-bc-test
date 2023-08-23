@@ -99,7 +99,7 @@ class TestDelegator(unittest.TestCase):
         delegator_percentage = 20
 
         # Check it's the peaq-dev parachain
-        self.assertEqual(self.chain_name, 'peaq-dev')
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
         set_reward_rate(self.substrate, collator_percentage, delegator_percentage)
 
         # setup
@@ -132,7 +132,7 @@ class TestDelegator(unittest.TestCase):
 
         # Check it's the peaq-dev parachain
         set_coefficient(self.substrate, 2)
-        self.assertEqual(self.chain_name, 'peaq-dev')
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
 
         # setup
         # Get the collator account

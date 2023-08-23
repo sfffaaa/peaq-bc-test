@@ -1,7 +1,7 @@
 import unittest
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL, get_chain, get_block_hash
+from tools.utils import WS_URL, get_chain, get_block_hash, get_block_height
 
 
 import pprint
@@ -57,7 +57,7 @@ STATE_INFOS = [{
             'collators_percent': 100000000,
             'lp_percent': 250000000,
             'machines_percent': 100000000,
-            'machines_subsidization_percent': 100000000
+            'parachain_lease_fund_percent': 100000000
         },
         'agung-network': {
             'treasury_percent': 200000000,
@@ -65,7 +65,7 @@ STATE_INFOS = [{
             'collators_percent': 100000000,
             'lp_percent': 250000000,
             'machines_percent': 100000000,
-            'machines_subsidization_percent': 100000000
+            'parachain_lease_fund_percent': 100000000
         },
         'krest-network': {
             'treasury_percent': 200000000,
@@ -73,7 +73,7 @@ STATE_INFOS = [{
             'collators_percent': 100000000,
             'lp_percent': 250000000,
             'machines_percent': 100000000,
-            'machines_subsidization_percent': 100000000
+            'parachain_lease_fund_percent': 100000000
         },
         'peaq-network': {
             'treasury_percent': 200000000,
@@ -81,7 +81,7 @@ STATE_INFOS = [{
             'collators_percent': 100000000,
             'lp_percent': 250000000,
             'machines_percent': 100000000,
-            'machines_subsidization_percent': 100000000
+            'parachain_lease_fund_percent': 100000000
         }
     }
 }]
@@ -164,10 +164,16 @@ CONSTANT_INFOS = [{
 
 class TokenEconomyTest(unittest.TestCase):
 
+    def modify_chain_spec(self):
+        if 'peaq-dev-fork' == self._chain_spec:
+            self._chain_spec = 'peaq-dev'
+
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._block_hash = get_block_hash(self._substrate, 0)
+        current_height = get_block_height(self._substrate)
+        self._block_hash = get_block_hash(self._substrate, current_height)
         self._chain_spec = get_chain(self._substrate)
+        self.modify_chain_spec()
 
     def test_chain_states(self):
         for test in STATE_INFOS:
