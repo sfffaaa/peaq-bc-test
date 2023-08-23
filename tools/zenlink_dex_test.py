@@ -19,7 +19,6 @@ BNC_IDX = 129 # u8 value for BNC-token (CurrencyId/TokenSymbol)
 BENEFICIARY = '//Dave'
 TOK_LIQUIDITY = 20  # generic amount of tokens
 TOK_SWAP = 5  # generic amount of tokens
-PEAQ_AVAILABLE = False
 
 
 def relay_amount_w_fees(x):
@@ -308,21 +307,13 @@ def currency_transfer_test(si_relay, si_peaq, si_bifrost):
     bat_peaq = ExtrinsicBatch(si_peaq, kp_bob)
 
     # Check balance of beneficiary in dependency of test setup
-    balance = state_system_account(si_peaq, kp_beneficiary)
-    if PEAQ_AVAILABLE:
-        if balance < mpeaq(200):
-            compose_balances_transfer(bat_peaq, kp_beneficiary, peaq(1))
-            bat_peaq.execute_n_clear()
-            balance = balance + peaq(1)
-        assert state_system_account(si_peaq, kp_beneficiary) == balance
-    elif balance > 500:
-        bat_peaq_sudo = ExtrinsicBatch(si_peaq, kp_peaq_sudo)
-        bat_peaq_sudo.compose_sudo_call('Balances', 'set_balance', {
-            'who': kp_beneficiary.ss58_address,
-            'new_free': '500',
-            'new_reserved': '0',
-        })
-        bat_peaq_sudo.execute_n_clear()
+    bat_peaq_sudo = ExtrinsicBatch(si_peaq, kp_peaq_sudo)
+    bat_peaq_sudo.compose_sudo_call('Balances', 'set_balance', {
+        'who': kp_beneficiary.ss58_address,
+        'new_free': '500',
+        'new_reserved': '0',
+    })
+    bat_peaq_sudo.execute_n_clear()
 
     # 1.) Transfer tokens from relaychain to peaq-parachain
     # Tokens to the sudo, to test if he can add liquidity
@@ -373,10 +364,7 @@ def create_pair_n_swap_test(si_peaq):
     dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, 'DOT')
     assert dot_balance > dot(TOK_SWAP)
     peaq_balance = get_account_balance(si_peaq, kp_beneficiary.ss58_address)
-    if PEAQ_AVAILABLE:
-        assert peaq_balance > mpeaq(100)
-    else:
-        assert peaq_balance < npeaq(1000)
+    assert peaq_balance < npeaq(1000)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
     compose_zdex_create_lppair(bat_para_sudo, DOT_IDX)
