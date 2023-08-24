@@ -3,8 +3,9 @@ import sys, traceback
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, ExtrinsicBatch
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, PEAQ_SUDO_USER
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
+from tools.utils import ExtrinsicBatch
 from tools.currency import peaq, mpeaq, npeaq, dot, bnc
 
 
@@ -299,7 +300,7 @@ def currency_transfer_test(si_relay, si_peaq, si_bifrost):
     show_subtitle('currency_transfer_test')
 
     kp_beneficiary = Keypair.create_from_uri(BENEFICIARY)
-    kp_peaq_sudo = Keypair.create_from_uri('//Alice')
+    kp_peaq_sudo = Keypair.create_from_uri(PEAQ_SUDO_USER)
     kp_bob = Keypair.create_from_uri('//Bob')  # Bob exists everywhere
 
     bat_relay = ExtrinsicBatch(si_relay, kp_bob)
@@ -350,7 +351,7 @@ def create_pair_n_swap_test(si_peaq):
     show_subtitle('create_pair_n_swap_test')
 
     kp_beneficiary = Keypair.create_from_uri(BENEFICIARY)
-    kp_para_sudo = Keypair.create_from_uri('//Alice')
+    kp_para_sudo = Keypair.create_from_uri(PEAQ_SUDO_USER)
     kp_para_bob = Keypair.create_from_uri('//Bob')
     
     bat_para_sudo = ExtrinsicBatch(si_peaq, kp_para_sudo)
@@ -413,7 +414,7 @@ def bootstrap_pair_n_swap_test(si_peaq):
     tok_limit = 5
     assert TOK_LIQUIDITY / 2 > tok_limit
 
-    kp_sudo = Keypair.create_from_uri('//Alice')
+    kp_sudo = Keypair.create_from_uri(PEAQ_SUDO_USER)
     kp_cont = Keypair.create_from_uri('//Bob')
     kp_user = Keypair.create_from_uri(BENEFICIARY)
 
