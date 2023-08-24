@@ -148,16 +148,16 @@ def compose_zdex_swap_lppair(batch, tok_idx, amount1, amount0=0):
     batch.compose_call('ZenlinkProtocol', 'swap_exact_assets_for_assets', params)
 
 
-def compose_zdex_remove_liquidity(batch, kp_beneficiary, tok_idx, amount):
+def compose_zdex_remove_liquidity(batch, tok_idx, amount):
     asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
     deadline = calc_deadline(batch.substrate)
     params = {
         'asset_0': asset_0,
         'asset_1': asset_1,
         'liquidity': str(amount),
-        'amount_0_min': '0',
+        'amount_0_min': '1',
         'amount_1_min': '1',
-        'recipient': kp_beneficiary.ss58_address,
+        'recipient': batch.kp_default.ss58_address,
         'deadline': deadline,
     }
     batch.compose_call('ZenlinkProtocol', 'remove_liquidity', params)
@@ -396,6 +396,10 @@ def create_pair_n_swap_test(si_peaq):
     compose_zdex_swap_lppair(bat_para_bob, DOT_IDX, 0, peaq(TOK_SWAP))
     bat_para_bob.execute_n_clear()
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
+
+    # 3.) Remove some liquidity
+    compose_zdex_remove_liquidity(bat_para_sudo, DOT_IDX, int(dot_liquidity / 4))
+    bat_para_sudo.execute_n_clear()
     
     show_test('create_pair_n_swap_test', True)
 
