@@ -1,16 +1,16 @@
 import sys
 sys.path.append('./')
+import os
 
 from substrateinterface import SubstrateInterface
 from tools.utils import show_extrinsic, WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
 from substrateinterface.utils.hasher import blake2_256
 from tools.payload import sudo_call_compose, sudo_extrinsic_send
 import time
+import argparse
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-
-RUNTIME_MODULE_PATH = '/home/jaypan/PublicSMB/peaq_dev_runtime.compact.compressed.wasm'
 
 
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
@@ -66,12 +66,12 @@ def get_relay_upgrade_block():
     wait_untile_block_height(relay_substrate, int(result.value[0][1]))
 
 
-def upgrade():
+def upgrade(runtime_path):
     substrate = SubstrateInterface(url=WS_URL)
     wait_untile_block_height(substrate, 1)
 
     print(f'Global Sudo: {KP_GLOBAL_SUDO.ss58_address}')
-    receipt = send_ugprade_call(substrate, RUNTIME_MODULE_PATH)
+    receipt = send_ugprade_call(substrate, runtime_path)
     show_extrinsic(receipt, 'upgrade?')
     get_relay_upgrade_block()
 
@@ -89,6 +89,21 @@ def fund_account():
     ], 302231 * 10 ** 18)
 
 
-if __name__ == '__main__':
+def main():
+    parser = argparse.ArgumentParser(description='Upgrade the runtime')
+    parser.add_argument('-r', '--runtime', type=str, required=True, help='Your runtime poisiton')
+
+    args = parser.parse_args()
+
+    if os.path.exists(args.runtime) is False:
+        print('Runtime not found')
+        return
+
     fund_account()
-    upgrade()
+    upgrade(args.runtime)
+    print('wait 3 more blocks')
+    time.sleep(12 * 3)
+
+
+if __name__ == '__main__':
+    main()

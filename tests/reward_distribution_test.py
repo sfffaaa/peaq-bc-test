@@ -1,10 +1,11 @@
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance
+from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance, transfer
 from tools.utils import set_max_currency_supply, setup_block_reward
 from tools.utils import KP_COLLATOR
 import unittest
+import pytest
 
 WAIT_BLOCK_NUMBER = 10
 COLLATOR_REWARD_RATE = 0.1
@@ -31,13 +32,66 @@ class TestRewardDistribution(unittest.TestCase):
         )
         return int(str(block_reward))
 
+    def get_parachain_reward(self, block_hash):
+        event = self._get_event(block_hash, 'ParachainStaking', 'Rewarded')
+        if not event:
+            return None
+        return int(str(event[1][1][1]))
+
+    def get_transaction_payment_fee_paid(self, block_hash):
+        event = self._get_event(block_hash, 'TransactionPayment', 'TransactionFeePaid')
+        if not event:
+            return None
+        return int(str(event[1][1]['actual_fee']))
+
     def get_transaction_fee_distributed(self, block_hash):
+        event = self._get_event(block_hash, 'BlockReward', 'TransactionFeesDistributed')
+        if not event:
+            return None
+        return int(str(event[1][1]))
+
+    def _get_event(self, block_hash, pallet, event_name):
         for event in self._substrate.get_events(block_hash):
-            if event.value['module_id'] != 'BlockReward' or \
-               event.value['event_id'] != 'TransactionFeesDistributed':
+            if event.value['module_id'] != pallet or \
+               event.value['event_id'] != event_name:
                 continue
-            return int(str(event['event'][1][1]))
+            return event['event']
         return None
+
+    def _check_transaction_fee_reward_from_sender(self, block_height):
+        block_hash = self._substrate.get_block_hash(block_height)
+        tx_reward = self.get_transaction_fee_distributed(block_hash)
+        self.assertNotEqual(
+            tx_reward, None,
+            f'Cannot find the block event for transaction reward {tx_reward}')
+        tx_fee_ori = self.get_transaction_payment_fee_paid(block_hash)
+        self.assertNotEqual(
+            tx_fee_ori, None,
+            f'Cannot find the block event for transaction reward {tx_fee_ori}')
+
+        self.assertEqual(
+            int(tx_reward), int(tx_fee_ori * (1 + REWARD_PERCENTAGE)),
+            f'The transaction fee reward is not correct {tx_fee_ori} v.s. {tx_fee_ori * (1 + REWARD_PERCENTAGE)}')
+
+    def _check_transaction_fee_reward_from_collator(self, block_height):
+        block_hash = self._substrate.get_block_hash(block_height)
+        tx_reward = self.get_transaction_fee_distributed(block_hash)
+        self.assertNotEqual(
+            tx_reward, None,
+            f'Cannot find the block event for transaction reward {tx_reward}')
+        if self._substrate.get_block()['header']['number'] != block_height + 1:
+            time.sleep(12)
+
+        next_block_hash = self._substrate.get_block_hash(block_height + 1)
+        next_reward = self.get_parachain_reward(next_block_hash)
+        self.assertNotEqual(
+            next_reward, None,
+            f'Cannot find the block event for transaction reward {next_reward}')
+        print(f'tx_reward: {tx_reward}, next_reward: {next_reward}, out: {tx_reward * COLLATOR_REWARD_RATE / next_reward}')
+        self.assertAlmostEquals(
+            tx_reward * COLLATOR_REWARD_RATE / next_reward,
+            1, 7,
+            f'The transaction fee reward is not correct {next_reward} v.s. {tx_reward}')
 
     # TODO: improve testing fees, by using fee-model, when ready...
     def _check_transaction_fee_reward_event(self, block_hash, tip):
@@ -103,7 +157,7 @@ class TestRewardDistribution(unittest.TestCase):
             return True
         return False
 
-    def block_reward(self):
+    def test_block_reward(self):
         # Setup
         receipt = setup_block_reward(self._substrate, 10000)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
@@ -120,6 +174,34 @@ class TestRewardDistribution(unittest.TestCase):
 
         self.assertTrue(
             self._check_block_reward_in_event(KP_COLLATOR, block_reward), 'Did not find the block reward event')
+
+    def test_transaction_fee_reward_v1(self):
+        kp_bob = self._kp_bob
+        kp_charlie = self._kp_charlie
+
+        # setup
+        receipt = self._extend_max_supply(self._substrate)
+        self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
+
+        block_reward = self.get_block_issue_reward()
+        print(f'Current reward: {block_reward}')
+        new_set_reward = 0
+        receipt = setup_block_reward(self._substrate, new_set_reward)
+        self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
+
+        time.sleep(WAIT_TIME_PERIOD)
+
+        # Execute
+        receipt = transfer(
+            self._substrate, kp_bob, kp_charlie.ss58_address, 0)
+        self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
+        print(f'Block hash: {receipt.block_hash}')
+        self._check_transaction_fee_reward_from_sender(receipt.block_number)
+        self._check_transaction_fee_reward_from_collator(receipt.block_number)
+
+        # Reset
+        receipt = setup_block_reward(self._substrate, block_reward)
+        self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
 
     def test_transaction_fee_reward(self):
         kp_bob = self._kp_bob
