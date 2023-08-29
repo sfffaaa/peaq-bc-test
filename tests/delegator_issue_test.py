@@ -4,6 +4,7 @@ import time
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, get_chain, get_collators, fund, get_block_height, get_account_balance, get_block_hash
 from tools.utils import KP_GLOBAL_SUDO, exist_pallet, KP_COLLATOR
+from tools.utils import set_max_currency_supply
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 from tools.restart import restart_parachain_launch
 import warnings
@@ -20,6 +21,16 @@ def add_delegator(substrate, kp_delegator, addr_collator, stake_number):
         })
 
 
+@user_extrinsic_send
+def collator_stake_more(substrate, kp_collator, stake_number):
+    return substrate.compose_call(
+        call_module='ParachainStaking',
+        call_function='candidate_stake_more',
+        call_params={
+            'more': stake_number,
+        })
+
+
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def set_coefficient(substrate, coefficient):
@@ -28,6 +39,18 @@ def set_coefficient(substrate, coefficient):
         call_function='set_coefficient',
         call_params={
             'coefficient': coefficient,
+        }
+    )
+
+
+@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
+@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
+def set_max_candidate_stake(substrate, stake):
+    return substrate.compose_call(
+        call_module='ParachainStaking',
+        call_function='set_max_candidate_stake',
+        call_params={
+            'new': stake,
         }
     )
 
@@ -141,6 +164,47 @@ class TestDelegator(unittest.TestCase):
         # Transfer token to new key
         fund(self.substrate, self.delegators[0], 10000 * 10 ** 18)
         fund(self.substrate, self.delegators[1], 10000 * 10 ** 18)
+
+        # Add the delegator
+        receipt = add_delegator(self.substrate, self.delegators[0], str(collator['id']), int(str(collator['stake'])))
+        self.assertTrue(receipt.is_success, 'Add delegator failed')
+        receipt = add_delegator(self.substrate, self.delegators[1], str(collator['id']), int(str(collator['stake'])))
+        self.assertTrue(receipt.is_success, 'Add delegator failed')
+
+        print('Wait for delegator get reward')
+        self.assertTrue(self.wait_get_reward(self.delegators[0].ss58_address))
+
+        delegators_reward = [self.get_balance_difference(delegator.ss58_address) for delegator in self.delegators]
+        collator_reward = self.get_balance_difference(str(collator['id']))
+        self.assertEqual(delegators_reward[0], delegators_reward[1], 'The reward is not equal')
+        self.assertEqual(sum(delegators_reward), collator_reward, 'The reward is not equal')
+
+    def test_issue_coeffective_large(self):
+        if not exist_pallet(self.substrate, 'StakingCoefficientRewardCalculator'):
+            warnings.warn('StakingCoefficientRewardCalculator pallet not exist, skip the test')
+            return
+
+        MEGA_TOKENS = 10 ** 15 * 10 ** 18
+        receipt = set_max_currency_supply(self.substrate, 10 ** 5 * MEGA_TOKENS)
+        set_max_candidate_stake(self.substrate, 10 ** 5 * MEGA_TOKENS)
+        self.assertTrue(receipt.is_success, 'Set max currency supply failed')
+
+        # Check it's the peaq-dev parachain
+        set_coefficient(self.substrate, 2)
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
+
+        # setup
+        # Get the collator account
+        fund(self.substrate, KP_COLLATOR, 20 * MEGA_TOKENS)
+        receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * MEGA_TOKENS)
+        self.assertTrue(receipt.is_success, 'Stake failed')
+
+        collator = self.get_one_collator_without_delegator(self.collator)
+        self.assertGreaterEqual(int(str(collator['stake'])), 5 * MEGA_TOKENS)
+        self.assertNotEqual(collator, None)
+        # Transfer token to new key
+        fund(self.substrate, self.delegators[0], 10 * MEGA_TOKENS)
+        fund(self.substrate, self.delegators[1], 10 * MEGA_TOKENS)
 
         # Add the delegator
         receipt = add_delegator(self.substrate, self.delegators[0], str(collator['id']), int(str(collator['stake'])))
