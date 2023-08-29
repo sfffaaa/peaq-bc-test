@@ -5,7 +5,6 @@ from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_b
 from tools.utils import set_max_currency_supply, setup_block_reward
 from tools.utils import KP_COLLATOR
 import unittest
-import pytest
 
 WAIT_BLOCK_NUMBER = 10
 COLLATOR_REWARD_RATE = 0.1
