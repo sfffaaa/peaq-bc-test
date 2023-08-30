@@ -3,6 +3,7 @@ import time
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance
 from tools.utils import set_max_currency_supply, setup_block_reward
+from tools.utils import KP_COLLATOR
 import unittest
 
 WAIT_BLOCK_NUMBER = 10
@@ -17,8 +18,6 @@ FEE_MAX_LIMIT = 90 * 10**9  # 90nPEAQ
 
 
 class TestRewardDistribution(unittest.TestCase):
-
-    _kp_src = Keypair.create_from_uri('//Alice')
     _kp_bob = Keypair.create_from_uri('//Bob')
     _kp_charlie = Keypair.create_from_uri('//Charlie')
 
@@ -104,9 +103,7 @@ class TestRewardDistribution(unittest.TestCase):
             return True
         return False
 
-    def test_block_reward(self):
-        kp_src = self._kp_src
-
+    def block_reward(self):
         # Setup
         receipt = setup_block_reward(self._substrate, 10000)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
@@ -121,10 +118,10 @@ class TestRewardDistribution(unittest.TestCase):
 
         time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
 
-        self.assertTrue(self._check_block_reward_in_event(kp_src, block_reward), 'Did not find the block reward event')
+        self.assertTrue(
+            self._check_block_reward_in_event(KP_COLLATOR, block_reward), 'Did not find the block reward event')
 
     def test_transaction_fee_reward(self):
-        kp_src = self._kp_src
         kp_bob = self._kp_bob
         kp_charlie = self._kp_charlie
 
@@ -139,7 +136,7 @@ class TestRewardDistribution(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
 
         time.sleep(WAIT_TIME_PERIOD)
-        prev_balance = get_account_balance(self._substrate, kp_src.ss58_address)
+        prev_balance = get_account_balance(self._substrate, KP_COLLATOR.ss58_address)
 
         # Execute
         receipt = transfer_with_tip(
@@ -151,7 +148,8 @@ class TestRewardDistribution(unittest.TestCase):
         # Check
         self._check_transaction_fee_reward_event(receipt.block_hash, TIP)
         time.sleep(WAIT_TIME_PERIOD)
-        self._check_transaction_fee_reward_balance(kp_src.ss58_address, prev_balance, TIP)
+        self._check_transaction_fee_reward_balance(
+            KP_COLLATOR.ss58_address, prev_balance, TIP)
 
         # Reset
         receipt = setup_block_reward(self._substrate, block_reward)

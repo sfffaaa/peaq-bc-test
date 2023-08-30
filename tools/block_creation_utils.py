@@ -1,6 +1,8 @@
-def get_block_height(substrate):
-    latest_block = substrate.get_block()
-    return latest_block['header']['number']
+import sys
+sys.path.append('.')
+
+
+from tools.utils import get_block_height
 
 
 def get_block_timestamp(substrate, height):

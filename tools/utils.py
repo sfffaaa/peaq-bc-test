@@ -1,5 +1,5 @@
 import sys
-sys.path.append('..')
+sys.path.append('.')
 
 from substrateinterface import Keypair
 from substrateinterface.utils import hasher, ss58
@@ -18,6 +18,7 @@ TOKEN_NUM_BASE_DEV = pow(10, 18)
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:9947'
 PARACHAIN_ETH_URL = 'http://127.0.0.1:9936'
+RELAYCHAIN_WS_URL = 'ws://127.0.0.1:9944'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -35,6 +36,7 @@ ETH_CHAIN_IDS = {
     'peaq-network': 424242,
 }
 KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
+KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -253,8 +255,8 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
     _approve_token(substrate, kp_consumer, [provider_addr], threshold, refund_info)
 
 
-def transfer(substrate, kp_src, kp_dst_addr, token_num):
-    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0)
+def transfer(substrate, kp_src, kp_dst_addr, token_num, token_base=0):
+    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0, token_base)
 
 
 def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base=0):
@@ -314,6 +316,10 @@ def fund(substrate, kp_dst, token_num):
             'new_reserved': 0
         }
     )
+
+
+def get_block_hash(substrate, block_num):
+    return substrate.get_block_hash(block_id=block_num)
 
 
 def get_account_balance(substrate, addr, block_hash=None):
@@ -420,6 +426,27 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'call_hash': f'0x{payload.call_hash.hex()}',
             'max_weight': {'ref_time': 1000000000, 'proof_size': 1000000},
         })
+
+
+def get_chain(substrate):
+    return substrate.rpc_request(method='system_chain', params=[]).get('result')
+
+
+def get_collators(substrate, key):
+    return substrate.query(
+           module='ParachainStaking',
+           storage_function='CandidatePool',
+           params=[key.ss58_address]
+    )
+
+
+def get_block_height(substrate):
+    latest_block = substrate.get_block()
+    return latest_block['header']['number']
+
+
+def exist_pallet(substrate, pallet_name):
+    return substrate.get_block_metadata(decode=True).get_metadata_pallet(pallet_name)
 
 
 if __name__ == '__main__':
