@@ -148,45 +148,13 @@ class TestDelegator(unittest.TestCase):
         self.assertEqual(collator_percentage / delegators_reward * sum(delegators_reward),
                          collator_reward, 'The reward is not equal')
 
-    def test_issue_coeffective(self):
+    def internal_test_issue_coefficient(self, mega_tokens):
         if not exist_pallet(self.substrate, 'StakingCoefficientRewardCalculator'):
             warnings.warn('StakingCoefficientRewardCalculator pallet not exist, skip the test')
             return
 
-        # Check it's the peaq-dev parachain
-        set_coefficient(self.substrate, 2)
-        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
-
-        # setup
-        # Get the collator account
-        collator = self.get_one_collator_without_delegator(self.collator)
-        self.assertNotEqual(collator, None)
-        # Transfer token to new key
-        fund(self.substrate, self.delegators[0], 10000 * 10 ** 18)
-        fund(self.substrate, self.delegators[1], 10000 * 10 ** 18)
-
-        # Add the delegator
-        receipt = add_delegator(self.substrate, self.delegators[0], str(collator['id']), int(str(collator['stake'])))
-        self.assertTrue(receipt.is_success, 'Add delegator failed')
-        receipt = add_delegator(self.substrate, self.delegators[1], str(collator['id']), int(str(collator['stake'])))
-        self.assertTrue(receipt.is_success, 'Add delegator failed')
-
-        print('Wait for delegator get reward')
-        self.assertTrue(self.wait_get_reward(self.delegators[0].ss58_address))
-
-        delegators_reward = [self.get_balance_difference(delegator.ss58_address) for delegator in self.delegators]
-        collator_reward = self.get_balance_difference(str(collator['id']))
-        self.assertEqual(delegators_reward[0], delegators_reward[1], 'The reward is not equal')
-        self.assertEqual(sum(delegators_reward), collator_reward, 'The reward is not equal')
-
-    def test_issue_coeffective_large(self):
-        if not exist_pallet(self.substrate, 'StakingCoefficientRewardCalculator'):
-            warnings.warn('StakingCoefficientRewardCalculator pallet not exist, skip the test')
-            return
-
-        MEGA_TOKENS = 10 ** 15 * 10 ** 18
-        receipt = set_max_currency_supply(self.substrate, 10 ** 5 * MEGA_TOKENS)
-        set_max_candidate_stake(self.substrate, 10 ** 5 * MEGA_TOKENS)
+        receipt = set_max_currency_supply(self.substrate, 10 ** 5 * mega_tokens)
+        set_max_candidate_stake(self.substrate, 10 ** 5 * mega_tokens)
         self.assertTrue(receipt.is_success, 'Set max currency supply failed')
 
         # Check it's the peaq-dev parachain
@@ -195,16 +163,16 @@ class TestDelegator(unittest.TestCase):
 
         # setup
         # Get the collator account
-        fund(self.substrate, KP_COLLATOR, 20 * MEGA_TOKENS)
-        receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * MEGA_TOKENS)
+        fund(self.substrate, KP_COLLATOR, 20 * mega_tokens)
+        receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * mega_tokens)
         self.assertTrue(receipt.is_success, 'Stake failed')
 
         collator = self.get_one_collator_without_delegator(self.collator)
-        self.assertGreaterEqual(int(str(collator['stake'])), 5 * MEGA_TOKENS)
+        self.assertGreaterEqual(int(str(collator['stake'])), 5 * mega_tokens)
         self.assertNotEqual(collator, None)
         # Transfer token to new key
-        fund(self.substrate, self.delegators[0], 10 * MEGA_TOKENS)
-        fund(self.substrate, self.delegators[1], 10 * MEGA_TOKENS)
+        fund(self.substrate, self.delegators[0], 10 * mega_tokens)
+        fund(self.substrate, self.delegators[1], 10 * mega_tokens)
 
         # Add the delegator
         receipt = add_delegator(self.substrate, self.delegators[0], str(collator['id']), int(str(collator['stake'])))
@@ -219,3 +187,9 @@ class TestDelegator(unittest.TestCase):
         collator_reward = self.get_balance_difference(str(collator['id']))
         self.assertEqual(delegators_reward[0], delegators_reward[1], 'The reward is not equal')
         self.assertEqual(sum(delegators_reward), collator_reward, 'The reward is not equal')
+
+    def test_issue_coeffective(self):
+        self.internal_test_issue_coefficient(10000 * 10 ** 18)
+
+    def test_issue_coeffective_large(self):
+        self.internal_test_issue_coefficient(10 ** 15 * 10 ** 18)
