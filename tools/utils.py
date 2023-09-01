@@ -37,9 +37,9 @@ ETH_URL = PARACHAIN_ETH_URL
 # WS_URL = 'wss://wss.test.peaq.network'
 # ETH_URL = 'https://erpc.test.peaq.network:443'
 ETH_CHAIN_IDS = {
-    'peaq-dev': 9999,
-    'peaq-dev-fork': 9999,
-    'agung-network': 9999,
+    'peaq-dev': 9990,
+    'peaq-dev-fork': 9990,
+    'agung-network': 9990,
     'krest-network': 424242,
     'peaq-network': 424242,
 }
