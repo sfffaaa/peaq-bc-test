@@ -2,13 +2,12 @@ import traceback
 import sys
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL
+from tools.utils import WS_URL, fund
 from tools.payload import user_extrinsic_send
-import time
 import unittest
 
-
-RANDOM_PREFIX = hex(int(time.time()))[2:] * 3
+KP_TEST = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+RANDOM_PREFIX = KP_TEST.public_key.hex()[2:26]
 
 ##############################################################################
 # Constants for global test-setup defaults
@@ -223,10 +222,19 @@ class TestPalletRBAC(unittest.TestCase):
         receipt = exec_stack_extrinsic_call(self.substrate, kp_src, stack)
         self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
 
-    def check_ok_and_return(self, data, cnt=1):
+    def check_ok_wo_enable_and_return(self, data, cnt=1):
         self.assertIn('Ok', data['result'])
-        if type(data['result']['Ok']) == 'list':
-            self.assertEqual(len(data['result']['Ok']), cnt)
+        if isinstance(data['result']['Ok'], list):
+            self.assertEqual(
+                len([e for e in data['result']['Ok'] if 'enabled' in e and e['enabled']]),
+                cnt,
+                f'Expected {cnt} enabled entities {data["result"]["Ok"]}')
+        return data['result']['Ok']
+
+    def check_all_ok_and_return_all(self, data, cnt=1):
+        self.assertIn('Ok', data['result'])
+        if isinstance(data['result']['Ok'], list):
+            self.assertEqual(len(data['result']['Ok']), cnt, f'Expected {cnt} enabled entities {data["result"]["Ok"]}')
         return data['result']['Ok']
 
     def check_err_and_return(self, data):
@@ -239,7 +247,7 @@ class TestPalletRBAC(unittest.TestCase):
             f'peaqrbac_fetch{entity}',
             [kp_src.ss58_address, entity_id]
         )
-        data = self.check_ok_and_return(data)
+        data = self.check_ok_wo_enable_and_return(data)
         self.assertEqual(data['id'], entity_id)
         # assert(binascii.unhexlify(data['name'][2:]) == bytes(name, 'utf-8'))
         self.assertEqual(bytes(data['name']), bytes(name, 'utf-8'))
@@ -249,7 +257,7 @@ class TestPalletRBAC(unittest.TestCase):
             f'peaqrbac_fetch{entity}s',
             [kp_src.ss58_address]
         )
-        data = self.check_ok_and_return(data, len(entity_ids))
+        data = self.check_ok_wo_enable_and_return(data, len(entity_ids))
         for i in range(0, len(names)):
             data.index({
                 'id': entity_ids[i],
@@ -261,7 +269,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchGroupRoles',
             [kp_src.ss58_address, group_id])
-        data = self.check_ok_and_return(data, len(role_ids))
+        data = self.check_all_ok_and_return_all(data, len(role_ids))
         for i in range(0, len(role_ids)):
             data.index({
                 'role': role_ids[i],
@@ -273,7 +281,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchGroupPermissions',
             [kp_src.ss58_address, group_id])
-        data = self.check_ok_and_return(data, len(perm_ids))
+        data = self.check_ok_wo_enable_and_return(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
                 'id': perm_ids[i],
@@ -285,7 +293,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchRolePermissions',
             [kp_src.ss58_address, role_id])
-        data = self.check_ok_and_return(data, len(perm_ids))
+        data = self.check_all_ok_and_return_all(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
                 'permission': perm_ids[i],
@@ -296,7 +304,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserRoles',
             [kp_src.ss58_address, user_id])
-        data = self.check_ok_and_return(data, len(role_ids))
+        data = self.check_all_ok_and_return_all(data, len(role_ids))
         for i in range(0, len(role_ids)):
             data.index({
                 'role': role_ids[i],
@@ -307,7 +315,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserGroups',
             [kp_src.ss58_address, user_id])
-        data = self.check_ok_and_return(data, len(group_ids))
+        data = self.check_all_ok_and_return_all(data, len(group_ids))
         for i in range(0, len(group_ids)):
             data.index({
                 'group': group_ids[i],
@@ -319,7 +327,7 @@ class TestPalletRBAC(unittest.TestCase):
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserPermissions',
             [kp_src.ss58_address, user_id])
-        data = self.check_ok_and_return(data, len(perm_ids))
+        data = self.check_ok_wo_enable_and_return(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
                 'id': perm_ids[i],
@@ -477,7 +485,8 @@ class TestPalletRBAC(unittest.TestCase):
         print('---- pallet_rbac_test!! ----')
         try:
             # Success tests, default test setup
-            kp_src = Keypair.create_from_uri('//Alice')
+            kp_src = KP_TEST
+            fund(self.substrate, KP_TEST, 1 * 10 ** 18)
             self.rbac_rpc_setup(kp_src)
 
             self.verify_rpc_fetch_role(kp_src)

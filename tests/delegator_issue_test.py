@@ -4,6 +4,7 @@ import time
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, get_chain, get_collators, fund, get_block_height, get_account_balance, get_block_hash
 from tools.utils import KP_GLOBAL_SUDO, exist_pallet, KP_COLLATOR
+from tools.utils import set_max_currency_supply
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 from tools.restart import restart_parachain_launch
 import warnings
@@ -20,6 +21,16 @@ def add_delegator(substrate, kp_delegator, addr_collator, stake_number):
         })
 
 
+@user_extrinsic_send
+def collator_stake_more(substrate, kp_collator, stake_number):
+    return substrate.compose_call(
+        call_module='ParachainStaking',
+        call_function='candidate_stake_more',
+        call_params={
+            'more': stake_number,
+        })
+
+
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def set_coefficient(substrate, coefficient):
@@ -28,6 +39,18 @@ def set_coefficient(substrate, coefficient):
         call_function='set_coefficient',
         call_params={
             'coefficient': coefficient,
+        }
+    )
+
+
+@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
+@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
+def set_max_candidate_stake(substrate, stake):
+    return substrate.compose_call(
+        call_module='ParachainStaking',
+        call_function='set_max_candidate_stake',
+        call_params={
+            'new': stake,
         }
     )
 
@@ -99,7 +122,7 @@ class TestDelegator(unittest.TestCase):
         delegator_percentage = 20
 
         # Check it's the peaq-dev parachain
-        self.assertEqual(self.chain_name, 'peaq-dev')
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
         set_reward_rate(self.substrate, collator_percentage, delegator_percentage)
 
         # setup
@@ -125,22 +148,31 @@ class TestDelegator(unittest.TestCase):
         self.assertEqual(collator_percentage / delegators_reward * sum(delegators_reward),
                          collator_reward, 'The reward is not equal')
 
-    def test_issue_coeffective(self):
+    def internal_test_issue_coefficient(self, mega_tokens):
         if not exist_pallet(self.substrate, 'StakingCoefficientRewardCalculator'):
             warnings.warn('StakingCoefficientRewardCalculator pallet not exist, skip the test')
             return
 
+        receipt = set_max_currency_supply(self.substrate, 10 ** 5 * mega_tokens)
+        set_max_candidate_stake(self.substrate, 10 ** 5 * mega_tokens)
+        self.assertTrue(receipt.is_success, 'Set max currency supply failed')
+
         # Check it's the peaq-dev parachain
         set_coefficient(self.substrate, 2)
-        self.assertEqual(self.chain_name, 'peaq-dev')
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
 
         # setup
         # Get the collator account
+        fund(self.substrate, KP_COLLATOR, 20 * mega_tokens)
+        receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * mega_tokens)
+        self.assertTrue(receipt.is_success, 'Stake failed')
+
         collator = self.get_one_collator_without_delegator(self.collator)
+        self.assertGreaterEqual(int(str(collator['stake'])), 5 * mega_tokens)
         self.assertNotEqual(collator, None)
         # Transfer token to new key
-        fund(self.substrate, self.delegators[0], 10000 * 10 ** 18)
-        fund(self.substrate, self.delegators[1], 10000 * 10 ** 18)
+        fund(self.substrate, self.delegators[0], 10 * mega_tokens)
+        fund(self.substrate, self.delegators[1], 10 * mega_tokens)
 
         # Add the delegator
         receipt = add_delegator(self.substrate, self.delegators[0], str(collator['id']), int(str(collator['stake'])))
@@ -155,3 +187,9 @@ class TestDelegator(unittest.TestCase):
         collator_reward = self.get_balance_difference(str(collator['id']))
         self.assertEqual(delegators_reward[0], delegators_reward[1], 'The reward is not equal')
         self.assertEqual(sum(delegators_reward), collator_reward, 'The reward is not equal')
+
+    def test_issue_coeffective(self):
+        self.internal_test_issue_coefficient(10000 * 10 ** 18)
+
+    def test_issue_coeffective_large(self):
+        self.internal_test_issue_coefficient(10 ** 15 * 10 ** 18)

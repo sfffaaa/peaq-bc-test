@@ -31,6 +31,7 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = 'https://erpc.test.peaq.network:443'
 ETH_CHAIN_IDS = {
     'peaq-dev': 9999,
+    'peaq-dev-fork': 9999,
     'agung-network': 9999,
     'krest-network': 424242,
     'peaq-network': 424242,
@@ -318,6 +319,29 @@ def fund(substrate, kp_dst, token_num):
     )
 
 
+@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
+@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
+def funds(substrate, dsts, token_num):
+    payloads = [
+        substrate.compose_call(
+            call_module='Balances',
+            call_function='set_balance',
+            call_params={
+                'who': dst,
+                'new_free': token_num,
+                'new_reserved': 0
+            }
+        ) for dst in dsts]
+
+    batch_payload = substrate.compose_call(
+        call_module='Utility',
+        call_function='batch_all',
+        call_params={
+            'calls': payloads,
+        })
+    return batch_payload
+
+
 def get_block_hash(substrate, block_num):
     return substrate.get_block_hash(block_id=block_num)
 
@@ -377,7 +401,7 @@ def set_block_reward_configuration(substrate, data):
                 'collators_percent': data['collators_percent'],
                 'lp_percent': data['lp_percent'],
                 'machines_percent': data['machines_percent'],
-                'machines_subsidization_percent': data['machines_subsidization_percent'],
+                'parachain_lease_fund_percent': data['parachain_lease_fund_percent'],
             }
         }
     )

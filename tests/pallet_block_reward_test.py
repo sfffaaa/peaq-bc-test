@@ -22,7 +22,7 @@ class TestPalletBlockReward(unittest.TestCase):
             'collators_percent': 30000000,
             'lp_percent': 40000000,
             'machines_percent': 50000000,
-            'machines_subsidization_percent': 850000000,
+            'parachain_lease_fund_percent': 850000000,
         }
         previous_value = self.substrate.query(
             module='BlockReward',

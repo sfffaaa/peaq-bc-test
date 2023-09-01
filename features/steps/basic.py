@@ -82,7 +82,7 @@ def check_token_back_to_bob(context):
     post_multisig_token = show_account(
         context._substrate,
         context._multi_sig_addr, 'after transfer')
-    assert(post_multisig_token + context._num * TOKEN_NUM_BASE == context._receiver_balance)
+    assert (post_multisig_token + context._num * TOKEN_NUM_BASE) == context._receiver_balance
 
 
 @when('Get all block creation time')
@@ -95,5 +95,5 @@ def check_block_creation_time(context):
     ave_time = context._ave_time
     if abs(context._ave_time - BLOCK_CREATION_MS) / float(BLOCK_CREATION_MS) * 100. > BLOCK_TOLERATE_PERCENTAGE:
         print(f'The average block time {ave_time} is longer than the tolerate rate {BLOCK_TOLERATE_PERCENTAGE} * {BLOCK_CREATION_MS}')
-        assert(f'Check the average block creation time {ave_time}')
+        assert f'Check the average block creation time {ave_time}'
     print(f'The block creation time {ave_time} (ms) is okay')
