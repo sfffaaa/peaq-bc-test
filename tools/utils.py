@@ -47,13 +47,6 @@ KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
 
 
-# [TODO]...
-PEAQ_DEV_CHAIN_ID = 9999
-
-PEAQ_SUDO_USER = '//Alice'
-
-ETH_CHAIN_ID = KP_GLOBAL_SUDO
-
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
