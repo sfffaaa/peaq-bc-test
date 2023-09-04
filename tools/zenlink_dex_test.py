@@ -501,13 +501,13 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     show_test('bootstrap_pair_n_swap_test', True)
 
 
-def the_maryna_situation_test(si_relay, si_peaq):
+def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     """
     Maryna encountered an issue while testing Zenlink, where one users swaps all available tokens
     of one currency, and then another user tries again to swap the same tokens. Kept this test
     situation to keep track of Zenlink's response on that.
     """
-    show_subtitle('the_maryna_situation_test')
+    show_subtitle('zenlink_empty_lp_swap_test')
 
     usr1 = '//Eve'
     usr2 = '//Dave'
@@ -548,7 +548,7 @@ def zenlink_dex_test():
                 with SubstrateInterface(url=BIFROST_WS_URL) as si_bifrost:
                     create_pair_n_swap_test(si_relay, si_peaq)
                     bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
-                    # the_maryna_situation_test(si_relay, si_peaq)
+                    # zenlink_empty_lp_swap_test(si_relay, si_peaq)
 
     except ConnectionRefusedError:
         print("⚠️  No local Substrate node(s) running, \
