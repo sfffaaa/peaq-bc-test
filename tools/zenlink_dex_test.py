@@ -16,8 +16,8 @@ XCM_RTA_TO = 45  # timeout for xcm-rta
 DOT_IDX = 64 # u8 value for DOT-token (CurrencyId/TokenSymbol)
 BNC_IDX = 129 # u8 value for BNC-token (CurrencyId/TokenSymbol)
 # Test parameter configurations
-TOK_LIQUIDITY = 20  # generic amount of tokens
-TOK_SWAP = 5  # generic amount of tokens
+TOK_LIQUIDITY = 50  # generic amount of tokens
+TOK_SWAP = 1  # generic amount of tokens
 
 
 def relay_amount_w_fees(x):
@@ -356,30 +356,6 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
     wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'BNC')
 
 
-# TODO: Finish this later...
-# def ensure_token_account_amount(si_peaq, user, peaq, dot=None, bnc=None):
-#     """
-#     This is a common test-setup method to ensure an defined initial amount of
-#     tokens on the user's account. Enter either 'PEAQ', 'DOT' or 'BNC'.
-#     """
-#     kp_user = into_keypair(user)
-
-#     # DOT
-#     if not dot is None:
-#         dot_liquidity = state_tokens_accounts(si_peaq, kp_user, 'DOT')
-#         if dot_liquidity > dot:
-#             pass
-#         elif dot_liquidity < dot:
-
-
-#     # PEAQ
-#     balance = get_account_balance(si_peaq, kp_user.public_key)
-#     bt_sudo = ExtrinsicBatch(si_peaq, PEAQ_SUDO_USER)
-#     if balance != peaq:
-#         compose_balances_setbalance(bt_sudo, kp_user, peaq)
-#         bt_sudo.execute_n_clear()
-
-
 def create_pair_n_swap_test(si_relay, si_peaq):
     """
     This test is about creating directly a liquidity-pair with the
@@ -400,22 +376,22 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     bt_para_bene = ExtrinsicBatch(si_peaq, kp_beneficiary)
 
     # Transfer tokens from relaychain to parachain
-    relay2para_transfer(si_relay, si_peaq, '//Alice',
-        ['//Alice', '//Dave'], [])
+    amount = relay_amount_w_fees(dot(TOK_LIQUIDITY))
+    relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', '//Dave'], [amount, amount])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
     dot_liquidity = state_tokens_accounts(si_peaq, kp_para_sudo, 'DOT')
-    assert dot_liquidity > dot(TOK_LIQUIDITY)
+    assert dot_liquidity >= dot(TOK_LIQUIDITY)
     # Check that beneficiary has DOT and PEAQ tokens available
     dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, 'DOT')
     assert dot_balance > dot(TOK_SWAP)
-    peaq_balance = get_account_balance(si_peaq, kp_beneficiary.ss58_address)
-    assert peaq_balance < npeaq(1000)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
     compose_zdex_create_lppair(bt_para_sudo, DOT_IDX)
     # Check different amounts of liquidity!!!
     compose_zdex_add_liquidity(bt_para_sudo, DOT_IDX, dot_liquidity, dot_liquidity)
+    # Reset user1's account to very low amount, to test payment in local currency
+    compose_balances_setbalance(bt_para_sudo, user1, 1000)
     bt_para_sudo.execute_n_clear()
 
     # Check that liquidity pool is filled with DOT-tokens
@@ -430,18 +406,13 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     assert not data['result'] is None
     
     # 2.) Swap liquidity pair on Zenlink-DEX
-    # TODO: Finish RPC-check about amount_in.
-    # est_amnt_in = si_peaq.rpc_request(
-    #     'zenlinkProtocol_getAmountInPrice',
-    #     [npeaq(200), [asset0, asset1]])
-    # swap_amnt = dot_balance - est_amnt_in
-    compose_zdex_swap_exact_for(bt_para_bene, DOT_IDX, dot(TOK_SWAP))
+    compose_zdex_swap_exact_for(bt_para_bene, DOT_IDX, amount_in1=dot(TOK_SWAP))
     bt_para_bene.execute_n_clear()
-    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
+    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
-    compose_zdex_swap_exact_for(bt_para_bob, DOT_IDX, 0, peaq(TOK_SWAP))
+    compose_zdex_swap_exact_for(bt_para_bob, DOT_IDX, amount_in0=peaq(TOK_SWAP))
     bt_para_bob.execute_n_clear()
-    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP*0.4))
+    wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
     # 3.) Remove some liquidity
     compose_zdex_remove_liquidity(bt_para_sudo, DOT_IDX, int(dot_liquidity / 4))
@@ -450,7 +421,7 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     show_test('create_pair_n_swap_test', True)
 
 
-def bootstrap_pair_n_swap_test(si_peaq):
+def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     """
     This test as about the Zenlink-DEX-Protocol bootstrap functionality.
     """
@@ -459,13 +430,21 @@ def bootstrap_pair_n_swap_test(si_peaq):
     tok_limit = 5
     assert TOK_LIQUIDITY / 2 > tok_limit
 
-    kp_sudo = Keypair.create_from_uri(PEAQ_SUDO_USER)
-    kp_cont = Keypair.create_from_uri('//Bob')
-    kp_user = Keypair.create_from_uri(BENEFICIARY)
+    cont = '//Bob'
+    user = '//Dave'
+
+    kp_sudo = into_keypair(PEAQ_SUDO_USER)
+    kp_cont = into_keypair(cont)
+    kp_user = into_keypair(user)
 
     bt_peaq_sudo = ExtrinsicBatch(si_peaq, kp_sudo)
     bt_peaq_cont = ExtrinsicBatch(si_peaq, kp_cont)
     bt_peaq_user = ExtrinsicBatch(si_peaq, kp_user)
+
+    # Transfer tokens from relaychain to parachain
+    amount = bifrost_amount_w_fees(bnc(TOK_LIQUIDITY)) // 2
+    bifrost2para_transfer(si_bifrost, si_peaq, '//Alice', 
+        [PEAQ_SUDO_USER, cont, user], [amount, amount, bifrost_amount_w_fees(bnc(TOK_SWAP))])
 
     # 1.) Create bootstrap-liquidity-pair & start contributing
     compose_bootstrap_create_call(bt_peaq_sudo, BNC_IDX,
@@ -506,7 +485,7 @@ def bootstrap_pair_n_swap_test(si_peaq):
 
     # 4.) User swaps tokens by using the created pool
     balance = get_account_balance(si_peaq, kp_user.ss58_address)
-    compose_zdex_swap_lppair(bt_peaq_user, BNC_IDX, bnc(TOK_SWAP))
+    compose_zdex_swap_exact_for(bt_peaq_user, BNC_IDX, amount_in1=bnc(TOK_SWAP))
     bt_peaq_user.execute_n_clear()
     wait_n_check_swap_event(si_peaq, 1)
 
@@ -522,7 +501,14 @@ def bootstrap_pair_n_swap_test(si_peaq):
     show_test('bootstrap_pair_n_swap_test', True)
 
 
-def test_the_maryna_situation(si_relay, si_peaq):
+def the_maryna_situation_test(si_relay, si_peaq):
+    """
+    Maryna encountered an issue while testing Zenlink, where one users swaps all available tokens
+    of one currency, and then another user tries again to swap the same tokens. Kept this test
+    situation to keep track of Zenlink's response on that.
+    """
+    show_subtitle('the_maryna_situation_test')
+
     usr1 = '//Eve'
     usr2 = '//Dave'
 
@@ -531,29 +517,25 @@ def test_the_maryna_situation(si_relay, si_peaq):
     bt_usr2 = ExtrinsicBatch(si_peaq, usr2)
 
     # Setup until step 6.
-    # relay2para_transfer(si_relay, si_peaq, '//Alice', [usr1], [dot(5000)])
-    # compose_zdex_create_lppair(bt_sudo, DOT_IDX)
-    # compose_balances_setbalance(bt_sudo, usr1, peaq(30))
-    # compose_balances_setbalance(bt_sudo, usr2, peaq(20))
-    # bt_sudo.execute_n_clear()
+    relay2para_transfer(si_relay, si_peaq, '//Alice', [usr1], [dot(5000)])
+    compose_zdex_create_lppair(bt_sudo, DOT_IDX)
+    compose_balances_setbalance(bt_sudo, usr1, peaq(30))
+    compose_balances_setbalance(bt_sudo, usr2, peaq(20))
+    bt_sudo.execute_n_clear()
 
-    # # 7.
-    # compose_zdex_add_liquidity(bt_usr1, DOT_IDX, 1000, 1000)
-    # bt_usr1.execute_n_clear()
-
-    # # 8.
-    # compose_zdex_swap_exact_for(bt_usr2, DOT_IDX, amount_in0=peaq(1))
-    # bt_usr2.execute_n_clear()
-
-    # # 9.
-    # dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, 'DOT')
-    # assert dot_balance > 0
-
-    # Check if we can add liquidity again to restore liquidity pair
+    # 7.
     compose_zdex_add_liquidity(bt_usr1, DOT_IDX, 1000, 1000)
     bt_usr1.execute_n_clear()
 
-    # 10.
+    # 8.
+    compose_zdex_swap_exact_for(bt_usr2, DOT_IDX, amount_in0=peaq(1))
+    bt_usr2.execute_n_clear()
+
+    # 9.
+    dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, 'DOT')
+    assert dot_balance > 0
+
+    # 10. #error
     compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=1000, amnt_in_max=1000000000000)
     bt_usr2.execute_n_clear()
 
@@ -564,9 +546,9 @@ def zenlink_dex_test():
         with SubstrateInterface(url=RELAYCHAIN_WS_URL) as si_relay:
             with SubstrateInterface(url=PARACHAIN_WS_URL) as si_peaq:
                 with SubstrateInterface(url=BIFROST_WS_URL) as si_bifrost:
-                    test_the_maryna_situation(si_relay, si_peaq)
-                    # create_pair_n_swap_test(si_peaq)
-                    # bootstrap_pair_n_swap_test(si_peaq)
+                    create_pair_n_swap_test(si_relay, si_peaq)
+                    bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
+                    # the_maryna_situation_test(si_relay, si_peaq)
 
     except ConnectionRefusedError:
         print("⚠️  No local Substrate node(s) running, \
