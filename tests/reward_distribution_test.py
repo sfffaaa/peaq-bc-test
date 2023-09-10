@@ -1,10 +1,12 @@
 import time
+import pytest
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance, transfer
 from tools.utils import set_max_currency_supply, setup_block_reward
 from tools.utils import KP_COLLATOR
 import unittest
+from tests import utils_func as TestUtils
 
 WAIT_BLOCK_NUMBER = 10
 COLLATOR_REWARD_RATE = 0.1
@@ -147,6 +149,11 @@ class TestRewardDistribution(unittest.TestCase):
             if len(self._substrate.get_block(prev_hash)['extrinsics']) != 3:
                 time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
                 continue
+            event = self._get_event(now_hash, 'Balances', 'Transfer')
+            if event is None or str(event[1][1]['to']) != kp_src.ss58_address:
+                print(f'The event is {event}, or the receiver is not {kp_src.ss58_address}')
+                time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
+                continue
 
             now_balance = get_account_balance(self._substrate, kp_src.ss58_address, block_hash=now_hash)
             previous_balance = get_account_balance(self._substrate, kp_src.ss58_address, block_hash=prev_hash)
@@ -191,6 +198,7 @@ class TestRewardDistribution(unittest.TestCase):
         time.sleep(WAIT_TIME_PERIOD)
 
         # Execute
+        # Note, the Collator maybe collected by another one
         receipt = transfer(
             self._substrate, kp_bob, kp_charlie.ss58_address, 0)
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
@@ -202,6 +210,7 @@ class TestRewardDistribution(unittest.TestCase):
         receipt = setup_block_reward(self._substrate, block_reward)
         self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
 
+    @pytest.mark.skipif(TestUtils.is_runtime_upgrade_test() is True, reason='Skip for runtime upgrade test')
     def test_transaction_fee_reward(self):
         kp_bob = self._kp_bob
         kp_charlie = self._kp_charlie

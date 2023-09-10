@@ -88,8 +88,8 @@ class TestBridgeDid(unittest.TestCase):
         token_num = 10000 * pow(10, 15)
         transfer(self.substrate, KP_SRC, calculate_evm_account(eth_src), token_num)
         eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
-        receipt = call_eth_transfer_a_lot(self.substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
-        self.assertTrue(receipt.is_success, f'Failed to transfer token to {eth_kp_src.ss58_address}')
+        bl_hash = call_eth_transfer_a_lot(self.substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
+        self.assertTrue(bl_hash, f'Failed to transfer token to {eth_kp_src.ss58_address}, {bl_hash}')
 
         contract = get_contract(self.w3, DID_ADDRESS, ABI_FILE)
 

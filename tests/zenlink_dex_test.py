@@ -9,7 +9,7 @@ from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
 from tools.utils import ExtrinsicBatch
 from tools.currency import peaq, npeaq, dot, bnc
-from tools.restart import restart_parachain_launch
+from tests.utils_func import restart_parachain_and_runtime_upgrade
 
 
 # Technical constants
@@ -474,7 +474,7 @@ def bootstrap_pair_n_swap_test(si_peaq):
 
 class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
-        restart_parachain_launch()
+        restart_parachain_and_runtime_upgrade()
 
     def test_zenlink_dex(self):
         show_title('Zenlink-DEX-Protocol Test')

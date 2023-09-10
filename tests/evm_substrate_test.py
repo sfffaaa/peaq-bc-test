@@ -10,7 +10,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 ERC_TOKEN_TRANSFER = 34
 GAS_LIMIT = 4294967
-TOKEN_NUM = 10000 * pow(10, 2)
+TOKEN_NUM = 10000 * pow(10, 10)
 ETH_DST_ADDR = '0x8eaf04151687736326c9fea17e25fc5287613693'
 # Which is calculated in advance
 ETH_ALICE_SLOT_ADDR = '0x045c0350b9cf0df39c4b40400c965118df2dca5ce0fbcf0de4aafc099aea4a14'

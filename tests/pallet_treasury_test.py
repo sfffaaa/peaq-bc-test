@@ -1,6 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
-from tools.utils import check_and_fund_account
+from tools.utils import ExtrinsicBatch
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -22,6 +22,7 @@ WEIGHT_BOND = {
 }
 LENGTH_BOND = 100
 AMOUNT = 10
+TOTAL_AMOUNT = 10 ** 9 * 10 ** 18
 
 DIVISION_FACTOR = pow(10, 7)
 
@@ -38,14 +39,11 @@ def cast_vote(substrate, kp_member, proposal_hash, proposal_index, vote):
         })
 
 
-# To set members of the council
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def set_members(substrate, members, kp_prime_member, old_count, kp_prime):
-    return substrate.compose_call(
-        call_module='Council',
-        call_function='set_members',
-        call_params={
+def set_member_by_sudo(batch, members, kp_prime_member, old_count, kp_prime):
+    batch.compose_sudo_call(
+        'Council',
+        'set_members',
+        {
             'new_members': members,
             'prime': kp_prime,
             'old_count': len(members)
@@ -240,38 +238,34 @@ class TestTreasury(unittest.TestCase):
 
         print('✅ Reward distributed to treasury as expected')
 
-    def test_tresury_test(self):
+    def batch_fund(self, batch, kp, amount):
+        batch.compose_sudo_call('Balances', 'set_balance', {
+            'who': kp.ss58_address,
+            'new_free': amount,
+            'new_reserved': 0
+        })
+
+    def test_tresury_approve(self):
         print('----Start of pallet_treasury_test!! ----')
         print()
-        # To fund accounts, if sufficient  funds are not available
-        check_and_fund_account(self.substrate,
-                               KP_USER,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV)
 
-        check_and_fund_account(self.substrate,
-                               KP_COUNCIL_FIRST_MEMBER,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV)
-
-        check_and_fund_account(self.substrate,
-                               KP_COUNCIL_SECOND_MEMBER,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV,
-                               100 * AMOUNT * TOKEN_NUM_BASE_DEV)
+        batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
+        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
 
         print("--set member test started---")
         council_members = [KP_USER.ss58_address,
                            KP_COUNCIL_FIRST_MEMBER.ss58_address,
                            KP_COUNCIL_SECOND_MEMBER.ss58_address]
 
-        receipt = set_members(self.substrate,
-                              council_members,
-                              KP_USER.ss58_address,
-                              0,
-                              KP_USER.ss58_address)
-        self.assertTrue(receipt.is_success,
-                        f'Extrinsic Failed: {receipt.error_message}' +
-                        f'{self.substrate.get_events(receipt.block_hash)}')
+        set_member_by_sudo(batch,
+                           council_members,
+                           KP_USER.ss58_address,
+                           0,
+                           KP_USER.ss58_address)
+        bl_hash = batch.execute_n_clear()
+        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
 
         print("--set member test completed successfully!---")
         print()
@@ -281,10 +275,54 @@ class TestTreasury(unittest.TestCase):
         print("---proposal approval test completed successfully---")
         print()
 
+    def test_tresury_reject(self):
+        print('----Start of pallet_treasury_test!! ----')
+        print()
+
+        batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
+        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
+
+        print("--set member test started---")
+        council_members = [KP_USER.ss58_address,
+                           KP_COUNCIL_FIRST_MEMBER.ss58_address,
+                           KP_COUNCIL_SECOND_MEMBER.ss58_address]
+
+        set_member_by_sudo(batch,
+                           council_members,
+                           KP_USER.ss58_address,
+                           0,
+                           KP_USER.ss58_address)
+        bl_hash = batch.execute_n_clear()
+        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+
         print("---proposal rejection test started---")
         self.reject_proposal_test()
         print("---proposal rejection test completed successfully---")
         print()
+
+    def test_treasury_others(self):
+        print('----Start of pallet_treasury_test!! ----')
+        print()
+
+        batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
+        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
+
+        print("--set member test started---")
+        council_members = [KP_USER.ss58_address,
+                           KP_COUNCIL_FIRST_MEMBER.ss58_address,
+                           KP_COUNCIL_SECOND_MEMBER.ss58_address]
+
+        set_member_by_sudo(batch,
+                           council_members,
+                           KP_USER.ss58_address,
+                           0,
+                           KP_USER.ss58_address)
+        bl_hash = batch.execute_n_clear()
+        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
 
         print("---Spend test started---")
         receipt = spend(self.substrate, AMOUNT, KP_BENEFICIARY)

@@ -1,7 +1,9 @@
 import unittest
+import pytest
 
 from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL, get_chain, get_block_hash, get_block_height
+from tests import utils_func as TestUtils
 
 
 import pprint
@@ -175,6 +177,8 @@ class TokenEconomyTest(unittest.TestCase):
         self._chain_spec = get_chain(self._substrate)
         self.modify_chain_spec()
 
+    @pytest.mark.skipif(TestUtils.is_runtime_upgrade_test() is True,
+                        reason='Skip because it remains on the preivous runtime state, not genesis build')
     def test_chain_states(self):
         for test in STATE_INFOS:
             module = test['module']

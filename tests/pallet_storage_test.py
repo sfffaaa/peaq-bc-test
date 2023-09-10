@@ -1,7 +1,7 @@
 import time
 from tools.utils import WS_URL
 from substrateinterface import SubstrateInterface, Keypair
-from tools.payload import user_extrinsic_send
+from tools.utils import ExtrinsicBatch
 
 import unittest
 # from tools.pallet_assets_test import pallet_assets_test
@@ -17,52 +17,6 @@ def storage_rpc_read(substrate, kp_src, item_type):
     return data["result"]["item"]
 
 
-@user_extrinsic_send
-def storage_add_item(substrate, kp_src, item_type, item):
-    return substrate.compose_call(
-        call_module='PeaqStorage',
-        call_function='add_item',
-        call_params={
-            'item_type': item_type,
-            'item': item,
-        })
-
-
-@user_extrinsic_send
-def storage_batch_transaction_ok(substrate, kp_src, item_type, item):
-    payload_first = substrate.compose_call(
-        call_module='PeaqStorage',
-        call_function='add_item',
-        call_params={
-            'item_type': item_type,
-            'item': item,
-        })
-
-    payload_second = substrate.compose_call(
-        call_module='PeaqStorage',
-        call_function='get_item',
-        call_params={
-            'item_type': item_type,
-        })
-
-    payload_third = substrate.compose_call(
-        call_module='PeaqStorage',
-        call_function='update_item',
-        call_params={
-            'item_type': item_type,
-            'item': '0x0123',
-        })
-
-    # Wrape payload into a utility batch cal
-    return substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': [payload_first.value,
-                      payload_second.value, payload_third.value],
-        })
-
-
 class TestPalletStorage(unittest.TestCase):
 
     def setUp(self):
@@ -70,14 +24,49 @@ class TestPalletStorage(unittest.TestCase):
 
     def test_storage(self):
         kp_src = Keypair.create_from_uri('//Alice')
+        batch = ExtrinsicBatch(self._substrate, kp_src)
         item_type = f'0x{int(time.time())}'
         item = '0x032132'
 
-        receipt = storage_add_item(self._substrate, kp_src, item_type, item)
-        self.assertTrue(receipt.is_success, f'storage_add_item failed: {receipt.error_message}')
+        batch.compose_call(
+            'PeaqStorage',
+            'add_item',
+            {
+                'item_type': item_type,
+                'item': item,
+            })
+
+        bl_hash = batch.execute_n_clear()
+        self.assertTrue(bl_hash, f'storage_add_item failed: {bl_hash}')
         self.assertEqual(storage_rpc_read(self._substrate, kp_src, item_type), item)
 
-        item_type = f'0x{int(time.time()) + 1}'
-        item = '0x032133'
-        receipt = storage_batch_transaction_ok(self._substrate, kp_src, item_type, item)
-        self.assertTrue(receipt.is_success, f'storage_batch_transaction_ok failed: {receipt.error_message}')
+    def test_storage_update(self):
+        kp_src = Keypair.create_from_uri('//Alice')
+        batch = ExtrinsicBatch(self._substrate, kp_src)
+        item_type = f'0x{int(time.time())}'
+        item = '0x032132'
+
+        batch.compose_call(
+            'PeaqStorage',
+            'add_item',
+            {
+                'item_type': item_type,
+                'item': item,
+            })
+
+        batch.compose_call(
+            'PeaqStorage',
+            'get_item',
+            {
+                'item_type': item_type,
+            })
+
+        batch.compose_call(
+            'PeaqStorage',
+            'update_item',
+            {
+                'item_type': item_type,
+                'item': '0x0123',
+            })
+        bl_hash = batch.execute_n_clear()
+        self.assertTrue(bl_hash, f'storage_update_item failed: {bl_hash}')

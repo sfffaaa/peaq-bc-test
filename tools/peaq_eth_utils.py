@@ -1,7 +1,7 @@
 import json
 import binascii
 import os
-from tools.payload import user_extrinsic_send
+from tools.utils import ExtrinsicBatch
 
 GAS_LIMIT = 4294967
 TX_SUCCESS_STATUS = 1
@@ -18,12 +18,12 @@ def get_contract(w3, address, file_name):
     return w3.eth.contract(address, abi=abi)
 
 
-@user_extrinsic_send
 def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
-    return substrate.compose_call(
-        call_module='EVM',
-        call_function='call',
-        call_params={
+    batch = ExtrinsicBatch(substrate, kp_src)
+    batch.compose_call(
+        'EVM',
+        'call',
+        {
             'source': eth_src,
             'target': eth_dst,
             'input': '0x',
@@ -34,6 +34,7 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'nonce': None,
             'access_list': []
         })
+    return batch.execute()
 
 
 def get_eth_balance(substrate, eth_src):

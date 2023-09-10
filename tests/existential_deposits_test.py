@@ -95,7 +95,7 @@ class TestExitentialDeposits(unittest.TestCase):
             'Paras',
             'Parachains',
         )
-        return result.value[-1]
+        return result.value[0]
 
     def send_relaychain_token(self, kp):
         relay_substrate = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
@@ -132,9 +132,8 @@ class TestExitentialDeposits(unittest.TestCase):
         token /= 2
 
         # Send foreigner tokens from the relay chain
-        if not self.get_tokens_account(self.alice):
-            receipt = self.send_relaychain_token(self.alice)
-            self.assertTrue(receipt.is_success)
+        receipt = self.send_relaychain_token(self.alice)
+        self.assertTrue(receipt.is_success)
 
         # Send the foreigner tokens to another account with the new address
         count = 0

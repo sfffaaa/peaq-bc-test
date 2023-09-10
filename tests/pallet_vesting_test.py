@@ -3,7 +3,7 @@ import math
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from tools.utils import get_account_balance, get_account_balance_locked
-from tools.utils import check_and_fund_account
+from tools.utils import funds
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -101,10 +101,10 @@ def get_schedule_index(substrate, kp_target):
 class TestPalletVesting(unittest.TestCase):
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._kp_user = Keypair.create_from_uri('//Alice')
-        self._kp_source = Keypair.create_from_uri('//Bob')
-        self._kp_target = Keypair.create_from_uri('//Dave')
-        self._kp_target_second = Keypair.create_from_uri('//Eve')
+        self._kp_user = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self._kp_source = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self._kp_target = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self._kp_target_second = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
 
     def vested_transfer_test(self, substrate, kp_user, kp_target):
 
@@ -301,15 +301,9 @@ class TestPalletVesting(unittest.TestCase):
         # performed independend of others
 
         # To fund accounts, if sufficient  funds are not available
-        check_and_fund_account(substrate,
-                               kp_user,
-                               1000 * TOKEN_NUM_BASE_DEV,
-                               1000 * TOKEN_NUM_BASE_DEV)
-
-        check_and_fund_account(substrate,
-                               kp_source,
-                               1000 * TOKEN_NUM_BASE_DEV,
-                               1000 * TOKEN_NUM_BASE_DEV,)
+        funds(substrate,
+              [kp_user.ss58_address, kp_source.ss58_address, kp_target.ss58_address, kp_target_second.ss58_address],
+              1000 * TOKEN_NUM_BASE_DEV)
 
         self.vested_transfer_test(substrate, kp_user, kp_target)
         self.forced_vested_transfer_test(substrate, kp_user, kp_source, kp_target)

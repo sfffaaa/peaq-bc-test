@@ -43,7 +43,7 @@ def send_ugprade_call(substrate, wasm_file):
     return batch_payload
 
 
-def wait_untile_block_height(substrate, block_height):
+def wait_until_block_height(substrate, block_height):
     current_block = get_block_height(substrate)
     while current_block < block_height:
         print(f'Current block: {current_block}, but waiting at {block_height}')
@@ -52,7 +52,7 @@ def wait_untile_block_height(substrate, block_height):
     print(f'Upgrade block: {block_height}, now block is {current_block}')
 
 
-def get_relay_upgrade_block():
+def wait_relay_upgrade_block():
     relay_substrate = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
     result = relay_substrate.query(
         'Paras',
@@ -63,17 +63,23 @@ def get_relay_upgrade_block():
         return
 
     print('Upcoming upgrade:')
-    wait_untile_block_height(relay_substrate, int(result.value[0][1]))
+    wait_until_block_height(relay_substrate, int(result.value[0][1]))
 
 
 def upgrade(runtime_path):
     substrate = SubstrateInterface(url=WS_URL)
-    wait_untile_block_height(substrate, 1)
+    wait_until_block_height(substrate, 1)
 
     print(f'Global Sudo: {KP_GLOBAL_SUDO.ss58_address}')
     receipt = send_ugprade_call(substrate, runtime_path)
     show_extrinsic(receipt, 'upgrade?')
-    get_relay_upgrade_block()
+    wait_relay_upgrade_block()
+
+
+def wait_after_upgrade():
+    substrate = SubstrateInterface(url=WS_URL)
+    current_block = get_block_height(substrate)
+    wait_until_block_height(substrate, current_block + 3)
 
 
 def fund_account():
@@ -89,20 +95,21 @@ def fund_account():
     ], 302231 * 10 ** 18)
 
 
+def do_runtime_upgrade(wasm_path):
+    if not os.path.exists(wasm_path):
+        raise IOError(f'Runtime not found: {wasm_path}')
+
+    fund_account()
+    upgrade(wasm_path)
+    wait_after_upgrade()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Upgrade the runtime')
     parser.add_argument('-r', '--runtime', type=str, required=True, help='Your runtime poisiton')
 
     args = parser.parse_args()
-
-    if os.path.exists(args.runtime) is False:
-        print('Runtime not found')
-        return
-
-    fund_account()
-    upgrade(args.runtime)
-    print('wait 3 more blocks')
-    time.sleep(12 * 3)
+    do_runtime_upgrade(args.runtime)
 
 
 if __name__ == '__main__':

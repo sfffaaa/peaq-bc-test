@@ -331,6 +331,7 @@ def calculate_evm_addr(addr):
     return '0x' + ss58.ss58_decode(addr)[:40]
 
 
+# [TODO] Use batch
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def fund(substrate, kp_dst, token_num):
@@ -402,6 +403,7 @@ def get_eth_chain_id(substrate):
     return ETH_CHAIN_IDS[chain_name]
 
 
+# [TODO] Use the batch
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def set_max_currency_supply(substrate, max_currency_supply):
@@ -630,7 +632,7 @@ def execute_extrinsic_batch(substrate, kp_src, batch,
 
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
-        raise IOError
+        raise IOError(f'Extrinsic failed: {receipt.block_hash}, substrate.get_events(receipt.block_hash)')
     else:
         return receipt.block_hash
 
