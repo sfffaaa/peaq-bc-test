@@ -6,7 +6,7 @@ from substrateinterface import SubstrateInterface
 from tools.utils import show_extrinsic, WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
 from substrateinterface.utils.hasher import blake2_256
 from tools.payload import sudo_call_compose, sudo_extrinsic_send
-import time
+from tools.utils import wait_for_n_blocks
 import argparse
 
 import pprint
@@ -45,11 +45,8 @@ def send_ugprade_call(substrate, wasm_file):
 
 def wait_until_block_height(substrate, block_height):
     current_block = get_block_height(substrate)
-    while current_block < block_height:
-        print(f'Current block: {current_block}, but waiting at {block_height}')
-        time.sleep(12)
-        current_block = get_block_height(substrate)
-    print(f'Upgrade block: {block_height}, now block is {current_block}')
+    block_num = block_height - current_block + 1
+    wait_for_n_blocks(substrate, block_num)
 
 
 def wait_relay_upgrade_block():
@@ -68,18 +65,12 @@ def wait_relay_upgrade_block():
 
 def upgrade(runtime_path):
     substrate = SubstrateInterface(url=WS_URL)
-    wait_until_block_height(substrate, 1)
+    wait_for_n_blocks(substrate, 1)
 
     print(f'Global Sudo: {KP_GLOBAL_SUDO.ss58_address}')
     receipt = send_ugprade_call(substrate, runtime_path)
     show_extrinsic(receipt, 'upgrade?')
     wait_relay_upgrade_block()
-
-
-def wait_after_upgrade():
-    substrate = SubstrateInterface(url=WS_URL)
-    current_block = get_block_height(substrate)
-    wait_until_block_height(substrate, current_block + 3)
 
 
 def fund_account():
@@ -101,7 +92,8 @@ def do_runtime_upgrade(wasm_path):
 
     fund_account()
     upgrade(wasm_path)
-    wait_after_upgrade()
+    substrate = SubstrateInterface(url=WS_URL)
+    wait_for_n_blocks(substrate, 4)
 
 
 def main():

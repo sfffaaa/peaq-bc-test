@@ -1,9 +1,9 @@
-import time
 import math
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from tools.utils import get_account_balance, get_account_balance_locked
 from tools.utils import funds
+from tools.utils import wait_for_n_blocks
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -14,19 +14,9 @@ import unittest
 # Global Constants
 # deinfe a conneciton with a peaq-network node
 # Global constants
-TRANSFER_AMOUNT = 100*TOKEN_NUM_BASE_DEV
-PER_BLOCK_AMOUNT = 20*TOKEN_NUM_BASE_DEV
-NO_OF_BLOCKS_TO_WAIT = math.ceil(TRANSFER_AMOUNT / PER_BLOCK_AMOUNT)
-
-
-def wait_for_blocks(substrate, now_block_number, starting_block_number):
-    current_block_number = now_block_number
-    while (starting_block_number + NO_OF_BLOCKS_TO_WAIT) >= current_block_number:
-        block_header = substrate.get_block_header()
-        current_block_number = int(block_header['header']['number'])
-        print("Current Block: ", current_block_number)
-        time.sleep((starting_block_number + NO_OF_BLOCKS_TO_WAIT
-                    - current_block_number+1)*12)
+TRANSFER_AMOUNT = 100 * TOKEN_NUM_BASE_DEV
+PER_BLOCK_AMOUNT = 20 * TOKEN_NUM_BASE_DEV
+NO_OF_BLOCKS_TO_WAIT = math.ceil(TRANSFER_AMOUNT / PER_BLOCK_AMOUNT) + 1
 
 
 # Schedule transfer of some amount from a souce to target account
@@ -141,15 +131,15 @@ class TestPalletVesting(unittest.TestCase):
         # Free balance after vested transfer should be equal to the sum of
         # free balance before transer and vested amount transfer
         self.assertEqual(free_bal_after_transfer,
-                         free_bal_before_transfer+TRANSFER_AMOUNT,
+                         free_bal_before_transfer + TRANSFER_AMOUNT,
                          "Vested tranfer amount not added to destination account")
 
         # Vest all the funds
         # Wait till the time ending block number is fianlized
         print("We need to wait till finzlization of block: ",
-              starting_block_number+NO_OF_BLOCKS_TO_WAIT)
+              starting_block_number + NO_OF_BLOCKS_TO_WAIT)
 
-        wait_for_blocks(substrate, current_block_number, starting_block_number)
+        wait_for_n_blocks(substrate, NO_OF_BLOCKS_TO_WAIT)
 
         locked_bal_before_vest = \
             get_account_balance_locked(substrate, kp_target.ss58_address)
@@ -206,7 +196,7 @@ class TestPalletVesting(unittest.TestCase):
         # Vest all the funds through vest_others
         print("We need to wait till finzlization of block: ", starting_block_number + NO_OF_BLOCKS_TO_WAIT)
 
-        wait_for_blocks(substrate, current_block_number, starting_block_number)
+        wait_for_n_blocks(substrate, NO_OF_BLOCKS_TO_WAIT)
 
         locked_bal_before_vest = get_account_balance_locked(substrate, kp_target.ss58_address)
 

@@ -3,8 +3,9 @@ import pytest
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance, transfer
-from tools.utils import set_max_currency_supply, setup_block_reward
-from tools.utils import KP_COLLATOR
+from tools.utils import KP_COLLATOR, KP_GLOBAL_SUDO
+from tools.utils import setup_block_reward
+from tools.utils import ExtrinsicBatch
 import unittest
 from tests import utils_func as TestUtils
 
@@ -17,6 +18,26 @@ REWARD_ERROR = 0.0001
 TIP = 10 ** 20
 FEE_MIN_LIMIT = 30 * 10**9  # 30nPEAQ
 FEE_MAX_LIMIT = 90 * 10**9  # 90nPEAQ
+
+
+def batch_compose_block_reward(batch, block_reward):
+    batch.compose_sudo_call(
+        'BlockReward',
+        'set_block_issue_reward',
+        {
+            'block_reward': block_reward
+        }
+    )
+
+
+def batch_extend_max_supply(substrate, batch):
+    total_issuance = substrate.query(
+        module='Balances',
+        storage_function='TotalIssuance',
+    )
+    batch.compose_sudo_call('BlockReward', 'set_max_currency_supply', {
+        'limit': int(str(total_issuance)) * 3
+    })
 
 
 class TestRewardDistribution(unittest.TestCase):
@@ -125,14 +146,6 @@ class TestRewardDistribution(unittest.TestCase):
             rewards_wo_tip, FEE_MAX_LIMIT,
             f'The transaction fee w/o tip is out of limit: {rewards_wo_tip} < {FEE_MAX_LIMIT}')
 
-    def _extend_max_supply(self, substrate):
-        total_issuance = substrate.query(
-            module='Balances',
-            storage_function='TotalIssuance',
-        )
-        receipt = set_max_currency_supply(substrate, int(str(total_issuance)) * 3)
-        return receipt
-
     def _check_block_reward_in_event(self, kp_src, block_reward):
         for i in range(0, WAIT_BLOCK_NUMBER):
             block_info = self._substrate.get_block_header()
@@ -165,10 +178,11 @@ class TestRewardDistribution(unittest.TestCase):
 
     def test_block_reward(self):
         # Setup
-        receipt = setup_block_reward(self._substrate, 10000)
-        self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
-        receipt = self._extend_max_supply(self._substrate)
-        self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_compose_block_reward(batch, 10000)
+        batch_extend_max_supply(self._substrate, batch)
+        bl_hash = batch.execute()
+        self.assertTrue(bl_hash, f'Cannot execute the block reward extrinsic {bl_hash}')
 
         # Execute
         # While we extend the max supply, the block reward should apply
@@ -186,14 +200,12 @@ class TestRewardDistribution(unittest.TestCase):
         kp_charlie = self._kp_charlie
 
         # setup
-        receipt = self._extend_max_supply(self._substrate)
-        self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
-
         block_reward = self.get_block_issue_reward()
-        print(f'Current reward: {block_reward}')
-        new_set_reward = 0
-        receipt = setup_block_reward(self._substrate, new_set_reward)
-        self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_extend_max_supply(self._substrate, batch)
+        batch_compose_block_reward(batch, 0)
+        bl_hash = batch.execute()
+        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
         time.sleep(WAIT_TIME_PERIOD)
 
@@ -216,14 +228,14 @@ class TestRewardDistribution(unittest.TestCase):
         kp_charlie = self._kp_charlie
 
         # setup
-        receipt = self._extend_max_supply(self._substrate)
-        self.assertTrue(receipt.is_success, f'Failed to extend max supply: {receipt.error_message}')
-
         block_reward = self.get_block_issue_reward()
         print(f'Current reward: {block_reward}')
-        new_set_reward = 0
-        receipt = setup_block_reward(self._substrate, new_set_reward)
-        self.assertTrue(receipt.is_success, f'Failed to set block reward: {receipt.error_message}')
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_extend_max_supply(self._substrate, batch)
+        batch_compose_block_reward(self._substrate, 0)
+        bl_hash = batch.execute()
+        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
         time.sleep(WAIT_TIME_PERIOD)
         prev_balance = get_account_balance(self._substrate, KP_COLLATOR.ss58_address)

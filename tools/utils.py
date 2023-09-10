@@ -752,14 +752,16 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
 
 def wait_for_n_blocks(substrate, n=1):
     """Waits until the next block has been created"""
-    hash = substrate.get_block_hash()
+    height = get_block_height(substrate)
+    wait_height = height + n
     past = 0
     while past < n:
-        next_hash = substrate.get_block_hash()
-        if hash == next_hash:
+        next_height = get_block_height(substrate)
+        if height == next_height:
             time.sleep(1)
         else:
-            hash = next_hash
+            print(f'Current block: {height}, but waiting at {wait_height}')
+            height = next_height
             past = past + 1
 
 
