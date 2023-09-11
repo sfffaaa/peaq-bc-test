@@ -34,7 +34,7 @@ STATE_INFOS = [{
     'type': {
         'peaq-dev': 1 * 10 ** 18,
         'agung-network': 79098670000000008192,
-        'krest-network': 7610350076100000000,
+        'krest-network': 3.80517503805 * 10 ** 18,
         'peaq-network': 79098670000000008192,
     }
 }, {
@@ -44,7 +44,7 @@ STATE_INFOS = [{
     'type': {
         'peaq-dev': 4200000000 * 10 ** 18,
         'agung-network': 4200000000 * 10 ** 18,
-        'krest-network': 400000000 * 10 ** 18,
+        'krest-network': 4000000 * 10 ** 18,
         'peaq-network': 4200000000 * 10 ** 18,
     }
 }, {
@@ -198,7 +198,7 @@ class TokenEconomyTest(unittest.TestCase):
                     self.assertEqual(result.value[k], v, f'{result.value} != {k}: {v}')
             else:
                 if 'almost' in test and test['almost']:
-                    self.assertAlmostEqual(result.value / golden_data, 1, delta=6, msg=f'{result.value} != {test}')
+                    self.assertAlmostEqual(result.value / golden_data, 1, 7, msg=f'{result.value} != {test}')
                 else:
                     self.assertEqual(result.value, golden_data, f'{result.value} != {test}')
 
