@@ -1,7 +1,9 @@
 import os
 
+from tools.utils import WS_URL, get_chain
 from tools.restart import restart_parachain_launch
 from tools.runtime_upgrade import do_runtime_upgrade
+from substrateinterface import SubstrateInterface
 
 
 def is_runtime_upgrade_test():
@@ -17,3 +19,10 @@ def restart_parachain_and_runtime_upgrade():
     if is_runtime_upgrade_test():
         path = get_runtime_upgrade_path()
         do_runtime_upgrade(path)
+
+
+def is_not_dev_chain():
+    ws = SubstrateInterface(url=WS_URL)
+    chain_name = get_chain(ws)
+    print(f'chain_name: {chain_name}')
+    return chain_name not in ['peaq-dev', 'peaq-dev-fork']

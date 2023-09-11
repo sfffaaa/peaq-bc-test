@@ -122,7 +122,7 @@ CONSTANT_INFOS = [{
     'type': {
         'peaq-dev': 16,
         'agung-network': 16,
-        'krest-network': 16,
+        'krest-network': 128,
         'peaq-network': 16,
     }
 }, {
@@ -131,7 +131,7 @@ CONSTANT_INFOS = [{
     'type': {
         'peaq-dev': 32000,
         'agung-network': 32000,
-        'krest-network': 10000 * 10 ** 18,
+        'krest-network': 50000 * 10 ** 18,
         'peaq-network': 32000,
     }
 }, {
@@ -140,7 +140,7 @@ CONSTANT_INFOS = [{
     'type': {
         'peaq-dev': 32000,
         'agung-network': 32000,
-        'krest-network': 10000 * 10 ** 18,
+        'krest-network': 50000 * 10 ** 18,
         'peaq-network': 32000,
     }
 }, {
@@ -149,7 +149,7 @@ CONSTANT_INFOS = [{
     'type': {
         'peaq-dev': 20000,
         'agung-network': 20000,
-        'krest-network': 250 * 10 ** 18,
+        'krest-network': 100 * 10 ** 18,
         'peaq-network': 20000,
     }
 }, {
@@ -158,7 +158,7 @@ CONSTANT_INFOS = [{
     'type': {
         'peaq-dev': 20000,
         'agung-network': 20000,
-        'krest-network': 250 * 10 ** 18,
+        'krest-network': 100 * 10 ** 18,
         'peaq-network': 20000,
     }
 }]
@@ -169,6 +169,8 @@ class TokenEconomyTest(unittest.TestCase):
     def modify_chain_spec(self):
         if 'peaq-dev-fork' == self._chain_spec:
             self._chain_spec = 'peaq-dev'
+        if 'krest-network-fork' == self._chain_spec:
+            self._chain_spec = 'krest-network'
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)

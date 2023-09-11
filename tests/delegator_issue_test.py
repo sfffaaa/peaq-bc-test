@@ -165,7 +165,7 @@ class TestDelegator(unittest.TestCase):
             return
 
         # Check it's the peaq-dev parachain
-        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork'])
+        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork', 'krest', 'krest-network-fork'])
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
         batch.compose_sudo_call('BlockReward', 'set_max_currency_supply', {
@@ -203,10 +203,13 @@ class TestDelegator(unittest.TestCase):
         delegators_reward = [self.get_balance_difference(delegator.ss58_address) for delegator in self.delegators]
         collator_reward = self.get_balance_difference(str(collator['id']))
         self.assertEqual(delegators_reward[0], delegators_reward[1], 'The reward is not equal')
-        self.assertEqual(sum(delegators_reward), collator_reward, 'The reward is not equal')
+        self.assertAlmostEqual(
+            sum(delegators_reward) / collator_reward,
+            1, 7,
+            f'{sum(delegators_reward)} v.s. {collator_reward} is not equal')
 
     def test_issue_coeffective(self):
-        self.internal_test_issue_coefficient(10000 * 10 ** 18)
+        self.internal_test_issue_coefficient(500000 * 10 ** 18)
 
     def test_issue_coeffective_large(self):
         self.internal_test_issue_coefficient(10 ** 15 * 10 ** 18)

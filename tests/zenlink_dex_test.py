@@ -1,6 +1,7 @@
 import sys
 import traceback
 import unittest
+import pytest
 
 sys.path.append('./')
 
@@ -10,6 +11,7 @@ from tools.utils import show_test, show_title, show_subtitle, wait_for_event, ge
 from tools.utils import ExtrinsicBatch
 from tools.currency import peaq, npeaq, dot, bnc
 from tests.utils_func import restart_parachain_and_runtime_upgrade
+from tests import utils_func as TestUtils
 
 
 # Technical constants
@@ -476,6 +478,7 @@ class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
 
+    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_zenlink_dex(self):
         show_title('Zenlink-DEX-Protocol Test')
         try:

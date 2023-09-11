@@ -7,6 +7,7 @@ from tools.utils import KP_COLLATOR, KP_GLOBAL_SUDO
 from tools.utils import setup_block_reward
 from tools.utils import ExtrinsicBatch
 import unittest
+from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tests import utils_func as TestUtils
 
 WAIT_BLOCK_NUMBER = 10
@@ -43,6 +44,10 @@ def batch_extend_max_supply(substrate, batch):
 class TestRewardDistribution(unittest.TestCase):
     _kp_bob = Keypair.create_from_uri('//Bob')
     _kp_charlie = Keypair.create_from_uri('//Charlie')
+
+    @classmethod
+    def setUpClass(cls):
+        restart_parachain_and_runtime_upgrade()
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
@@ -110,7 +115,7 @@ class TestRewardDistribution(unittest.TestCase):
             next_reward, None,
             f'Cannot find the block event for transaction reward {next_reward}')
         print(f'tx_reward: {tx_reward}, next_reward: {next_reward}, out: {tx_reward * COLLATOR_REWARD_RATE / next_reward}')
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             tx_reward * COLLATOR_REWARD_RATE / next_reward,
             1, 7,
             f'The transaction fee reward is not correct {next_reward} v.s. {tx_reward}')

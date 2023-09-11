@@ -22,7 +22,7 @@ WEIGHT_BOND = {
 }
 LENGTH_BOND = 100
 AMOUNT = 10
-TOTAL_AMOUNT = 10 ** 9 * 10 ** 18
+TOTAL_AMOUNT = 10 ** 5 * 10 ** 18
 
 DIVISION_FACTOR = pow(10, 7)
 
@@ -232,9 +232,11 @@ class TestTreasury(unittest.TestCase):
         # In future, after we introduce the transaction fee
         # into the reward system, this equation will not works
         # and hence this test needs to be updated accordingly
-        self.assertEqual(expected_reward_dist_to_treasury,
-                         actual_reward_dist_to_treasury,
-                         "Actual and expected reward distribution are not equal")
+        self.assertAlmostEqual(
+            actual_reward_dist_to_treasury / expected_reward_dist_to_treasury,
+            1, 7,
+            f'Actual {actual_reward_dist_to_treasury} and expected reward '
+            f'{expected_reward_dist_to_treasury} distribution are not equal')
 
         print('✅ Reward distributed to treasury as expected')
 

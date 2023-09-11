@@ -40,7 +40,8 @@ ETH_CHAIN_IDS = {
     'peaq-dev': 9990,
     'peaq-dev-fork': 9990,
     'agung-network': 9990,
-    'krest-network': 424242,
+    'krest-network': 2241,
+    'krest-network-fork': 2241,
     'peaq-network': 424242,
 }
 KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
