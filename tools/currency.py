@@ -43,4 +43,3 @@ def mksm(x) -> int:
 
 def bnc(x) -> int:
     return int(x * TOKEN_NUM_BASE_DEV_BNC)
-
