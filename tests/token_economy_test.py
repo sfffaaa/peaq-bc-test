@@ -1,9 +1,7 @@
 import unittest
-import pytest
 
 from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL, get_chain, get_block_hash, get_block_height
-from tests import utils_func as TestUtils
 
 
 import pprint
@@ -16,6 +14,8 @@ STATE_INFOS = [{
         'peaq-dev': 4,
         'agung-network': 4,
         'krest-network': 4,
+        # However: in the krest-forked-chain, it should be 16 by sending the extrinsic for the fork chain
+        'krest-network-fork': 16,
         'peaq-network': 4
     }
 }, {
@@ -44,7 +44,7 @@ STATE_INFOS = [{
     'type': {
         'peaq-dev': 4200000000 * 10 ** 18,
         'agung-network': 4200000000 * 10 ** 18,
-        'krest-network': 4000000 * 10 ** 18,
+        'krest-network': 400000000 * 10 ** 18,
         'peaq-network': 4200000000 * 10 ** 18,
     }
 }, {
@@ -166,21 +166,24 @@ CONSTANT_INFOS = [{
 
 class TokenEconomyTest(unittest.TestCase):
 
-    def modify_chain_spec(self):
+    def get_modified_chain_spec(self):
         if 'peaq-dev-fork' == self._chain_spec:
-            self._chain_spec = 'peaq-dev'
+            return 'peaq-dev'
         if 'krest-network-fork' == self._chain_spec:
-            self._chain_spec = 'krest-network'
+            return 'krest-network'
+
+    def get_info(self, test_type):
+        if self._chain_spec not in test_type:
+            return test_type[self.get_modified_chain_spec()]
+        else:
+            return test_type[self._chain_spec]
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
         current_height = get_block_height(self._substrate)
         self._block_hash = get_block_hash(self._substrate, current_height)
         self._chain_spec = get_chain(self._substrate)
-        self.modify_chain_spec()
 
-    @pytest.mark.skipif(TestUtils.is_runtime_upgrade_test() is True,
-                        reason='Skip because it remains on the preivous runtime state, not genesis build')
     def test_chain_states(self):
         for test in STATE_INFOS:
             module = test['module']
@@ -192,7 +195,7 @@ class TokenEconomyTest(unittest.TestCase):
                 block_hash=self._block_hash,
             )
 
-            golden_data = test['type'][self._chain_spec]
+            golden_data = self.get_info(test['type'])
             if isinstance(golden_data, dict):
                 for k, v in golden_data.items():
                     self.assertEqual(result.value[k], v, f'{result.value} != {k}: {v}')
@@ -212,5 +215,5 @@ class TokenEconomyTest(unittest.TestCase):
                 self._block_hash,
             )
 
-            golden_data = test['type'][self._chain_spec]
+            golden_data = self.get_info(test['type'])
             self.assertEqual(result.value, golden_data, f'{result.value} != {test}')
