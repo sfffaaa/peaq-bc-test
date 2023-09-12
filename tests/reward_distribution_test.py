@@ -238,7 +238,7 @@ class TestRewardDistribution(unittest.TestCase):
 
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
-        batch_compose_block_reward(self._substrate, 0)
+        batch_compose_block_reward(batch, 0)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
