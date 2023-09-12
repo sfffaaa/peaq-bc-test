@@ -70,11 +70,11 @@ STATE_INFOS = [{
             'parachain_lease_fund_percent': 100000000
         },
         'krest-network': {
-            'treasury_percent': 200000000,
-            'dapps_percent': 250000000,
-            'collators_percent': 100000000,
-            'lp_percent': 250000000,
-            'machines_percent': 100000000,
+            'treasury_percent': 150000000,
+            'dapps_percent': 150000000,
+            'collators_percent': 300000000,
+            'lp_percent': 150000000,
+            'machines_percent': 150000000,
             'parachain_lease_fund_percent': 100000000
         },
         'peaq-network': {
