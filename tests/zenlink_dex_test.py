@@ -6,12 +6,13 @@ import pytest
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
 from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.utils import ExtrinsicBatch, into_keypair
 from tools.currency import peaq, dot, bnc
 from tests.utils_func import restart_parachain_and_runtime_upgrade
+from tools.runtime_upgrade import wait_until_block_height
 from tests import utils_func as TestUtils
 
 
@@ -449,8 +450,8 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     # Transfer tokens from relaychain to parachain
     amount = bifrost_amount_w_fees(bnc(TOK_LIQUIDITY)) // 2
     bifrost2para_transfer(
-        si_bifrost, si_peaq, '//Alice',
-        [KP_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(bnc(TOK_SWAP))])
+        si_bifrost, si_peaq, URI_GLOBAL_SUDO,
+        [URI_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(bnc(TOK_SWAP))])
 
     # 1.) Create bootstrap-liquidity-pair & start contributing
     compose_bootstrap_create_call(bt_peaq_sudo, BNC_IDX,
@@ -549,6 +550,8 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
 class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
+        wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_zenlink_dex(self):

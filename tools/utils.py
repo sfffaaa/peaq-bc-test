@@ -44,7 +44,8 @@ ETH_CHAIN_IDS = {
     'krest-network-fork': 2241,
     'peaq-network': 424242,
 }
-KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
+URI_GLOBAL_SUDO = '//Alice'
+KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
 PEAQ_PD_CHAIN_ID = 2000
 BIFROST_PD_CHAIN_ID = 3000
