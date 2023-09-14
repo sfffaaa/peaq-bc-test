@@ -46,6 +46,8 @@ ETH_CHAIN_IDS = {
 }
 KP_GLOBAL_SUDO = Keypair.create_from_uri('//Alice')
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
+PEAQ_PD_CHAIN_ID = 2000
+BIFROST_PD_CHAIN_ID = 3000
 
 
 import pprint
@@ -518,12 +520,12 @@ class ExtrinsicBatch:
     Example 3:    ex_stack = ExtrinsicStack()
     """
     substrate: SubstrateInterface
-    kp_default: Keypair
+    keypair: Keypair
     batch: list
 
-    def __init__(self, substrate_or_url=WS_URL, keypair_or_uri='//Alice'):
-        self.substrate = _into_substrate(substrate_or_url)
-        self.kp_default = _into_keypair(keypair_or_uri)
+    def __init__(self, substrate_or_url, keypair_or_uri):
+        self.substrate = into_substrate(substrate_or_url)
+        self.keypair = into_keypair(keypair_or_uri)
         self.batch = []
 
     def __enter__(self):
@@ -550,14 +552,14 @@ class ExtrinsicBatch:
         if not self.batch:
             return ''
         if alt_keypair is None:
-            alt_keypair = self.kp_default
+            alt_keypair = self.keypair
         return execute_extrinsic_batch(
             self.substrate, alt_keypair, self.batch, wait_for_finalization)
 
     def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> str:
         """Combination of execute() and clear()"""
         if alt_keypair is None:
-            alt_keypair = self.kp_default
+            alt_keypair = self.keypair
         bl_hash = self.execute(wait_for_finalization, alt_keypair)
         self.clear()
         return bl_hash
@@ -569,7 +571,7 @@ class ExtrinsicBatch:
     def clone(self, keypair_or_uri=None):
         """Creates a duplicate, by using the same SubstrateInterface"""
         if keypair_or_uri is None:
-            keypair_or_uri = self.kp_default
+            keypair_or_uri = self.keypair
         return ExtrinsicBatch(self.substrate, keypair_or_uri)
 
 
@@ -688,7 +690,7 @@ def generate_batch_description(batch):
     return f'Batch[ {desc} ]'
 
 
-def _into_keypair(keypair_or_uri) -> Keypair:
+def into_keypair(keypair_or_uri) -> Keypair:
     """Takes either a Keypair, or transforms a given uri into one"""
     if isinstance(keypair_or_uri, str):
         return Keypair.create_from_uri(keypair_or_uri)
@@ -698,7 +700,7 @@ def _into_keypair(keypair_or_uri) -> Keypair:
         raise TypeError
 
 
-def _into_substrate(substrate_or_url) -> SubstrateInterface:
+def into_substrate(substrate_or_url) -> SubstrateInterface:
     """Takes a SubstrateInterface, or takes into one by given url"""
     if isinstance(substrate_or_url, str):
         return SubstrateInterface(substrate_or_url)
