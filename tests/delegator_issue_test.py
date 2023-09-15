@@ -2,9 +2,10 @@ import unittest
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, get_chain, get_collators, get_block_height, get_block_hash
+from tools.utils import WS_URL, get_collators
 from tools.utils import KP_GLOBAL_SUDO, exist_pallet, KP_COLLATOR
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
+from peaq.utils import get_block_height, get_block_hash, get_chain
 from peaq.utils import ExtrinsicBatch, get_account_balance
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 import warnings

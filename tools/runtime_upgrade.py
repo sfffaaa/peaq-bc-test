@@ -3,17 +3,19 @@ sys.path.append('./')
 import os
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
-from peaq.utils import show_extrinsic
+from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL
+from peaq.sudo_extrinsic import funds
+from peaq.utils import show_extrinsic, get_block_height
 from substrateinterface.utils.hasher import blake2_256
 from tools.payload import sudo_call_compose, sudo_extrinsic_send
-from tools.utils import wait_for_n_blocks
+from peaq.utils import wait_for_n_blocks
 import argparse
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
+# [TODO]
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def send_ugprade_call(substrate, wasm_file):

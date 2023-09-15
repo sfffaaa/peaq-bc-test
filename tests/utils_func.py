@@ -1,6 +1,7 @@
 import os
 
-from tools.utils import WS_URL, get_chain
+from tools.utils import WS_URL
+from peaq.utils import get_chain
 from tools.restart import restart_parachain_launch
 from tools.runtime_upgrade import do_runtime_upgrade
 from substrateinterface import SubstrateInterface

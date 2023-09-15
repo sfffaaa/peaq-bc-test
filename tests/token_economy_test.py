@@ -1,7 +1,8 @@
 import unittest
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL, get_chain, get_block_hash, get_block_height
+from tools.utils import WS_URL
+from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 
 

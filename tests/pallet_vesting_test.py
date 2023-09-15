@@ -3,8 +3,8 @@ from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from tools.utils import get_account_balance_locked
 from peaq.utils import get_account_balance
-from tools.utils import funds
-from tools.utils import wait_for_n_blocks
+from peaq.sudo_extrinsic import funds
+from peaq.utils import wait_for_n_blocks
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 

@@ -3,13 +3,10 @@ import time
 sys.path.append('.')
 
 from substrateinterface import Keypair
-from substrateinterface.utils import hasher, ss58
-from scalecodec.base import RuntimeConfiguration
-from scalecodec.type_registry import load_type_registry_preset
 from peaq.utils import get_account_balance, show_extrinsic
 from peaq.sudo_extrinsic import fund
-
-from scalecodec.utils.ss58 import ss58_encode
+from peaq.eth import calculate_evm_addr
+from peaq.utils import calculate_multi_sig
 
 # Monkey patch
 from scalecodec.types import FixedLengthArray
@@ -37,14 +34,7 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = 'http://192.168.178.23:9933'
 # WS_URL = 'wss://wss.test.peaq.network'
 # ETH_URL = 'https://erpc.test.peaq.network:443'
-ETH_CHAIN_IDS = {
-    'peaq-dev': 9990,
-    'peaq-dev-fork': 9990,
-    'agung-network': 9990,
-    'krest-network': 2241,
-    'krest-network-fork': 2241,
-    'peaq-network': 424242,
-}
+
 URI_GLOBAL_SUDO = '//Alice'
 KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
@@ -72,19 +62,6 @@ def show_title(name):
 
 def show_subtitle(name):
     print(f'----- {name} -----')
-
-
-# [TODO] Remove
-def calculate_multi_sig(kps, threshold):
-    '''https://github.com/polkascan/py-scale-codec/blob/f063cfd47c836895886697e7d7112cbc4e7514b3/test/test_scale_types.py#L383'''
-
-    addrs = [kp.ss58_address for kp in kps]
-    RuntimeConfiguration().update_type_registry(load_type_registry_preset('legacy'))
-    multi_account_id = RuntimeConfiguration().get_decoder_class('MultiAccountId')
-
-    multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
-    print(multi_sig_account)
-    return ss58_encode(multi_sig_account.value.replace('0x', ''), 42)
 
 
 @user_extrinsic_send
@@ -281,57 +258,6 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
     _approve_token(substrate, kp_consumer, [provider_addr], threshold, refund_info)
 
 
-# [TODO] Remove
-def _calculate_evm_account(addr):
-    evm_addr = b'evm:' + bytes.fromhex(addr[2:].upper())
-    hash_key = hasher.blake2_256(evm_addr)
-    return hash_key
-
-
-# [TODO] Remove
-def calculate_evm_account(addr):
-    return ss58.ss58_encode(calculate_evm_account_hex(addr))
-
-
-# [TODO] Remove
-def calculate_evm_account_hex(addr):
-    return '0x' + _calculate_evm_account(addr).hex()
-
-
-# [TODO] Remove
-def calculate_evm_addr(addr):
-    return '0x' + ss58.ss58_decode(addr)[:40]
-
-
-# [TODO] Remove
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def funds(substrate, dsts, token_num):
-    payloads = [
-        substrate.compose_call(
-            call_module='Balances',
-            call_function='set_balance',
-            call_params={
-                'who': dst,
-                'new_free': token_num,
-                'new_reserved': 0
-            }
-        ) for dst in dsts]
-
-    batch_payload = substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': payloads,
-        })
-    return batch_payload
-
-
-# [TODO] Remove
-def get_block_hash(substrate, block_num):
-    return substrate.get_block_hash(block_id=block_num)
-
-
 def get_account_balance_locked(substrate, addr):
     result = substrate.query('System', 'Account', [addr])
     return int(result['data']['misc_frozen'].value)
@@ -349,11 +275,6 @@ def show_account(substrate, addr, out_str):
     result = get_account_balance(substrate, addr)
     print(f'{addr} {out_str}: {result}')
     return result
-
-
-def get_eth_chain_id(substrate):
-    chain_name = substrate.rpc_request(method='system_chain', params=[]).get('result')
-    return ETH_CHAIN_IDS[chain_name]
 
 
 # [TODO] Use the batch
@@ -433,23 +354,12 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
         })
 
 
-# [TODO] Remove
-def get_chain(substrate):
-    return substrate.rpc_request(method='system_chain', params=[]).get('result')
-
-
 def get_collators(substrate, key):
     return substrate.query(
            module='ParachainStaking',
            storage_function='CandidatePool',
            params=[key.ss58_address]
     )
-
-
-# [TODO] Remove
-def get_block_height(substrate):
-    latest_block = substrate.get_block()
-    return latest_block['header']['number']
 
 
 def exist_pallet(substrate, pallet_name):
@@ -497,22 +407,6 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
             return True
     else:
         return False
-
-
-# [TODO] Remove
-def wait_for_n_blocks(substrate, n=1):
-    """Waits until the next block has been created"""
-    height = get_block_height(substrate)
-    wait_height = height + n
-    past = 0
-    while past < n:
-        next_height = get_block_height(substrate)
-        if height == next_height:
-            time.sleep(1)
-        else:
-            print(f'Current block: {height}, but waiting at {wait_height}')
-            height = next_height
-            past = past + 1
 
 
 if __name__ == '__main__':

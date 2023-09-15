@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 
 
-from tools.utils import get_block_height
+from peaq.utils import get_block_height
 
 
 def get_block_timestamp(substrate, height):
