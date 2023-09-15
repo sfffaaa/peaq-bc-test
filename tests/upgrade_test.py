@@ -2,7 +2,8 @@ import sys
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import show_extrinsic, WS_URL
+from tools.utils import WS_URL
+from peaq.utils import show_extrinsic
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 

@@ -2,10 +2,12 @@ import time
 import pytest
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance, transfer
+from tools.utils import WS_URL, TOKEN_NUM_BASE
+from peaq.extrinsic import transfer, transfer_with_tip
+from peaq.utils import get_account_balance
 from tools.utils import KP_COLLATOR, KP_GLOBAL_SUDO
 from tools.utils import setup_block_reward
-from tools.utils import ExtrinsicBatch
+from peaq.utils import ExtrinsicBatch
 import unittest
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tests import utils_func as TestUtils
@@ -220,8 +222,9 @@ class TestRewardDistribution(unittest.TestCase):
             self._substrate, kp_bob, kp_charlie.ss58_address, 0)
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')
-        self._check_transaction_fee_reward_from_sender(receipt.block_number)
-        self._check_transaction_fee_reward_from_collator(receipt.block_number)
+        block_number = self._substrate.get_block(receipt.block_hash)['header']['number']
+        self._check_transaction_fee_reward_from_sender(block_number)
+        self._check_transaction_fee_reward_from_collator(block_number)
 
         # Reset
         receipt = setup_block_reward(self._substrate, block_reward)

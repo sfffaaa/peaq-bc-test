@@ -3,7 +3,7 @@ import time
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
-from tools.utils import ExtrinsicBatch
+from peaq.utils import ExtrinsicBatch
 
 
 def did_add(batch, kp_src, name, value):

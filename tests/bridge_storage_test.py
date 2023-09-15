@@ -1,5 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
+from tools.utils import calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
+from peaq.extrinsic import transfer
 from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
 from tools.peaq_eth_utils import TX_SUCCESS_STATUS

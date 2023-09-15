@@ -7,9 +7,10 @@ sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
-from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
+from tools.utils import show_test, show_title, show_subtitle, wait_for_event
 from tools.utils import PEAQ_PD_CHAIN_ID
-from tools.utils import ExtrinsicBatch, into_keypair
+from peaq.utils import ExtrinsicBatch, into_keypair
+from peaq.utils import get_account_balance
 from tools.currency import peaq, dot, bnc
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height

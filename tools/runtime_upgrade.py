@@ -3,7 +3,8 @@ sys.path.append('./')
 import os
 
 from substrateinterface import SubstrateInterface
-from tools.utils import show_extrinsic, WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
+from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
+from peaq.utils import show_extrinsic
 from substrateinterface.utils.hasher import blake2_256
 from tools.payload import sudo_call_compose, sudo_extrinsic_send
 from tools.utils import wait_for_n_blocks

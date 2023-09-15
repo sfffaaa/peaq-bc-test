@@ -1,7 +1,7 @@
 import time
 from tools.utils import WS_URL
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import ExtrinsicBatch
+from peaq.utils import ExtrinsicBatch
 
 import unittest
 # from tools.pallet_assets_test import pallet_assets_test

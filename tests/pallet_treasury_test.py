@@ -1,6 +1,7 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
-from tools.utils import ExtrinsicBatch
+from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
+from peaq.utils import show_extrinsic
+from peaq.utils import ExtrinsicBatch
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 

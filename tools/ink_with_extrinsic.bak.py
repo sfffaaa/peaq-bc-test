@@ -2,7 +2,8 @@ import sys
 
 from substrateinterface import SubstrateInterface, Keypair
 from substrateinterface.contracts import ContractCode
-from utils import TOKEN_NUM_BASE, show_extrinsic, WS_URL
+from utils import TOKEN_NUM_BASE, WS_URL
+from peaq.utils import show_extrinsic
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):

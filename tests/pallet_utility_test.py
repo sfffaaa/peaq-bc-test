@@ -1,5 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE
+from tools.utils import WS_URL, TOKEN_NUM_BASE
+from peaq.utils import show_extrinsic
 from tools.utils import show_account
 import unittest
 

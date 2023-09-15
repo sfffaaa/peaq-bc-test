@@ -1,6 +1,7 @@
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import calculate_evm_account, calculate_evm_addr
+from peaq.extrinsic import transfer
 from tools.peaq_eth_utils import get_eth_balance
 from tools.payload import user_extrinsic_send
 import unittest

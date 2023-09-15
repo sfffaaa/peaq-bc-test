@@ -4,7 +4,7 @@ sys.path.append('./')
 from behave import given, when, then
 from substrateinterface import Keypair
 from tools.utils import calculate_multi_sig, TOKEN_NUM_BASE
-from tools.utils import transfer
+from peaq.extrinsic import transfer
 import random
 from tools.utils import show_account
 from tools.utils import send_proposal, send_approval, get_as_multi_extrinsic_id

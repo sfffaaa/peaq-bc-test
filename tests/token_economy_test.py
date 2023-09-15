@@ -2,6 +2,7 @@ import unittest
 
 from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL, get_chain, get_block_hash, get_block_height
+from tests.utils_func import restart_parachain_and_runtime_upgrade
 
 
 import pprint
@@ -177,6 +178,10 @@ class TokenEconomyTest(unittest.TestCase):
             return test_type[self.get_modified_chain_spec()]
         else:
             return test_type[self._chain_spec]
+
+    @classmethod
+    def setUpClass(cls):
+        restart_parachain_and_runtime_upgrade()
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)

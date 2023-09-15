@@ -1,7 +1,8 @@
 import unittest
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, RELAYCHAIN_WS_URL
-from tools.utils import transfer, TOKEN_NUM_BASE
+from tools.utils import TOKEN_NUM_BASE
+from peaq.extrinsic import transfer
 from tools.payload import user_extrinsic_send
 import time
 

@@ -5,7 +5,8 @@ import sys
 import time
 import json
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import fund, send_service_request, WS_URL
+from tools.utils import send_service_request, WS_URL
+from peaq.sudo_extrinsic import fund
 from tools.utils import deposit_money_to_multsig_wallet
 from tools.utils import _approve_token
 from threading import Thread

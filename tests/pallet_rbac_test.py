@@ -2,8 +2,10 @@ import traceback
 import sys
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, fund
+from tools.utils import WS_URL
+from peaq.sudo_extrinsic import fund
 from tools.payload import user_extrinsic_send
+from tools.utils import KP_GLOBAL_SUDO
 import unittest
 
 KP_TEST = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -486,7 +488,7 @@ class TestPalletRBAC(unittest.TestCase):
         try:
             # Success tests, default test setup
             kp_src = KP_TEST
-            fund(self.substrate, KP_TEST, 1 * 10 ** 18)
+            fund(self.substrate, KP_GLOBAL_SUDO, KP_TEST, 1000 * 10 ** 18)
             self.rbac_rpc_setup(kp_src)
 
             self.verify_rpc_fetch_role(kp_src)

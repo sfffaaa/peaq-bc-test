@@ -1,7 +1,7 @@
 import json
 import binascii
 import os
-from tools.utils import ExtrinsicBatch
+from peaq.utils import ExtrinsicBatch
 
 GAS_LIMIT = 4294967
 TX_SUCCESS_STATUS = 1
