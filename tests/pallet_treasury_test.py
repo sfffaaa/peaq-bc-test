@@ -267,8 +267,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("--set member test completed successfully!---")
         print()
@@ -297,8 +297,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("---proposal rejection test started---")
         self.reject_proposal_test()
@@ -324,8 +324,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("---Spend test started---")
         receipt = spend(self.substrate, AMOUNT, KP_BENEFICIARY)

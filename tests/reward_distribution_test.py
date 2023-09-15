@@ -188,8 +188,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_compose_block_reward(batch, 10000)
         batch_extend_max_supply(self._substrate, batch)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Cannot execute the block reward extrinsic {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         # Execute
         # While we extend the max supply, the block reward should apply
@@ -211,8 +211,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         time.sleep(WAIT_TIME_PERIOD)
 
@@ -242,8 +242,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         time.sleep(WAIT_TIME_PERIOD)
         prev_balance = get_account_balance(self._substrate, KP_COLLATOR.ss58_address)

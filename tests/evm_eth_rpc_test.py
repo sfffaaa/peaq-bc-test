@@ -122,8 +122,8 @@ class TestEVMEthRPC(unittest.TestCase):
         # Setup
         transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
 
-        bl_hash = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
-        self.assertTrue(bl_hash, f'call_eth_transfer_a_lot failed: {bl_hash}')
+        receipt = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'call_eth_transfer_a_lot failed: {receipt}')
         eth_after_balance = get_eth_balance(conn, kp_eth_src.ss58_address)
         print(f'dst ETH balance: {eth_after_balance}')
 
@@ -159,8 +159,8 @@ class TestEVMEthRPC(unittest.TestCase):
 
         transfer(conn, kp_src, eth_deposited_src, TOKEN_NUM)
 
-        bl_hash = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
-        self.assertTrue(bl_hash, f'call_eth_transfer_a_lot failed: {bl_hash}')
+        receipt = call_eth_transfer_a_lot(conn, kp_src, eth_src, kp_eth_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'call_eth_transfer_a_lot failed: {receipt}')
 
         with open('ETH/identity/bytecode') as f:
             bytecode = f.read().strip()

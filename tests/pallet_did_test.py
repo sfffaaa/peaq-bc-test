@@ -19,9 +19,9 @@ class TestPalletDid(unittest.TestCase):
         key = f'0x{name}'
         value = '0x02'
         did_add_payload(batch, self.kp_src.ss58_address, key, value)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash,
-                        f'failed to add did: bl_hash={bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success,
+                        f'failed to add did: receipt={receipt}')
 
         data = did_rpc_read(self.substrate, self.kp_src.ss58_address, key)
         self.assertEqual(data['name'], key)
@@ -36,9 +36,9 @@ class TestPalletDid(unittest.TestCase):
         did_add_payload(batch, self.kp_src.ss58_address, key, value)
         value = '0x03'
         did_update_payload(batch, self.kp_src.ss58_address, key, value)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash,
-                        f'failed to update did: bl_hash={bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success,
+                        f'failed to update did: receipt={receipt}')
 
         data = did_rpc_read(self.substrate, self.kp_src.ss58_address, key)
         self.assertEqual(data['name'], key)
@@ -52,9 +52,9 @@ class TestPalletDid(unittest.TestCase):
 
         did_add_payload(batch, self.kp_src.ss58_address, key, value)
         did_remove_payload(batch, self.kp_src.ss58_address, key)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash,
-                        f'failed to remove did: bl_hash={bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success,
+                        f'failed to remove did: receipt={receipt}')
 
         data = did_rpc_read(self.substrate, self.kp_src.ss58_address, key)
         self.assertEqual(data, None)

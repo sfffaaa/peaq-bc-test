@@ -8,10 +8,6 @@ import unittest
 # from tools.pallet_assets_test import pallet_assets_test
 
 
-def utf8_to_ascii(utf8str):
-    return [int(utf8str[i:i+2], 16) for i in range(0, len(utf8str), 2)]
-
-
 class TestPalletStorage(unittest.TestCase):
 
     def setUp(self):
@@ -25,8 +21,8 @@ class TestPalletStorage(unittest.TestCase):
 
         storage_add_payload(batch, item_type, item)
 
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'storage_add_item failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'storage_add_item failed: {receipt}')
         self.assertEqual(
             storage_rpc_read(self._substrate, kp_src.ss58_address, item_type)['item'],
             item)
@@ -39,8 +35,8 @@ class TestPalletStorage(unittest.TestCase):
 
         storage_add_payload(batch, item_type, item)
         storage_update_payload(batch, item_type, '0x0123')
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'storage_update_item failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'storage_update_item failed: {receipt}')
         self.assertEqual(
             storage_rpc_read(self._substrate, kp_src.ss58_address, item_type)['item'],
             '0x0123')

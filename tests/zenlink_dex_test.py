@@ -340,7 +340,8 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
     bt_sender = ExtrinsicBatch(si_relay, sender)
     for i, recipi in enumerate(kp_recipi):
         compose_xcm_rta_relay2para(bt_sender, recipi, amnts[i])
-    bt_sender.execute()
+    receipt = bt_sender.execute()
+    assert receipt.is_success
     wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'DOT')
 
 
@@ -359,7 +360,8 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
     bt_sender = ExtrinsicBatch(si_bifrost, sender)
     for i, recipi in enumerate(kp_recipi):
         compose_xtokens_transfer(bt_sender, recipi, amnts[i])
-    bt_sender.execute_n_clear()
+    receipt = bt_sender.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'BNC')
 
 
@@ -399,7 +401,8 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     compose_zdex_add_liquidity(bt_para_sudo, DOT_IDX, dot_liquidity, dot_liquidity)
     # Reset user1's account to very low amount, to test payment in local currency
     compose_balances_setbalance(bt_para_sudo, user1, 1000)
-    bt_para_sudo.execute_n_clear()
+    receipt = bt_para_sudo.execute_n_clear()
+    assert receipt.is_success
 
     # Check that liquidity pool is filled with DOT-tokens
     lpstatus = state_znlnkprot_lppair_status(si_peaq, DOT_IDX)
@@ -414,16 +417,19 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # 2.) Swap liquidity pair on Zenlink-DEX
     compose_zdex_swap_exact_for(bt_para_bene, DOT_IDX, amount_in1=dot(TOK_SWAP))
-    bt_para_bene.execute_n_clear()
+    receipt = bt_para_bene.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
     compose_zdex_swap_exact_for(bt_para_bob, DOT_IDX, amount_in0=peaq(TOK_SWAP))
-    bt_para_bob.execute_n_clear()
+    receipt = bt_para_bob.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
     # 3.) Remove some liquidity
     compose_zdex_remove_liquidity(bt_para_sudo, DOT_IDX, int(dot_liquidity / 4))
-    bt_para_sudo.execute_n_clear()
+    receipt = bt_para_sudo.execute_n_clear()
+    assert receipt.is_success
 
     show_test('create_pair_n_swap_test', True)
 
@@ -462,7 +468,8 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
                                       peaq(TOK_LIQUIDITY/2), 0)
     compose_bootstrap_contribute_call(bt_peaq_sudo, BNC_IDX,
                                       0, bnc(TOK_LIQUIDITY/2))
-    bt_peaq_sudo.execute_n_clear()
+    receipt = bt_peaq_sudo.execute_n_clear()
+    assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
     lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
@@ -478,7 +485,8 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
                                       peaq(TOK_LIQUIDITY/2), 0)
     compose_bootstrap_contribute_call(bt_peaq_cont, BNC_IDX,
                                       0, bnc(TOK_LIQUIDITY/2))
-    bt_peaq_cont.execute_n_clear()
+    receipt = bt_peaq_cont.execute_n_clear()
+    assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
     lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
@@ -488,13 +496,15 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     # 3.) Pool should be filled up (both targets are reached). now end bootstrap
     compose_call_bootstrap_update_end(bt_peaq_sudo, BNC_IDX)
     compose_bootstrap_end_call(bt_peaq_sudo, BNC_IDX)
-    bt_peaq_sudo.execute_n_clear()
+    receipt = bt_peaq_sudo.execute_n_clear()
+    assert receipt.is_success
     wait_for_event(si_peaq, 'ZenlinkProtocol', 'BootstrapEnd')
 
     # 4.) User swaps tokens by using the created pool
     balance = get_account_balance(si_peaq, kp_user.ss58_address)
     compose_zdex_swap_exact_for(bt_peaq_user, BNC_IDX, amount_in1=bnc(TOK_SWAP))
-    bt_peaq_user.execute_n_clear()
+    receipt = bt_peaq_user.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, 1)
 
     # Check that pool has been fully created after goal was reached
@@ -529,15 +539,18 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     compose_zdex_create_lppair(bt_sudo, DOT_IDX)
     compose_balances_setbalance(bt_sudo, usr1, peaq(30))
     compose_balances_setbalance(bt_sudo, usr2, peaq(20))
-    bt_sudo.execute_n_clear()
+    receipt = bt_sudo.execute_n_clear()
+    assert receipt.is_success
 
     # 7.
     compose_zdex_add_liquidity(bt_usr1, DOT_IDX, 1000, 1000)
-    bt_usr1.execute_n_clear()
+    receipt = bt_usr1.execute_n_clear()
+    assert receipt.is_success
 
     # 8.
     compose_zdex_swap_exact_for(bt_usr2, DOT_IDX, amount_in0=peaq(1))
-    bt_usr2.execute_n_clear()
+    receipt = bt_usr2.execute_n_clear()
+    assert receipt.is_success
 
     # 9.
     dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, 'DOT')
@@ -545,7 +558,8 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
 
     # 10. #error
     compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=1000, amnt_in_max=1000000000000)
-    bt_usr2.execute_n_clear()
+    receipt = bt_usr2.execute_n_clear()
+    assert receipt.is_success
 
 
 class TestZenlinkDex(unittest.TestCase):

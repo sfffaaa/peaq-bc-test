@@ -123,7 +123,7 @@ class TestPalletRBAC(unittest.TestCase):
         rbac_role2user_payload(batch, f'0x{ROLE_ID3}', f'0x{USER_ID3}')
 
         # Execute extrinsic-call-stack
-        receipt = batch.execute_receipt()
+        receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
 
     def check_ok_wo_enable_and_return(self, data, cnt=1):

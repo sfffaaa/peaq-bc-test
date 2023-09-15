@@ -293,6 +293,7 @@ class TestPalletVesting(unittest.TestCase):
 
         # To fund accounts, if sufficient  funds are not available
         funds(substrate,
+              KP_GLOBAL_SUDO,
               [kp_user.ss58_address, kp_source.ss58_address, kp_target.ss58_address, kp_target_second.ss58_address],
               1000 * TOKEN_NUM_BASE_DEV)
 

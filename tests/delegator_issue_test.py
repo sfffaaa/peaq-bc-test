@@ -138,7 +138,8 @@ class TestDelegator(unittest.TestCase):
         })
         self.batch_fund(batch, self.delegators[0], 10000 * 10 ** 18)
         self.batch_fund(batch, self.delegators[1], 10000 * 10 ** 18)
-        batch.execute_n_clear()
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'batch execute failed, error: {receipt.error_message}')
 
         # setup
         # Get the collator account
@@ -181,8 +182,8 @@ class TestDelegator(unittest.TestCase):
         self.batch_fund(batch, KP_COLLATOR, 20 * mega_tokens)
         self.batch_fund(batch, self.delegators[0], 10 * mega_tokens)
         self.batch_fund(batch, self.delegators[1], 10 * mega_tokens)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, 'Batch failed')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'batch execute failed, error: {receipt.error_message}')
 
         # Get the collator account
         receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * mega_tokens)
