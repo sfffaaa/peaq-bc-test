@@ -29,15 +29,15 @@ WS_URL =  'ws://127.0.0.1:9947'
 ```
 ETH_URL = 'http://127.0.0.1:9936'
 ```
-3.3. Please change the Ethereum chain ID for your targeted parachain/standalone chain.
-```
-ETH_CHAIN_ID = PEAQ_DEV_CHAIN_ID
-```
 4. Run the integration test
 ```
 python3 test.py
 ```
 
+# Runtime upgradae test
+```
+RUNTIME_UPGRADE_PATH=~/PublicSMB/peaq_dev_runtime.compact.compressed.0.0.8.wasm pytest
+```
 # Limitation
 1. In the peaq network, the standalone chain and parachain have different features and parameters; therefore, some tests may not pass, for example, the block creation time test and DID RPC test.
 2. This project requires the dependent libraries whose version is higher than 0.9.29 because of the weight structure.

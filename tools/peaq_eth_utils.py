@@ -1,9 +1,10 @@
-from tools.utils import show_extrinsic
 import json
 import binascii
 import os
+from tools.utils import ExtrinsicBatch
 
 GAS_LIMIT = 4294967
+TX_SUCCESS_STATUS = 1
 
 
 def generate_random_hex(num_bytes=16):
@@ -18,12 +19,11 @@ def get_contract(w3, address, file_name):
 
 
 def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
-        call_module='EVM',
-        call_function='call',
-        call_params={
+    batch = ExtrinsicBatch(substrate, kp_src)
+    batch.compose_call(
+        'EVM',
+        'call',
+        {
             'source': eth_src,
             'target': eth_dst,
             'input': '0x',
@@ -34,17 +34,8 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'nonce': None,
             'access_list': []
         })
+    return batch.execute()
 
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
 
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'evm_call')
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
+def get_eth_balance(substrate, eth_src):
+    return int(substrate.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)
