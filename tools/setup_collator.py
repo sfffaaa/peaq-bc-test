@@ -9,6 +9,11 @@ from tools.utils import PARACHAIN_WS_URL, KP_GLOBAL_SUDO
 import requests
 
 
+NUMBER = 16
+WS_PORT_START = 10048
+RPC_PORT_START = 11137
+
+
 def setup_collator(ws_port, rpc_port, kp):
     substrate = SubstrateInterface(
         url=f'ws://127.0.0.1:{ws_port}',
@@ -52,11 +57,12 @@ def fund_addrs(kps):
 
 
 if __name__ == '__main__':
-    NUMBER = 12
-    entries = [(10048 + i, 11137 + i, Keypair.create_from_mnemonic(Keypair.generate_mnemonic())) for i in range(0, NUMBER)]
+    entries = [(WS_PORT_START + i,
+                RPC_PORT_START + i,
+                Keypair.create_from_mnemonic(Keypair.generate_mnemonic())) for i in range(0, NUMBER)]
     fund_addrs([entry[2] for entry in entries])
     for ws_port, rpc_port, kp in entries:
-        setup_collator(ws_port, rpc_port, kp)
+        setup_collator(10044, rpc_port, kp)
 
     print('setup actions')
     substrate = SubstrateInterface(
