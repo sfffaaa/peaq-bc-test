@@ -569,15 +569,38 @@ class TestZenlinkDex(unittest.TestCase):
         wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
-    def test_zenlink_dex(self):
-        show_title('Zenlink-DEX-Protocol Test')
+    def test_create_pair_swap(self):
+        show_title('Zenlink-DEX-Protocol create pair swap Test')
         try:
             si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
             create_pair_n_swap_test(si_relay, si_peaq)
+
+        except AssertionError:
+            ex_type, ex_val, ex_tb = sys.exc_info()
+            tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
+            show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+
+    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
+    def test_booststrap(self):
+        show_title('Zenlink-DEX-Protocol boostrap Test')
+        try:
+            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
             bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
-            # zenlink_empty_lp_swap_test(si_relay, si_peaq)
+
+        except AssertionError:
+            ex_type, ex_val, ex_tb = sys.exc_info()
+            tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
+            show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+
+    @pytest.mark.skipif(True, reason='Zenlink protocol has an issue now')
+    def test_empty_lp_swap(self):
+        show_title('Zenlink-DEX-Protocol empty lp swap Test')
+        try:
+            si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
+            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+            zenlink_empty_lp_swap_test(si_relay, si_peaq)
 
         except AssertionError:
             ex_type, ex_val, ex_tb = sys.exc_info()
