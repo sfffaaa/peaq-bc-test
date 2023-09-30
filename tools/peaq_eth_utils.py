@@ -39,3 +39,27 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
 
 def get_eth_balance(substrate, eth_src):
     return int(substrate.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)
+
+
+def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
+    with open(abi_file_name) as f:
+        abi = json.load(f)
+
+    nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
+    tx = w3.eth.contract(
+        abi=abi,
+        bytecode=bytecode).constructor().build_transaction({
+            'from': kp_src.ss58_address,
+            'gas': 429496,
+            'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': eth_chain_id})
+
+    signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    print(f'create_contract: {tx_hash.hex()}')
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    address = tx_receipt['contractAddress']
+    return address

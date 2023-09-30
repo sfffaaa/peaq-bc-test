@@ -1,10 +1,9 @@
-import json
-
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from peaq.eth import calculate_evm_account, calculate_evm_addr
 from peaq.extrinsic import transfer
 from tools.utils import WS_URL, ETH_URL
 from peaq.eth import get_eth_chain_id
+from tools.peaq_eth_utils import deploy_contract
 from tools.peaq_eth_utils import call_eth_transfer_a_lot
 from tools.peaq_eth_utils import get_eth_balance, get_contract
 from tools.peaq_eth_utils import TX_SUCCESS_STATUS
@@ -47,30 +46,6 @@ def send_eth_token(w3, kp_src, kp_dst, token_num, eth_chain_id):
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     return tx_receipt
-
-
-def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
-    with open(abi_file_name) as f:
-        abi = json.load(f)
-
-    nonce = w3.eth.get_transaction_count(kp_src.ss58_address)
-    tx = w3.eth.contract(
-        abi=abi,
-        bytecode=bytecode).constructor().build_transaction({
-            'from': kp_src.ss58_address,
-            'gas': 429496,
-            'maxFeePerGas': w3.to_wei(250, 'gwei'),
-            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
-            'nonce': nonce,
-            'chainId': eth_chain_id})
-
-    signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_src.private_key)
-    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
-    print(f'create_contract: {tx_hash.hex()}')
-    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-    address = tx_receipt['contractAddress']
-    return address
 
 
 def get_contract_data(w3, address, filename):
