@@ -3,6 +3,7 @@ import sys
 sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
+from tools.asset import batch_create_asset, batch_set_metadata
 from peaq.utils import ExtrinsicBatch
 
 
@@ -25,35 +26,10 @@ def set_metadata(conn, kp_admin, asset_id, name, symbol, decimals):
     return batch.execute()
 
 
-def batch_set_metadata(batch, asset_id, name, symbol, decimals):
-    batch.compose_call(
-        'Assets',
-        'set_metadata',
-        {
-            'id': asset_id,
-            'name': name,
-            'symbol': symbol,
-            'decimals': decimals,
-        }
-    )
-
-
 def create_asset(conn, kp_creator, kp_admin, asset_id, min_balance=100):
     batch = ExtrinsicBatch(conn, kp_creator)
     batch_create_asset(batch, kp_admin.ss58_address, asset_id, min_balance)
     return batch.execute()
-
-
-def batch_create_asset(batch, addr_admin, asset_id, min_balance=100):
-    batch.compose_call(
-        'Assets',
-        'create',
-        {
-            'id': asset_id,
-            'admin': addr_admin,
-            'min_balance': min_balance,
-        }
-    )
 
 
 def freeze_asset(conn, kp_admin, asset_id):
