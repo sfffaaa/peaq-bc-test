@@ -396,6 +396,7 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
     event_id = e_obj.value['event']['event_id']
     attrib_id = e_obj.value['event']['attributes']
     if module_id == module and event_id == event:
+        print(f'attributes: {attrib_id}')
         if attributes:
             for key in attributes.keys():
                 if key not in attrib_id.keys():
