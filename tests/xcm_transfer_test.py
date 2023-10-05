@@ -7,16 +7,62 @@ from tools.utils import WS_URL, RELAYCHAIN_WS_URL, BIFROST_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
-from tools.utils import KP_GLOBAL_SUDO
+from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_set_metadata
 import time
 import pytest
 
 
+TEST_TOKENS = 10 * 10 ** 15
+INIT_TOKENS = 10 ** 18
+KP_CHARLIE = Keypair.create_from_uri('//Charlie')
+
 XCM_VER = 'V3'  # So far not tested with V2!
 
+UNITS_PER_SECOND = 5 * 10 ** 5
+BNC_TOKEN_LOCATION = {
+    XCM_VER: {
+        'parents': '1',
+        'interior': {'X2': [
+            {'Parachain': BIFROST_PD_CHAIN_ID},
+            {'GeneralKey': {
+                'length': 2,
+                'data': [0, 1] + [0] * 30,
+            }}
+        ]}
+    }
+}
+RELAY_TOKEN_LOCATION = {
+    XCM_VER: {
+        'parents': '1',
+        'interior': 'Here'
+    }
+}
 
-def send_from_xcm(substrate, kp_sign, kp_dst, paraid, token):
+
+def batch_register_location(batch, asset_id, location):
+    batch.compose_sudo_call(
+        'XcAssetConfig',
+        'register_asset_location',
+        {
+            'asset_location': location,
+            'asset_id': asset_id
+        }
+    )
+
+
+def batch_set_units_per_second(batch, location, units_per_second):
+    batch.compose_sudo_call(
+        'XcAssetConfig',
+        'set_asset_units_per_second',
+        {
+            'asset_location': location,
+            'units_per_second': units_per_second
+        }
+    )
+
+
+def send_from_relay(substrate, kp_sign, kp_dst, paraid, token):
     batch = ExtrinsicBatch(substrate, kp_sign)
     batch.compose_call(
         'XcmPallet',
@@ -70,7 +116,7 @@ def send_token_from_peaq(substrate, kp_sign, kp_dst, parachain_id, asset_id, tok
         'XTokens',
         'transfer',
         {
-            'currency_id': str(asset_id),
+            'currency_id': asset_id,
             'amount': str(token),
             'dest': {XCM_VER: {
                 'parents': '1',
@@ -91,7 +137,7 @@ def send_token_from_peaq_to_relay(substrate, kp_sign, kp_dst, asset_id, token):
         'XTokens',
         'transfer',
         {
-            'currency_id': str(asset_id),
+            'currency_id': asset_id,
             'amount': str(token),
             'dest': {XCM_VER: {
                 'parents': '1',
@@ -124,7 +170,7 @@ def send_token_from_biforst(substrate, kp_sign, kp_dst, parachain_id, token):
     return batch.execute()
 
 
-class TextXCMTransfer(unittest.TestCase):
+class TestXCMTransfer(unittest.TestCase):
     def get_parachain_id(self, relay_substrate):
         result = relay_substrate.query(
             'Paras',
@@ -135,13 +181,12 @@ class TextXCMTransfer(unittest.TestCase):
     def setUp(self):
         self.si_peaq = SubstrateInterface(url=WS_URL,)
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
-        self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_bitfrost = SubstrateInterface(url=BIFROST_WS_URL)
         self.alice = Keypair.create_from_uri('//Alice')
-        self.ferdie = Keypair.create_from_uri('//Ferdie')
 
     def setup_asset_if_not_exist(self, asset_id, metadata):
-        asset = self.si_peaq.query("Assets", "Asset", [asset_id])
-        if asset.value:
+        resp = self.si_peaq.query("Assets", "Asset", [asset_id])
+        if resp.value:
             return
 
         batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
@@ -151,9 +196,19 @@ class TextXCMTransfer(unittest.TestCase):
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f"Failed to create asset {asset_id}, {receipt.error_message}")
 
+    def setup_xc_register_if_not_exist(self, asset_id, location, units_per_second):
+        resp = self.si_peaq.query("XcAssetConfig", "AssetIdToLocation", [asset_id])
+        if resp.value:
+            return
+        batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
+        batch_register_location(batch, asset_id, location)
+        batch_set_units_per_second(batch, location, units_per_second)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f"Failed to register location {location}, {receipt.error_message}")
+
     def send_relaychain_token(self, kp_src, kp_dst, token):
         parachain_id = self.get_parachain_id(self.si_relay)
-        receipt = send_from_xcm(self.si_relay, kp_src, kp_dst, parachain_id, token)
+        receipt = send_from_relay(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
 
     def send_token_from_peaq(self, kp_src, kp_dst, asset_id, token):
@@ -167,123 +222,114 @@ class TextXCMTransfer(unittest.TestCase):
             return 0
         return resp.value['balance']
 
-    @pytest.mark.skip(reason="Fail")
+    def wait_for_peaq_account_asset_change(self, addr, asset_id, prev_token):
+        count = 0
+        while self.get_tokens_account(addr, asset_id) == prev_token and count < 10:
+            time.sleep(12)
+            count += 1
+
+    def wait_for_remote_account_change(self, substrate, kp_dst, prev_token):
+        count = 0
+        while not get_account_balance(substrate, kp_dst.ss58_address) != prev_token and count < 10:
+            time.sleep(12)
+            count += 1
+
+    # @pytest.mark.skip(reason="Success")
     def test_relay_tokens(self):
-        self.setup_asset_if_not_exist(1, {
+        asset_id = {
+            'Token': '1',
+        }
+        self.setup_asset_if_not_exist(asset_id, {
             'name': 'Relay Token',
             'symbol': 'DOT',
             'decimals': 12,
         })
+        self.setup_xc_register_if_not_exist(asset_id, RELAY_TOKEN_LOCATION, UNITS_PER_SECOND)
 
-        token = 100 * 10 ** 15
-        kp_dst = self.ferdie
-        # [TOOD] Need to change
-        # kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_dst, 1000)
+        kp_remote_src = KP_CHARLIE
+        kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKENS)
+        self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
 
         # Send foreigner tokens from the relay chain
-        receipt = self.send_relaychain_token(self.alice, kp_dst, token)
-        self.assertTrue(receipt.is_success)
+        receipt = self.send_relaychain_token(kp_remote_src, kp_self_dst, TEST_TOKENS)
+        self.assertTrue(receipt.is_success, f'Failed to send tokens from relay chain, {receipt.error_message}')
 
-        asset_id = 1
-        count = 0
-        while not self.get_tokens_account(kp_dst.ss58_address, asset_id) and count < 10:
-            time.sleep(12)
-            count += 1
+        self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, asset_id, 0)
 
-        # TODO Check: 20,000,000,000 fee??
-        self.assertNotEqual(
-            self.get_tokens_account(kp_dst.ss58_address, asset_id),
-            0,
-            f'Account {kp_dst.ss58_address} has no tokens'
-        )
-        got_token = self.get_tokens_account(kp_dst.ss58_address, asset_id)
+        now_token = self.get_tokens_account(kp_self_dst.ss58_address, asset_id)
         self.assertAlmostEqual(
-            got_token / token,
+            now_token / TEST_TOKENS,
             1, 5,
-            f'Actual {got_token} and expected {token} tokens are largely different')
+            f'Actual {now_token} and expected {TEST_TOKENS} tokens are largely different')
 
         # Send from peaq to relay chain
-        prev_balance = get_account_balance(self.si_relay, self.ferdie.ss58_address)
+        prev_balance = get_account_balance(self.si_relay, kp_remote_src.ss58_address)
 
-        token = got_token - 10000
-        receipt = send_token_from_peaq_to_relay(self.si_peaq, kp_dst, self.ferdie, 1, token)
+        token = now_token - 10000
+        receipt = send_token_from_peaq_to_relay(
+            self.si_peaq, kp_self_dst, kp_remote_src, asset_id, token)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
-        count = 0
-        while not get_account_balance(self.si_bifrost, self.ferdie.ss58_address) != prev_balance and count < 10:
-            time.sleep(12)
-            count += 1
-        now_balance = get_account_balance(self.si_bifrost, self.ferdie.ss58_address)
+
+        self.wait_for_remote_account_change(self.si_relay, kp_remote_src, prev_balance)
+
+        now_balance = get_account_balance(self.si_relay, kp_remote_src.ss58_address)
         self.assertAlmostEqual(
             (now_balance - prev_balance) / token,
             1, 5,
             f'Actual {now_balance} and expected {prev_balance} tokens are largely different')
 
-    @pytest.mark.skip(reason="NotCrossChainTransfer")
-    def test_from_self_to_self(self):
-        token = 23 * 10 ** 12
-        kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        receipt = self.send_token_from_peaq(self.alice, kp_dst, 0, token)
-        self.assertTrue(receipt.is_success)
-
-        balance = get_account_balance(self.si_peaq, kp_dst.ss58_address)
-        print(balance)
-        self.assertNotEqual(balance, 0)
-
     @pytest.mark.skip(reason="Success")
     def test_from_bnc_to_self(self):
-        self.setup_asset_if_not_exist(3, {
+        asset_id = {
+            'Token': '3',
+        }
+        self.setup_asset_if_not_exist(asset_id, {
             'name': 'Bifrost Native Token',
             'symbol': 'BNC',
             'decimals': 12,
         })
+        self.setup_xc_register_if_not_exist(asset_id, BNC_TOKEN_LOCATION, UNITS_PER_SECOND)
 
-        token = 100 * 10 ** 15
-        # kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        # [TODO]
-        kp_dst = self.ferdie
-        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_dst, 1000)
-        self.assertTrue(receipt.is_success)
+        kp_remote_src = KP_CHARLIE
+        kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKENS)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to self: {receipt.error_message}')
         parachain_id = self.get_parachain_id(self.si_relay)
 
         # Send foreigner tokens to peaq chain
-        receipt = send_token_from_biforst(self.si_bifrost, self.alice, kp_dst, parachain_id, token)
+        receipt = send_token_from_biforst(self.si_bitfrost, kp_remote_src, kp_self_dst, parachain_id, TEST_TOKENS)
         self.assertTrue(receipt.is_success, f"Failed to send token from bifrost to peaq chain: {receipt.error_message}")
 
-        asset_id = 3
-        count = 0
-        while not self.get_tokens_account(kp_dst.ss58_address, asset_id) and count < 10:
-            time.sleep(12)
-            count += 1
+        self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, asset_id, 0)
 
-        # TODO Check: 100,000,000,000 fee??
-        got_token = self.get_tokens_account(kp_dst.ss58_address, asset_id)
+        got_token = self.get_tokens_account(kp_self_dst.ss58_address, asset_id)
         self.assertAlmostEqual(
-            got_token / token,
+            got_token / TEST_TOKENS,
             1, 5,
-            f'Actual {got_token} and expected {token} tokens are largely different')
+            f'Actual {got_token} and expected {TEST_TOKENS} tokens are largely different')
 
         # Send foreigner tokens from peaq chain
-        prev_balance = get_account_balance(self.si_relay, self.ferdie.ss58_address)
+        prev_balance = get_account_balance(self.si_bitfrost, kp_remote_src.ss58_address)
 
         token = got_token - 10000
-        receipt = send_token_from_peaq(self.si_peaq, kp_dst, self.ferdie, 3000, 3, token)
+        receipt = send_token_from_peaq(
+            self.si_peaq, kp_self_dst,
+            kp_remote_src, BIFROST_PD_CHAIN_ID, asset_id, token)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
-        count = 0
-        while not get_account_balance(self.si_bifrost, self.ferdie.ss58_address) != prev_balance and count < 10:
-            time.sleep(12)
-            count += 1
-        now_balance = get_account_balance(self.si_bifrost, self.ferdie.ss58_address)
+        self.wait_for_remote_account_change(self.si_bitfrost, kp_remote_src, prev_balance)
+        now_balance = get_account_balance(self.si_bitfrost, kp_remote_src.ss58_address)
         self.assertAlmostEqual(
             (now_balance - prev_balance) / token,
             1, 5,
             f'Actual {now_balance} and expected {prev_balance} tokens are largely different')
 
+    # [TODO] Need to check on other...
     @pytest.mark.skip(reason="Fail...")
     def test_from_self_to_bnc(self):
         token = 23 * 10 ** 12
         kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-        receipt = send_token_from_peaq(self.si_peaq, self.alice, kp_dst, 3000, 0, token)
+        receipt = send_token_from_peaq(self.si_peaq, self.alice, kp_dst, BIFROST_PD_CHAIN_ID, 0, token)
         self.assertTrue(receipt.is_success)
 
         # asset_id = 0
