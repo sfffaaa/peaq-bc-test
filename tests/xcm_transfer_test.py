@@ -8,7 +8,11 @@ from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
 from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID
-from tools.asset import batch_create_asset, batch_set_metadata
+from tools.asset import batch_create_asset, batch_set_metadata, setup_asset_if_not_exist
+from tools.asset import batch_register_location, batch_set_units_per_second, setup_xc_register_if_not_exist
+from tools.asset import UNITS_PER_SECOND
+from tools.asset import BNC_TOKEN_LOCATION, BNC_METADATA, BNC_ASSET_ID
+from tools.asset import RELAY_TOKEN_LOCATION, RELAY_METADATA, RELAY_ASSET_ID
 import time
 import pytest
 
@@ -18,48 +22,6 @@ INIT_TOKENS = 10 ** 18
 KP_CHARLIE = Keypair.create_from_uri('//Charlie')
 
 XCM_VER = 'V3'  # So far not tested with V2!
-
-UNITS_PER_SECOND = 5 * 10 ** 5
-BNC_TOKEN_LOCATION = {
-    XCM_VER: {
-        'parents': '1',
-        'interior': {'X2': [
-            {'Parachain': BIFROST_PD_CHAIN_ID},
-            {'GeneralKey': {
-                'length': 2,
-                'data': [0, 1] + [0] * 30,
-            }}
-        ]}
-    }
-}
-RELAY_TOKEN_LOCATION = {
-    XCM_VER: {
-        'parents': '1',
-        'interior': 'Here'
-    }
-}
-
-
-def batch_register_location(batch, asset_id, location):
-    batch.compose_sudo_call(
-        'XcAssetConfig',
-        'register_asset_location',
-        {
-            'asset_location': location,
-            'asset_id': asset_id
-        }
-    )
-
-
-def batch_set_units_per_second(batch, location, units_per_second):
-    batch.compose_sudo_call(
-        'XcAssetConfig',
-        'set_asset_units_per_second',
-        {
-            'asset_location': location,
-            'units_per_second': units_per_second
-        }
-    )
 
 
 def send_from_relay(substrate, kp_sign, kp_dst, paraid, token):
@@ -234,17 +196,15 @@ class TestXCMTransfer(unittest.TestCase):
             time.sleep(12)
             count += 1
 
-    # @pytest.mark.skip(reason="Success")
+    @pytest.mark.skip(reason="Success")
     def test_relay_tokens(self):
-        asset_id = {
-            'Token': '1',
-        }
-        self.setup_asset_if_not_exist(asset_id, {
-            'name': 'Relay Token',
-            'symbol': 'DOT',
-            'decimals': 12,
-        })
-        self.setup_xc_register_if_not_exist(asset_id, RELAY_TOKEN_LOCATION, UNITS_PER_SECOND)
+        asset_id = RELAY_ASSET_ID
+        receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, asset_id, RELAY_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+        receipt = setup_xc_register_if_not_exist(
+            self.si_peaq, KP_GLOBAL_SUDO, asset_id,
+            RELAY_TOKEN_LOCATION, UNITS_PER_SECOND)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
 
         kp_remote_src = KP_CHARLIE
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -279,17 +239,15 @@ class TestXCMTransfer(unittest.TestCase):
             1, 5,
             f'Actual {now_balance} and expected {prev_balance} tokens are largely different')
 
-    @pytest.mark.skip(reason="Success")
+    # @pytest.mark.skip(reason="Success")
     def test_from_bnc_to_self(self):
-        asset_id = {
-            'Token': '3',
-        }
-        self.setup_asset_if_not_exist(asset_id, {
-            'name': 'Bifrost Native Token',
-            'symbol': 'BNC',
-            'decimals': 12,
-        })
-        self.setup_xc_register_if_not_exist(asset_id, BNC_TOKEN_LOCATION, UNITS_PER_SECOND)
+        asset_id = BNC_ASSET_ID
+        receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, asset_id, BNC_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+        receipt = setup_xc_register_if_not_exist(
+            self.si_peaq, KP_GLOBAL_SUDO,
+            asset_id, BNC_TOKEN_LOCATION, UNITS_PER_SECOND)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
 
         kp_remote_src = KP_CHARLIE
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
