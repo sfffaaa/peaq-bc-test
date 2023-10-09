@@ -1,7 +1,8 @@
 import sys
+sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from utils import show_extrinsic, WS_URL
+from tools.utils import show_extrinsic, WS_URL
 # from scalecodec.base import RuntimeConfiguration
 # from scalecodec.base import ScaleBytes
 
@@ -46,14 +47,6 @@ SCALE_CODEC = {
         "AuthorId": "GenericAccountId",
     }
 }
-
-
-def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{out_str} {addr}')
-    pp.pprint(result.value)
-    print('')
-    return result.value['data']['free']
 
 
 def upgrade(substrate, kp_src):

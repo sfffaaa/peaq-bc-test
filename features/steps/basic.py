@@ -6,11 +6,14 @@ from substrateinterface import Keypair
 from tools.utils import calculate_multi_sig, TOKEN_NUM_BASE
 from tools.utils import transfer
 import random
-from tools.two_address_substrate_with_extrinsic import show_account, send_proposal, send_approval
+from tools.utils import show_account
+from tools.utils import send_proposal, send_approval, get_as_multi_extrinsic_id
 from tools.block_creation_utils import get_block_creation_times
-from tools.block_creation_time_test import BLOCK_TRAVERSE, BLOCK_CREATION_MS, BLOCK_TOLERATE_PERCENTAGE
 
 THRESHOLD = 2
+BLOCK_TRAVERSE = 20
+BLOCK_CREATION_MS = 12000
+BLOCK_TOLERATE_PERCENTAGE = 10
 
 
 @given('Use the Alice keypair')
@@ -53,8 +56,9 @@ def send_transfer_proposal(context):
             'value': context._num * TOKEN_NUM_BASE
         })
 
-    timepoint = send_proposal(
+    receipt = send_proposal(
         context._substrate, context._sender, context._receiver, THRESHOLD, payload)
+    timepoint = get_as_multi_extrinsic_id(receipt)
 
     context._proposal_info = {
         'timepoint': timepoint,
@@ -78,7 +82,7 @@ def check_token_back_to_bob(context):
     post_multisig_token = show_account(
         context._substrate,
         context._multi_sig_addr, 'after transfer')
-    assert(post_multisig_token + context._num * TOKEN_NUM_BASE == context._receiver_balance)
+    assert (post_multisig_token + context._num * TOKEN_NUM_BASE) == context._receiver_balance
 
 
 @when('Get all block creation time')
@@ -91,5 +95,5 @@ def check_block_creation_time(context):
     ave_time = context._ave_time
     if abs(context._ave_time - BLOCK_CREATION_MS) / float(BLOCK_CREATION_MS) * 100. > BLOCK_TOLERATE_PERCENTAGE:
         print(f'The average block time {ave_time} is longer than the tolerate rate {BLOCK_TOLERATE_PERCENTAGE} * {BLOCK_CREATION_MS}')
-        assert(f'Check the average block creation time {ave_time}')
+        assert f'Check the average block creation time {ave_time}'
     print(f'The block creation time {ave_time} (ms) is okay')
