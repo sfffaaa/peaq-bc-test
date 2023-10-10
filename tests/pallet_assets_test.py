@@ -3,17 +3,8 @@ import sys
 sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
-from tools.asset import batch_create_asset, batch_set_metadata
+from tools.asset import batch_create_asset, batch_set_metadata, batch_mint, get_valid_asset_id
 from peaq.utils import ExtrinsicBatch
-
-
-def get_valid_asset_id(conn):
-    for i in range(0, 100):
-        asset = conn.query("Assets", "Asset", [i])
-        if asset.value:
-            continue
-        else:
-            return i
 
 
 def get_asset_balance(conn, addr, asset_id):
@@ -68,18 +59,6 @@ def mint(conn, kp_admin, addr_src, asset_id, token_amount):
     batch = ExtrinsicBatch(conn, kp_admin)
     batch_mint(batch, addr_src, asset_id, token_amount)
     return batch.execute()
-
-
-def batch_mint(batch, addr_src, asset_id, token_amount):
-    batch.compose_call(
-        'Assets',
-        'mint',
-        {
-            'id': asset_id,
-            'beneficiary': addr_src,
-            'amount': token_amount,
-        }
-    )
 
 
 def burn(conn, kp_admin, addr_src, asset_id, token_amount):

@@ -90,6 +90,18 @@ def batch_set_metadata(batch, asset_id, name, symbol, decimals):
     )
 
 
+def batch_mint(batch, addr_src, asset_id, token_amount):
+    batch.compose_call(
+        'Assets',
+        'mint',
+        {
+            'id': asset_id,
+            'beneficiary': addr_src,
+            'amount': token_amount,
+        }
+    )
+
+
 def setup_asset_if_not_exist(si_peaq, kp_sudo, asset_id, metadata, min_balance=100):
     resp = si_peaq.query("Assets", "Asset", [asset_id])
     if resp.value:
@@ -114,3 +126,12 @@ def setup_xc_register_if_not_exist(si_peaq, KP_GLOBAL_SUDO, asset_id, location, 
     batch_register_location(batch, asset_id, location)
     batch_set_units_per_second(batch, location, units_per_second)
     return batch.execute()
+
+
+def get_valid_asset_id(conn):
+    for i in range(1, 100):
+        asset = conn.query("Assets", "Asset", [{'Token': i}])
+        if asset.value:
+            continue
+        else:
+            return {'Token': i}
