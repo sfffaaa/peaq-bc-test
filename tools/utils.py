@@ -410,6 +410,17 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
         return False
 
 
+def batch_fund(batch, kp_or_addr, amount):
+    addr = kp_or_addr
+    if isinstance(kp_or_addr, Keypair):
+        addr = kp_or_addr.ss58_address
+    batch.compose_sudo_call('Balances', 'set_balance', {
+        'who': addr,
+        'new_free': amount,
+        'new_reserved': 0
+    })
+
+
 if __name__ == '__main__':
     data = '5F1e2nuSgxwWZiL9jTxv3jrMQHeHHhuwP7oDmU87SMp1Ncxv'
     print(calculate_evm_addr(data))
