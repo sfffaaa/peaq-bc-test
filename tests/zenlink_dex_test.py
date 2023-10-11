@@ -17,8 +17,9 @@ from tools.runtime_upgrade import wait_until_block_height
 from tests import utils_func as TestUtils
 from tools.asset import setup_asset_if_not_exist, setup_xc_register_if_not_exist
 from tools.asset import UNITS_PER_SECOND
-from tools.asset import BNC_TOKEN_LOCATION, BNC_ASSET_ID, BNC_METADATA
-from tools.asset import RELAY_TOKEN_LOCATION, RELAY_ASSET_ID, RELAY_METADATA
+from tools.asset import ACA_ASSET_LOCATION, ACA_METADATA
+from tools.asset import ACA_ASSET_ID
+from tools.asset import RELAY_ASSET_LOCATION, RELAY_ASSET_ID, RELAY_METADATA
 
 
 # Technical constants
@@ -114,7 +115,7 @@ def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
 
 def compose_xtokens_transfer(batch, kp_beneficiary, amount):
     params = {
-        'currency_id': {'Native': 'BNC'},
+        'currency_id': ACA_ASSET_ID['para'],
         'amount': str(amount),
         'dest': {XCM_VER: {
             'parents': '1',
@@ -594,10 +595,10 @@ class TestZenlinkDex(unittest.TestCase):
         try:
             si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID, RELAY_METADATA)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,
-                RELAY_ASSET_ID, RELAY_TOKEN_LOCATION, UNITS_PER_SECOND)
+                RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
             create_pair_n_swap_test(si_relay, si_peaq)
 
         except AssertionError:
@@ -612,10 +613,10 @@ class TestZenlinkDex(unittest.TestCase):
         try:
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
             si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
-            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, BNC_ASSET_ID, BNC_METADATA)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, ACA_ASSET_ID['peaq'], ACA_METADATA)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,
-                BNC_ASSET_ID, BNC_TOKEN_LOCATION, UNITS_PER_SECOND)
+                ACA_ASSET_ID['peaq'], ACA_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
 
             bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
 
@@ -631,10 +632,10 @@ class TestZenlinkDex(unittest.TestCase):
         try:
             si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID, RELAY_METADATA)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,
-                RELAY_ASSET_ID, RELAY_TOKEN_LOCATION, UNITS_PER_SECOND)
+                RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
 
             zenlink_empty_lp_swap_test(si_relay, si_peaq)
 

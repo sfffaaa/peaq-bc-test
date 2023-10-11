@@ -5,38 +5,52 @@ import copy
 
 XCM_VER = 'V3'  # So far not tested with V2!
 
-UNITS_PER_SECOND = 5 * 10 ** 5
-BNC_CURRENCY_ID_ON_ACA = {'Token': 'ACA'}
-BNC_TOKEN_LOCATION = {
-    XCM_VER: {
-        'parents': '1',
-        'interior': {'X2': [
-            {'Parachain': BIFROST_PD_CHAIN_ID},
-            {'GeneralKey': {
-                'length': 2,
-                'data': [0, 0] + [0] * 30,
-            }}
-        ]}
+ACA_ASSET_ID = {
+    'peaq': {
+        'Token': '3',
+    },
+    'para': {
+        'Token': 'ACA',
     }
 }
-BNC_METADATA = {
-    'name': 'Bifrost Native Token',
-    'symbol': 'BNC',
+ACA_ASSET_LOCATION = {
+    'peaq': {
+        XCM_VER: {
+            'parents': '1',
+            'interior': {'X2': [
+                {'Parachain': BIFROST_PD_CHAIN_ID},
+                {'GeneralKey': {
+                    'length': 2,
+                    'data': [0, 0] + [0] * 30,
+                }}
+            ]}
+        }
+    },
+    'para': None
+}
+
+UNITS_PER_SECOND = 5 * 10 ** 5
+ACA_METADATA = {
+    'name': 'ACA',
+    'symbol': 'ACA',
     'decimals': 12,
 }
-BNC_ASSET_ID = {
-    'Token': '3',
-}
 
 
-RELAY_TOKEN_LOCATION = {
-    XCM_VER: {
-        'parents': '1',
-        'interior': 'Here'
-    }
+RELAY_ASSET_LOCATION = {
+    'peaq': {
+        XCM_VER: {
+            'parents': '1',
+            'interior': 'Here'
+        }
+    },
+    'para': None,
 }
 RELAY_ASSET_ID = {
-    'Token': '1',
+    'peaq': {
+        'Token': '1',
+    },
+    'para': None,
 }
 RELAY_METADATA = {
     'name': 'Relay Token',
@@ -44,39 +58,44 @@ RELAY_METADATA = {
     'decimals': 12,
 }
 
-PEAQ_CURRENCY_ID_ON_ACA = {'ForeignAsset': 0}
-PEAQ_TOKEN_SELF_LOCATION = {
-    XCM_VER: {
-        'parents': '0',
-        'interior': {
-            'X1': {
-                'GeneralKey': {
-                    'length': 2,
-                    'data': [0, 0] + [0] * 30,
+PEAQ_ASSET_ID = {
+    'peaq': 'SelfReserve',
+    'para': {
+        'ForeignAsset': '0',
+    }
+}
+PEAQ_ASSET_LOCATION = {
+    'peaq': {
+        XCM_VER: {
+            'parents': '0',
+            'interior': {
+                'X1': {
+                    'GeneralKey': {
+                        'length': 2,
+                        'data': [0, 0] + [0] * 30,
+                    }
                 }
             }
         }
-    }
+    },
+    'para': {
+        XCM_VER: {
+            'parents': '1',
+            'interior': {'X2': [
+                {'Parachain': PEAQ_PD_CHAIN_ID},
+                {'GeneralKey': {
+                    'length': 2,
+                    'data': [0, 0] + [0] * 30,
+                }}
+            ]}
+        }
+    },
 }
-PEAQ_TOKEN_LOCATION = {
-    XCM_VER: {
-        'parents': '1',
-        'interior': {'X2': [
-            {'Parachain': PEAQ_PD_CHAIN_ID},
-            {'GeneralKey': {
-                'length': 2,
-                'data': [0, 0] + [0] * 30,
-            }}
-        ]}
-    }
-}
-
 PEAQ_METADATA = {
     'name': 'Peaq Token',
     'symbol': 'AGUNG',
     'decimals': 18,
 }
-PEAQ_ASSET_ID = 'SelfReserve'
 
 
 def batch_register_location(batch, asset_id, location):
