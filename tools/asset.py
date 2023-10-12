@@ -216,3 +216,7 @@ def get_valid_asset_id(conn):
             continue
         else:
             return {'Token': i}
+
+
+def get_asset_balance(conn, addr, asset_id):
+    return conn.query("Assets", "Account", [asset_id, addr])

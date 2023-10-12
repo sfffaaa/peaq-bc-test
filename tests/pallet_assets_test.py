@@ -4,11 +4,8 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
 from tools.asset import batch_create_asset, batch_set_metadata, batch_mint, get_valid_asset_id
+from tools.asset import get_asset_balance
 from peaq.utils import ExtrinsicBatch
-
-
-def get_asset_balance(conn, addr, asset_id):
-    return conn.query("Assets", "Account", [asset_id, addr])
 
 
 def set_metadata(conn, kp_admin, asset_id, name, symbol, decimals):

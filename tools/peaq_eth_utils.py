@@ -2,7 +2,9 @@ import json
 import binascii
 import os
 from peaq.utils import ExtrinsicBatch
+from web3 import Web3
 
+ERC20_ADDR_PREFIX = '0xffffffff00000000000000000000000000000000'
 GAS_LIMIT = 4294967
 TX_SUCCESS_STATUS = 1
 
@@ -63,3 +65,8 @@ def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
 
     address = tx_receipt['contractAddress']
     return address
+
+
+def calculate_asset_to_evm_address(asset_id):
+    number = int(ERC20_ADDR_PREFIX, 16) + asset_id['Token']
+    return Web3.to_checksum_address(hex(number))

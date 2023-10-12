@@ -6,23 +6,18 @@ from peaq.utils import ExtrinsicBatch
 from peaq.eth import calculate_evm_account
 from tools.peaq_eth_utils import get_contract
 from peaq.eth import get_eth_chain_id
+from tools.peaq_eth_utils import calculate_asset_to_evm_address
+from tools.peaq_eth_utils import GAS_LIMIT
 from web3 import Web3
 
 
 ABI_FILE = 'ETH/erc20/abi'
-ERC20_ADDR_PREFIX = '0xffffffff00000000000000000000000000000000'
-GAS_LIMIT = 4294967
 
 TEST_METADATA = {
     'name': 'WOW',
     'symbol': 'WOW',
     'decimals': 18,
 }
-
-
-def calculate_asset_to_evm_address(asset_id):
-    number = int(ERC20_ADDR_PREFIX, 16) + asset_id['Token']
-    return Web3.to_checksum_address(hex(number))
 
 
 def batch_transfer(batch, addr_dst, token_num):
