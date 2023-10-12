@@ -172,9 +172,9 @@ class TestDelegator(unittest.TestCase):
         batch.compose_sudo_call('StakingCoefficientRewardCalculator', 'set_coefficient', {
             'coefficient': 2,
         })
-        self.batch_fund(batch, KP_COLLATOR, 20 * mega_tokens)
-        self.batch_fund(batch, self.delegators[0], 10 * mega_tokens)
-        self.batch_fund(batch, self.delegators[1], 10 * mega_tokens)
+        batch_fund(batch, KP_COLLATOR, 20 * mega_tokens)
+        batch_fund(batch, self.delegators[0], 10 * mega_tokens)
+        batch_fund(batch, self.delegators[1], 10 * mega_tokens)
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'batch execute failed, error: {receipt.error_message}')
 

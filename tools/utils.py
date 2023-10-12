@@ -2,6 +2,9 @@ import sys
 import time
 sys.path.append('.')
 
+from peaq import utils as PeaqUtils
+PeaqUtils.DEBUG = True
+
 from substrateinterface import Keypair
 from peaq.utils import get_account_balance, show_extrinsic
 from peaq.sudo_extrinsic import fund
