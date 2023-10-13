@@ -9,16 +9,22 @@ from tools.peaq_eth_utils import get_eth_balance
 from peaq.eth import get_eth_chain_id
 from peaq.utils import ExtrinsicBatch
 from peaq.utils import get_block_hash
-# import eth_account
 from eth_account import Account as ETHAccount
 from eth_account.messages import encode_structured_data
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
 from tools.peaq_eth_utils import GAS_LIMIT, get_contract
+from peaq.utils import get_account_balance
 from web3 import Web3
-import pytest
+from peaq.eth import calculate_evm_account, calculate_evm_addr
+from tools.utils import batch_fund
 
 ABI_FILE = 'ETH/erc20/abi'
 FUND_NUMBER = 3 * 10 ** 18
+
+
+def get_evm_mapping(substrate, kp_target):
+    result = substrate.query("Vesting", "Vesting", [kp_target.ss58_address])
+    return len((result.value)) - 1
 
 
 def claim_account(substrate, kp_sub, kp_eth, eth_signature):
@@ -35,6 +41,20 @@ def batch_claim_account(batch, kp_eth, eth_signature):
             'eth_address': kp_eth.ss58_address,
             'eth_signature': eth_signature,
         }
+    )
+
+
+def claim_default_account(substrate, kp_sub):
+    batch = ExtrinsicBatch(substrate, kp_sub)
+    batch_claim_default_account(batch)
+    return batch.execute()
+
+
+def batch_claim_default_account(batch):
+    batch.compose_call(
+        'EVMAccounts',
+        'claim_default_account',
+        {}
     )
 
 
@@ -93,10 +113,41 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self._substrate = SubstrateInterface(url=WS_URL)
         self._eth_chain_id = get_eth_chain_id(self._substrate)
 
-    @pytest.mark.skip(reason="Success")
+    def test_remove_account(self):
+        kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        kp_eth = Keypair.create_from_mnemonic(Keypair.generate_mnemonic(), crypto_type=KeypairType.ECDSA)
+        receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
+        self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
+        signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
+        receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
+        self.assertTrue(receipt.is_success, f'Failed to claim account {kp_sub.ss58_address}, {receipt.error_message}')
+
+        # Execute
+        batch = ExtrinsicBatch(self._substrate, kp_sub)
+        batch.compose_call(
+            'Balances',
+            'transfer_all',
+            {
+                'dest': KP_GLOBAL_SUDO.ss58_address,
+                'keep_alive': False,
+            }
+        )
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to remove account {kp_sub.ss58_address}, {receipt.error_message}')
+
+        # Check
+        out = self._substrate.query('EVMAccounts', 'Accounts', [kp_eth.ss58_address])
+        self.assertEqual(out.value, None, f'Account {kp_eth.ss58_address} is not removed')
+        out = self._substrate.query('EVMAccounts', 'EvmAddresses', [kp_sub.ss58_address])
+        self.assertEqual(out.value, None, f'Account {kp_sub.ss58_address} is not removed')
+
     def test_claim_account_native(self):
         kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         kp_eth = Keypair.create_from_mnemonic(Keypair.generate_mnemonic(), crypto_type=KeypairType.ECDSA)
+        origin_evm_sub_addr = calculate_evm_account(calculate_evm_addr(kp_sub.ss58_address))
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_fund(batch, kp_sub.ss58_address, FUND_NUMBER)
+        batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
         receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
 
@@ -108,7 +159,9 @@ class TestPalletEvmAccounts(unittest.TestCase):
 
         # Check
         now_value = get_eth_balance(self._substrate, kp_eth.ss58_address)
-        self.assertNotEqual(now_value, 0, f'The balance is the same, {now_value} == 0')
+        self.assertNotEqual(now_value, 0, f'The balance shold not the same, {now_value} == 0')
+        now_value = get_account_balance(self._substrate, origin_evm_sub_addr)
+        self.assertEqual(now_value, 0, f'The balance is the same, {now_value} != 0')
 
     def test_claim_account_erc20(self):
         # Create two sub wallet
@@ -163,7 +216,3 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self.assertEqual(
             balance, transfer_number,
             f'Balance is not correct, {balance} != {transfer_number}')
-
-    @pytest.mark.skip(reason="Not implemented")
-    def test_claim_default_account(self):
-        pass
