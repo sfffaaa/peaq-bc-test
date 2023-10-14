@@ -291,7 +291,7 @@ def state_tokens_accounts(si_peaq, kp_user, token):
 
 
 # [TODO] Need to extract
-def state_assets_accounts(si_peaq, kp_user, token):
+def state_token_assets_accounts(si_peaq, kp_user, token):
     params = [{'Token': token}, kp_user.ss58_address]
     query = si_peaq.query('Assets', 'Account', params)
     return int(query['balance'].value)
@@ -416,12 +416,12 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', '//Dave'], [amount, amount])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
-    dot_liquidity = state_assets_accounts(si_peaq, kp_para_sudo, 1)
+    dot_liquidity = state_token_assets_accounts(si_peaq, kp_para_sudo, 1)
     # Remove the existing liquidity from the account
     dot_liquidity = dot_liquidity - MORE_EXISTENTIAL_TOKENS
     assert dot_liquidity >= dot(TOK_LIQUIDITY)
     # Check that beneficiary has DOT and PEAQ tokens available
-    dot_balance = state_assets_accounts(si_peaq, kp_beneficiary, 1)
+    dot_balance = state_token_assets_accounts(si_peaq, kp_beneficiary, 1)
     assert dot_balance > dot(TOK_SWAP)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
@@ -577,8 +577,21 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     receipt = bt_usr1.execute_n_clear()
     assert receipt.is_success
 
-    # 8.
+    # 8 #less then existential deposit
+    compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=990, amnt_in_max=1000000000000)
+    receipt = bt_usr2.execute_n_clear()
+    assert not receipt.is_success
+
+    # 9. will get 8xx dot tokens
     compose_zdex_swap_exact_for(bt_usr2, DOT_IDX, amount_in0=peaq(1))
+    receipt = bt_usr2.execute_n_clear()
+    assert receipt.is_success
+
+    dot_balance = state_token_assets_accounts(si_peaq, bt_usr2.keypair, 1)
+    assert dot_balance > 0
+
+    # 10. #error, overflow
+    compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=1000, amnt_in_max=1000000000000)
     receipt = bt_usr2.execute_n_clear()
     assert not receipt.is_success
 
@@ -632,7 +645,7 @@ class TestZenlinkDex(unittest.TestCase):
         try:
             si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA, 100)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,
                 RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
