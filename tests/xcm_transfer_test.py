@@ -20,6 +20,7 @@ from tools.asset import PEAQ_METADATA, PEAQ_ASSET_ID
 from tools.asset import ACA_ASSET_ID
 from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata
+from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
 import time
 # import pytest
 
@@ -51,6 +52,44 @@ TEST_ASSET_ID = {
 }
 
 TEST_ASSET_TOKEN = {
+    'peaq': {
+        XCM_VER: {
+            'parents': '0',
+            'interior': {
+                'X1': {
+                    'GeneralKey': {
+                        'length': 2,
+                        'data': [0, TEST_ASSET_IDX] + [0] * 30,
+                    }
+                }
+            }
+        }
+    },
+    'para': {
+        XCM_VER: {
+            'parents': '1',
+            'interior': {
+                'X2': [{'Parachain': PEAQ_PD_CHAIN_ID}, {
+                    'GeneralKey': {
+                        'length': 2,
+                        'data': [0, TEST_ASSET_IDX] + [0] * 30,
+                    }
+                }]
+            }
+        }
+    }
+}
+
+TEST_LP_ASSET_ID = {
+    'peaq': {
+        'LPToken': [0, 1],
+    },
+    'para': {
+        'ForeignAsset': 0,
+    }
+}
+
+TEST_LP_ASSET_TOKEN = {
     'peaq': {
         XCM_VER: {
             'parents': '0',
@@ -229,7 +268,7 @@ class TestXCMTransfer(unittest.TestCase):
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f"Failed to register location {location}, {receipt.error_message}")
 
-    def send_relay_token_from_peaq_to_relay(self, kp_src, kp_dst, token):
+    def send_relay_token_from_relay_to_peaq(self, kp_src, kp_dst, token):
         parachain_id = self.get_parachain_id(self.si_relay)
         receipt = send_token_from_relay_to_peaq(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
@@ -246,39 +285,32 @@ class TestXCMTransfer(unittest.TestCase):
             return 0
         return resp.value['free']
 
-    def wait_for_aca_account_token_change(self, addr, asset_id, prev_token=0):
-        if not prev_token:
-            prev_token = self.get_tokens_account_from_pallet_tokens(addr, asset_id)
-        count = 0
-        while self.get_tokens_account_from_pallet_tokens(addr, asset_id) == prev_token and count < 10:
-            time.sleep(12)
-            count += 1
-        now_token = self.get_tokens_account_from_pallet_tokens(addr, asset_id)
-        if now_token == prev_token:
-            raise IOError(f"Account {addr} balance {prev_token} not changed on aca")
-        return now_token
+    def get_balance_account_from_pallet_balance(self, addr, _):
+        return get_account_balance(self.si_peaq, addr)
 
-    def wait_for_peaq_account_asset_change(self, addr, asset_id, prev_token=0):
+    def _wait_for_account_asset_change(self, addr, asset_id, prev_token, func):
         if not prev_token:
-            prev_token = self.get_tokens_account_from_pallet_assets(addr, asset_id)
+            prev_token = func(addr, asset_id)
         count = 0
-        while self.get_tokens_account_from_pallet_assets(addr, asset_id) == prev_token and count < 10:
+        while func(addr, asset_id) == prev_token and count < 10:
             time.sleep(12)
             count += 1
-        now_token = self.get_tokens_account_from_pallet_assets(addr, asset_id)
+        now_token = func(addr, asset_id)
         if now_token == prev_token:
             raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
         return now_token
 
+    def wait_for_aca_account_token_change(self, addr, asset_id, prev_token=0):
+        return self._wait_for_account_asset_change(
+            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_tokens)
+
+    def wait_for_peaq_account_asset_change(self, addr, asset_id, prev_token=0):
+        return self._wait_for_account_asset_change(
+            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_assets)
+
     def wait_for_account_change(self, substrate, kp_dst, prev_token):
-        count = 0
-        while not get_account_balance(substrate, kp_dst.ss58_address) != prev_token and count < 10:
-            time.sleep(12)
-            count += 1
-        now_token = get_account_balance(substrate, kp_dst.ss58_address)
-        if now_token == prev_token:
-            raise IOError(f"Account {kp_dst.ss58_address} balance {prev_token} not changed on {substrate.url}")
-        return now_token
+        return self._wait_for_account_asset_change(
+            kp_dst.ss58_address, None, prev_token, self.get_balance_account_from_pallet_balance)
 
     # @pytest.mark.skip(reason="Success")
     def test_from_relay_to_peaq(self):
@@ -295,7 +327,7 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
 
         # Send foreigner tokens from the relay chain
-        receipt = self.send_relay_token_from_peaq_to_relay(kp_remote_src, kp_self_dst, TEST_TOKEN_NUM)
+        receipt = self.send_relay_token_from_relay_to_peaq(kp_remote_src, kp_self_dst, TEST_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to send tokens from relay chain, {receipt.error_message}')
 
         now_token = self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, RELAY_ASSET_ID['peaq'])
@@ -438,4 +470,82 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to send token from para to peaq: {receipt.error_message}')
 
         now_balance = self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
+        self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
+
+    # Note, lp asset should create by zenlink protocol
+    def test_lp_asset_from_peaq_to_aca(self):
+        # Setup
+        kp_peaq = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        kp_aca = kp_peaq
+        batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
+        batch_fund(batch, kp_peaq, INIT_TOKEN_NUM)
+        batch_fund(batch, SOVERIGN_ADDR, INIT_TOKEN_NUM)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to create asset: {receipt.error_message}')
+
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_aca, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        # Register dot tokens
+        receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+        receipt = setup_xc_register_if_not_exist(
+            self.si_peaq, KP_GLOBAL_SUDO,
+            RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+
+        # Transfer dot
+        receipt = self.send_relay_token_from_relay_to_peaq(KP_GLOBAL_SUDO, kp_peaq, TEST_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to send tokens from relay chain, {receipt.error_message}')
+
+        now_token = self.wait_for_peaq_account_asset_change(kp_peaq.ss58_address, RELAY_ASSET_ID['peaq'])
+        self.assertGreater(
+            now_token, 0,
+            f'Actual {now_token} should > expected {TEST_TOKEN_NUM} tokens')
+
+        # Create lp asset
+        liquity_token_num = int(TEST_TOKEN_NUM / 2)
+
+        batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
+        compose_zdex_create_lppair(batch, 1)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to create lp asset: {receipt.error_message}')
+
+        batch = ExtrinsicBatch(self.si_peaq, kp_peaq)
+        compose_zdex_add_liquidity(batch, 1, liquity_token_num, liquity_token_num)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to add liquidity: {receipt.error_message}')
+
+        # Register LP asset on PEAQ
+        receipt = setup_xc_register_if_not_exist(
+            self.si_peaq, KP_GLOBAL_SUDO,
+            TEST_LP_ASSET_ID['peaq'], TEST_LP_ASSET_TOKEN['peaq'], UNITS_PER_SECOND)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+
+        # Register LP asset on ACA
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, TEST_LP_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        # Transfe it to the ACA
+        transfer_token_num = int(liquity_token_num / 2)
+        receipt = send_token_from_peaq_to_para(
+            self.si_peaq, kp_peaq, kp_aca,
+            BIFROST_PD_CHAIN_ID, TEST_LP_ASSET_ID['peaq'], transfer_token_num)
+        self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
+        got_token = self.wait_for_aca_account_token_change(kp_aca.ss58_address, TEST_LP_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
+
+        # Transfer it back to peaq
+        transfer_back_token = got_token - REMAIN_TOKEN_NUM
+        prev_balance = self.get_tokens_account_from_pallet_assets(kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'])
+        # Send it back to the peaq chain
+        receipt = send_token_from_para_to_peaq(
+            self.si_aca, kp_aca, kp_peaq,
+            PEAQ_PD_CHAIN_ID, TEST_LP_ASSET_ID['para'], transfer_back_token)
+        self.assertTrue(receipt.is_success, f'Failed to send token from para to peaq: {receipt.error_message}')
+
+        # TODO Need to change because it's in the LPAsset, but not Asset
+        now_balance = self.wait_for_peaq_account_asset_change(
+            kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'], prev_balance)
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')

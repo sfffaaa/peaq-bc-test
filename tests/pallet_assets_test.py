@@ -2,7 +2,7 @@ import unittest
 import sys
 sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL
+from tools.utils import WS_URL, KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_set_metadata, batch_mint, get_valid_asset_id
 from tools.asset import get_asset_balance
 from peaq.utils import ExtrinsicBatch
@@ -296,3 +296,54 @@ class pallet_assets_test(unittest.TestCase):
         self.assertFalse(
             get_asset_balance(conn, kp_src.ss58_address, asset_id).value['is_frozen'],
             f'Asset id: {asset_id}: Account is not thawed: {get_asset_balance(conn, kp_src.ss58_address, asset_id)}')
+
+    def test_lp_assets_cannot_create(self):
+        asset_id = get_valid_asset_id(self._substrate)
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_call(
+            'Assets',
+            'create',
+            {
+                'id': asset_id,
+                'admin': KP_GLOBAL_SUDO.ss58_address,
+                'min_balance': 500,
+            }
+        )
+        batch.compose_call(
+            'Assets',
+            'create',
+            {
+                'id': {'LPToken': [0, asset_id['Token']]},
+                'admin': KP_GLOBAL_SUDO.ss58_address,
+                'min_balance': 500,
+            }
+        )
+        receipt = batch.execute()
+        self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
+
+    def test_assets_cannot_create(self):
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_call(
+            'Assets',
+            'create',
+            {
+                'id': {'Token': 0},
+                'admin': KP_GLOBAL_SUDO.ss58_address,
+                'min_balance': 500,
+            }
+        )
+        receipt = batch.execute()
+        self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_call(
+            'Assets',
+            'create',
+            {
+                'id': {'Token': 2 ** 32},
+                'admin': KP_GLOBAL_SUDO.ss58_address,
+                'min_balance': 500,
+            }
+        )
+        receipt = batch.execute()
+        self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
