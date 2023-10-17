@@ -59,7 +59,9 @@ RELAY_METADATA = {
 }
 
 PEAQ_ASSET_ID = {
-    'peaq': 'SelfReserve',
+    'peaq': {
+        'Token': '0',
+    },
     'para': {
         'ForeignAsset': '0',
     }

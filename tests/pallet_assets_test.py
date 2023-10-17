@@ -340,7 +340,7 @@ class pallet_assets_test(unittest.TestCase):
             'Assets',
             'create',
             {
-                'id': {'Token': 2 ** 32},
+                'id': {'Token': 2 ** (32 - 3) - 1},
                 'admin': KP_GLOBAL_SUDO.ss58_address,
                 'min_balance': 500,
             }
