@@ -77,7 +77,7 @@ def compose_balances_setbalance(batch, who, amount):
         'new_free': str(amount),
         'new_reserved': '0',
     }
-    batch.compose_sudo_call('Balances', 'set_balance', params)
+    batch.compose_sudo_call('Balances', 'force_set_balance', params)
 
 
 # Composes a XCM Reserve-Transfer-Asset call to transfer DOT-tokens

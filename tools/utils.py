@@ -341,7 +341,7 @@ def calculate_evm_addr(addr):
 def fund(substrate, kp_dst, token_num):
     return substrate.compose_call(
         call_module='Balances',
-        call_function='set_balance',
+        call_function='force_set_balance',
         call_params={
             'who': kp_dst.ss58_address,
             'new_free': token_num * TOKEN_NUM_BASE,
@@ -356,7 +356,7 @@ def funds(substrate, dsts, token_num):
     payloads = [
         substrate.compose_call(
             call_module='Balances',
-            call_function='set_balance',
+            call_function='force_set_balance',
             call_params={
                 'who': dst,
                 'new_free': token_num,
