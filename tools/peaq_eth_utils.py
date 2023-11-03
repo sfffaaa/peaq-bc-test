@@ -38,4 +38,5 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
 
 
 def get_eth_balance(substrate, eth_src):
-    return int(substrate.rpc_request("eth_getBalance", [eth_src]).get('result'), 16)
+    bl_hsh = substrate.get_block_hash(None)
+    return int(substrate.rpc_request("eth_getBalance", [eth_src, bl_hsh]).get('result'), 16)

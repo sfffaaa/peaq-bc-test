@@ -43,7 +43,8 @@ class TestPalletDid(unittest.TestCase):
         self.kp_src = Keypair.create_from_uri('//Alice')
 
     def did_rpc_read(self, substrate, kp_src, name):
-        data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, name])
+        bl_hsh = substrate.get_block_hash(None)
+        data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, name, bl_hsh])
         return data['result']
 
     def test_did_add(self):

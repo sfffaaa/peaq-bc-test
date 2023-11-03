@@ -12,8 +12,9 @@ def utf8_to_ascii(utf8str):
 
 
 def storage_rpc_read(substrate, kp_src, item_type):
+    bl_hsh = substrate.get_block_hash(None)
     data = substrate.rpc_request('peaqstorage_readAttribute', [
-                                 kp_src.ss58_address, item_type])
+                                 kp_src.ss58_address, item_type, bl_hsh])
     return data["result"]["item"]
 
 

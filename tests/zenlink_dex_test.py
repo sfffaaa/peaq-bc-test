@@ -406,9 +406,10 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # Check that RPC functionality is working on this created lp-pair.
     asset0, asset1 = compose_zdex_lppair_params(DOT_IDX, False)
+    bl_hsh = substrate.get_block_hash(None)
     data = si_peaq.rpc_request(
         'zenlinkProtocol_getPairByAssetId',
-        [asset0, asset1])
+        [asset0, asset1, bl_hsh])
     assert not data['result'] is None
 
     # 2.) Swap liquidity pair on Zenlink-DEX
@@ -552,19 +553,37 @@ class TestZenlinkDex(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
         wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        show_title('Zenlink-DEX-Protocol Test')
+        self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
+        self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+        self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_zenlink_dex(self):
-        show_title('Zenlink-DEX-Protocol Test')
         try:
-            si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
-            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
-            create_pair_n_swap_test(si_relay, si_peaq)
-            bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
-            # zenlink_empty_lp_swap_test(si_relay, si_peaq)
+            create_pair_n_swap_test(self.si_relay, self.si_peaq)
 
         except AssertionError:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+
+    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
+    def bootstrap_pair_n_swap_test(self):
+        try:
+            bootstrap_pair_n_swap_test(self.si_bifrost, self.si_peaq)
+
+        except AssertionError:
+            ex_type, ex_val, ex_tb = sys.exc_info()
+            tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
+            show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+
+    # @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
+    # def zenlink_empty_lp_swap_test(self):
+    #     try:
+    #         zenlink_empty_lp_swap_test(self.si_relay, self.si_peaq)
+
+    #     except AssertionError:
+    #         ex_type, ex_val, ex_tb = sys.exc_info()
+    #         tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
+    #         show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)

@@ -243,9 +243,10 @@ class TestPalletRBAC(unittest.TestCase):
 
     ##############################################################################
     def rbac_rpc_fetch_entity(self, kp_src, entity, entity_id, name):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             f'peaqrbac_fetch{entity}',
-            [kp_src.ss58_address, entity_id]
+            [kp_src.ss58_address, entity_id, bl_hsh]
         )
         data = self.check_ok_wo_enable_and_return(data)
         self.assertEqual(data['id'], entity_id)
@@ -253,9 +254,10 @@ class TestPalletRBAC(unittest.TestCase):
         self.assertEqual(bytes(data['name']), bytes(name, 'utf-8'))
 
     def rbac_rpc_fetch_entities(self, kp_src, entity, entity_ids, names):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             f'peaqrbac_fetch{entity}s',
-            [kp_src.ss58_address]
+            [kp_src.ss58_address, bl_hsh]
         )
         data = self.check_ok_wo_enable_and_return(data, len(entity_ids))
         for i in range(0, len(names)):
@@ -266,9 +268,10 @@ class TestPalletRBAC(unittest.TestCase):
             })
 
     def rbac_rpc_fetch_group_roles(self, kp_src, group_id, role_ids):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchGroupRoles',
-            [kp_src.ss58_address, group_id])
+            [kp_src.ss58_address, group_id, bl_hsh])
         data = self.check_all_ok_and_return_all(data, len(role_ids))
         for i in range(0, len(role_ids)):
             data.index({
@@ -278,9 +281,10 @@ class TestPalletRBAC(unittest.TestCase):
 
     def rbac_rpc_fetch_group_permissions(
             self, kp_src, group_id, perm_ids, names):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchGroupPermissions',
-            [kp_src.ss58_address, group_id])
+            [kp_src.ss58_address, group_id, bl_hsh])
         data = self.check_ok_wo_enable_and_return(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
@@ -290,9 +294,10 @@ class TestPalletRBAC(unittest.TestCase):
             })
 
     def rbac_rpc_fetch_role_permissions(self, kp_src, role_id, perm_ids):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchRolePermissions',
-            [kp_src.ss58_address, role_id])
+            [kp_src.ss58_address, role_id, bl_hsh])
         data = self.check_all_ok_and_return_all(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
@@ -301,9 +306,10 @@ class TestPalletRBAC(unittest.TestCase):
             })
 
     def rbac_rpc_fetch_user_roles(self, kp_src, user_id, role_ids):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserRoles',
-            [kp_src.ss58_address, user_id])
+            [kp_src.ss58_address, user_id, bl_hsh])
         data = self.check_all_ok_and_return_all(data, len(role_ids))
         for i in range(0, len(role_ids)):
             data.index({
@@ -312,9 +318,10 @@ class TestPalletRBAC(unittest.TestCase):
             })
 
     def rbac_rpc_fetch_user_groups(self, kp_src, user_id, group_ids):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserGroups',
-            [kp_src.ss58_address, user_id])
+            [kp_src.ss58_address, user_id, bl_hsh])
         data = self.check_all_ok_and_return_all(data, len(group_ids))
         for i in range(0, len(group_ids)):
             data.index({
@@ -324,9 +331,10 @@ class TestPalletRBAC(unittest.TestCase):
 
     def rbac_rpc_fetch_user_permissions(
             self, kp_src, user_id, perm_ids, names):
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserPermissions',
-            [kp_src.ss58_address, user_id])
+            [kp_src.ss58_address, user_id, bl_hsh])
         data = self.check_ok_wo_enable_and_return(data, len(perm_ids))
         for i in range(0, len(perm_ids)):
             data.index({
@@ -459,9 +467,10 @@ class TestPalletRBAC(unittest.TestCase):
     # Simple test for RBAC-fail (request entity, which does not exist)
     def verify_rpc_fail_wrong_id(self, kp_src):
         user_id = rpc_id(USER_IDE)
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchUserGroups',
-            [kp_src.ss58_address, user_id])
+            [kp_src.ss58_address, user_id, bl_hsh])
         data = self.check_err_and_return(data)
         self.assertEqual(data['typ'], 'AssignmentDoesNotExist')
         self.assertEqual(data['param'], user_id)
@@ -470,9 +479,10 @@ class TestPalletRBAC(unittest.TestCase):
     # Simple test for RBAC-fail (request entity, which is disabled)
     def verify_rpc_fail_disabled_id(self, kp_src):
         group_id = rpc_id(GROUP_ID3)
+        bl_hsh = self.substrate.get_block_hash(None)
         data = self.substrate.rpc_request(
             'peaqrbac_fetchGroup',
-            [kp_src.ss58_address, group_id])
+            [kp_src.ss58_address, group_id, bl_hsh])
         data = self.check_err_and_return(data)
         self.assertEqual(data['typ'], 'EntityDisabled')
         self.assertEqual(data['param'], group_id)

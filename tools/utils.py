@@ -403,7 +403,8 @@ def show_account(substrate, addr, out_str):
 
 
 def get_eth_chain_id(substrate):
-    chain_name = substrate.rpc_request(method='system_chain', params=[]).get('result')
+    bl_hsh = substrate.get_block_hash(None)
+    chain_name = substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
     return ETH_CHAIN_IDS[chain_name]
 
 
@@ -485,7 +486,8 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
 
 
 def get_chain(substrate):
-    return substrate.rpc_request(method='system_chain', params=[]).get('result')
+    bl_hsh = substrate.get_block_hash(None)
+    return substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
 
 
 def get_collators(substrate, key):
