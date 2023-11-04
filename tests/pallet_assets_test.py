@@ -6,6 +6,7 @@ from tools.utils import WS_URL, KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_set_metadata, batch_mint, get_valid_asset_id
 from tools.asset import get_asset_balance
 from peaq.utils import ExtrinsicBatch
+from peaq.sudo_extrinsic import fund
 
 
 def set_metadata(conn, kp_admin, asset_id, name, symbol, decimals):
@@ -134,6 +135,7 @@ class pallet_assets_test(unittest.TestCase):
         self._substrate = SubstrateInterface(url=WS_URL)
         self._kp_creator = Keypair.create_from_uri('//Alice')
         self._kp_admin = Keypair.create_from_uri('//Bob')
+        fund(self._substrate, KP_GLOBAL_SUDO, self._kp_admin, 100000 * 10 ** 18)
 
     def test_create_asset(self):
         asset_id = get_valid_asset_id(self._substrate)
@@ -347,3 +349,23 @@ class pallet_assets_test(unittest.TestCase):
         )
         receipt = batch.execute()
         self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
+
+    def test_not_enough_existencial_tokens(self):
+        conn = self._substrate
+        kp_admin = self._kp_admin
+        asset_id = get_valid_asset_id(conn)
+        batch = ExtrinsicBatch(conn, self._kp_creator)
+        receipt = create_asset(conn, self._kp_creator, kp_admin, asset_id)
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
+        kp_dst = Keypair.create_from_uri('//Alice//stash')
+
+        # Execute
+        batch = ExtrinsicBatch(conn, kp_admin)
+        mint_number = 10000
+        batch_mint(batch, kp_admin.ss58_address, asset_id, mint_number)
+        transfer_number = 1
+        batch_transfer(batch, kp_dst.ss58_address, asset_id, transfer_number)
+        receipt = batch.execute()
+
+        # Check
+        self.assertFalse(receipt.is_success, f'Extrinsic True: existencial deposit is enough {transfer_number}')

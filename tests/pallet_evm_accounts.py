@@ -58,6 +58,19 @@ def batch_claim_default_account(batch):
     )
 
 
+def withdraw_evm_addr(substrate, kp_sub, addr_eth, num):
+    batch = ExtrinsicBatch(substrate, kp_sub)
+    batch.compose_call(
+        'EVM',
+        'withdraw',
+        {
+            'address': addr_eth,
+            'value': num,
+        }
+    )
+    return batch.execute()
+
+
 def gen_eth_signature(substrate, kp_sub, kp_eth, chain_id):
     block_hash_zero = get_block_hash(substrate, 0)
     message = {
@@ -216,3 +229,36 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self.assertEqual(
             balance, transfer_number,
             f'Balance is not correct, {balance} != {transfer_number}')
+
+    def test_claim_account_withdraw(self):
+        kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        kp_eth = Keypair.create_from_mnemonic(Keypair.generate_mnemonic(), crypto_type=KeypairType.ECDSA)
+        origin_evm_sub_addr = calculate_evm_account(calculate_evm_addr(kp_sub.ss58_address))
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
+        batch_fund(batch, kp_sub.ss58_address, FUND_NUMBER)
+        receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
+        self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
+
+        signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
+        receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
+        self.assertTrue(receipt.is_success, f'Failed to claim account {kp_sub.ss58_address}, {receipt.error_message}')
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to fund {origin_evm_sub_addr}, {receipt.error_message}')
+
+        # Execute: Withdraw
+        receipt = withdraw_evm_addr(
+            self._substrate,
+            kp_sub,
+            calculate_evm_addr(kp_sub.ss58_address),
+            FUND_NUMBER)
+        self.assertTrue(receipt.is_success, f'Failed to withdraw {receipt.error_message}')
+
+        # Check
+        now_value = get_eth_balance(self._substrate, kp_eth.ss58_address)
+        self.assertNotEqual(now_value, 0, f'The balance shold not the same, {now_value} == 0')
+        now_value = get_account_balance(self._substrate, origin_evm_sub_addr)
+        self.assertEqual(now_value, 0, f'The balance is the same, {now_value} != 0')
