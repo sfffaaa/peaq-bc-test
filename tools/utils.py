@@ -385,7 +385,7 @@ def get_account_balance(substrate, addr, block_hash=None):
 
 def get_account_balance_locked(substrate, addr):
     result = substrate.query('System', 'Account', [addr])
-    return int(result['data']['misc_frozen'].value)
+    return int(result['data']['frozen'].value)
 
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
