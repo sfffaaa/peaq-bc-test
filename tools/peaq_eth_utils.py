@@ -27,9 +27,9 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
             'source': eth_src,
             'target': eth_dst,
             'input': '0x',
-            'value': int('0xffffffffffffffffff0000000000000000000000000000000000000000000000', 16),
+            'value': int('0xfffffffffffffffffffff', 16),
             'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': int('0xfffffff000000000000000000000000000000000000000000000000000000000', 16),
+            'max_fee_per_gas': int('0xfffffff', 16),
             'max_priority_fee_per_gas': None,
             'nonce': None,
             'access_list': []
@@ -38,5 +38,5 @@ def call_eth_transfer_a_lot(substrate, kp_src, eth_src, eth_dst):
 
 
 def get_eth_balance(substrate, eth_src):
-    bl_hsh = substrate.get_block_hash(None)
-    return int(substrate.rpc_request("eth_getBalance", [eth_src, bl_hsh]).get('result'), 16)
+    bl_num = substrate.get_block_number(None)
+    return int(substrate.rpc_request("eth_getBalance", [eth_src, bl_num]).get('result'), 16)

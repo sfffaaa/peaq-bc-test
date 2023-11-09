@@ -34,9 +34,9 @@ def create_constract(substrate, kp_src, eth_src, erc20_bytecode):
         call_params={
             'source': eth_src,
             'init': erc20_bytecode,
-            'value': int('0x0000000000000000000000000000000000000000000000000000000000000000', 16),
+            'value': int('0x0', 16),
             'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': int('0xfffffff000000000000000000000000000000000000000000000000000000000', 16),
+            'max_fee_per_gas': int('0xfffffff', 16),
             'max_priority_fee_per_gas': None,
             'nonce': None,
             'access_list': []
@@ -58,9 +58,9 @@ def call_eth_transfer(substrate, kp_src, eth_src, eth_dst):
             'source': eth_src,
             'target': eth_dst,
             'input': '0x',
-            'value': '0xffff000000000000000000000000000000000000000000000000000000000000',
+            'value': int('0xffff', 16),
             'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': "0xffffffff00000000000000000000000000000000000000000000000000000000",
+            'max_fee_per_gas': int("0xffffffff", 16),
             'max_priority_fee_per_gas': None,
             'nonce': None,
             'access_list': []
@@ -76,9 +76,9 @@ def transfer_erc20_token(substrate, kp_src, eth_src, eth_dst, contract_addr):
             'target': contract_addr,
             'source': eth_src,
             'input': f'0xa9059cbb000000000000000000000000{eth_dst.lower()[2:]}00000000000000000000000000000000000000000000000000000000000000{hex(ERC_TOKEN_TRANSFER)[2:]}',  # noqa: E501
-            'value': '0x0000000000000000000000000000000000000000000000000000000000000000',
+            'value': int('0x0', 16),
             'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': "0xfffffff000000000000000000000000000000000000000000000000000000000",
+            'max_fee_per_gas': int("0xfffffff", 16),
             'max_priority_fee_per_gas': None,
             'nonce': None,
             'access_list': []
@@ -99,7 +99,6 @@ class TestEVMSubstrateExtrinsic(unittest.TestCase):
         self._kp_src = Keypair.create_from_uri('//Alice')
         self._eth_src = calculate_evm_addr(self._kp_src.ss58_address)
         self._eth_deposited_src = calculate_evm_account(self._eth_src)
-        receipt = transfer(self._conn, self._kp_src, self._eth_deposited_src, pow(10, 18))
 
     def test_evm_substrate_transfer(self):
         conn = self._conn
