@@ -406,7 +406,7 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # Check that RPC functionality is working on this created lp-pair.
     asset0, asset1 = compose_zdex_lppair_params(DOT_IDX, False)
-    bl_hsh = substrate.get_block_hash(None)
+    bl_hsh = si_peaq.get_block_hash(None)
     data = si_peaq.rpc_request(
         'zenlinkProtocol_getPairByAssetId',
         [asset0, asset1, bl_hsh])
