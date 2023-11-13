@@ -1,6 +1,6 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
+from tools.utils import WS_URL, funds
+from tools.utils import calculate_evm_account, calculate_evm_addr
 from tools.peaq_eth_utils import get_eth_balance
 from tools.payload import user_extrinsic_send
 import unittest
@@ -10,7 +10,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 ERC_TOKEN_TRANSFER = 34
 GAS_LIMIT = 4294967
-TOKEN_NUM = 10000 * pow(10, 10)
+TOKEN_NUM = 100 * (10 ** 18)
 ETH_DST_ADDR = '0x8eaf04151687736326c9fea17e25fc5287613693'
 # Which is calculated in advance
 ETH_ALICE_SLOT_ADDR = '0x045c0350b9cf0df39c4b40400c965118df2dca5ce0fbcf0de4aafc099aea4a14'
@@ -35,9 +35,9 @@ def create_constract(substrate, kp_src, eth_src, erc20_bytecode):
             'source': eth_src,
             'init': erc20_bytecode,
             'value': int('0x0', 16),
-            'gas_limit': GAS_LIMIT,
-            'max_fee_per_gas': int('0xfffffff', 16),
-            'max_priority_fee_per_gas': None,
+            'gas_limit': 4294967,
+            'max_fee_per_gas': 250000000000,
+            'max_priority_fee_per_gas': 2000000000,
             'nonce': None,
             'access_list': []
         })
@@ -106,7 +106,7 @@ class TestEVMSubstrateExtrinsic(unittest.TestCase):
         eth_src = self._eth_src
 
         # Setup
-        transfer(conn, kp_src, self._eth_deposited_src, TOKEN_NUM)
+        funds(conn, [self._eth_deposited_src], TOKEN_NUM)
 
         eth_balance = get_eth_balance(conn, eth_src)
         print(f'src ETH balance: {eth_balance}')
@@ -132,7 +132,7 @@ class TestEVMSubstrateExtrinsic(unittest.TestCase):
         eth_src = self._eth_src
 
         # Setup
-        # transfer(conn, kp_src, self._eth_deposited_src, TOKEN_NUM)
+        funds(conn, [self._eth_deposited_src], TOKEN_NUM)
         erc20_byte_code = get_byte_code_from_file(ERC20_BYTECODE_FILE)
 
         # Execute -> Deploy contract
