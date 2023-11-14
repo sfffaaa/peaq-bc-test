@@ -569,7 +569,7 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
-    def bootstrap_pair_n_swap_test(self):
+    def test_bootstrap_pair_n_swap(self):
         try:
             bootstrap_pair_n_swap_test(self.si_bifrost, self.si_peaq)
 
