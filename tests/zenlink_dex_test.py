@@ -106,7 +106,7 @@ def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
 
 def compose_xtokens_transfer(batch, kp_beneficiary, amount):
     params = {
-        'currency_id': {'Native': 'BNC'},
+        'currency_id': {'Token': 'ACA'},
         'amount': str(amount),
         'dest': {XCM_VER: {
             'parents': '1',
@@ -359,7 +359,7 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
     for i, recipi in enumerate(kp_recipi):
         compose_xtokens_transfer(bt_sender, recipi, amnts[i])
     bt_sender.execute_n_clear()
-    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'BNC')
+    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'ACA')
 
 
 def create_pair_n_swap_test(si_relay, si_peaq):
