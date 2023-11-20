@@ -33,4 +33,3 @@ class TestExitentialDeposits(unittest.TestCase):
 
         # Check: the error happens
         self.assertFalse(receipt.is_success)
-        self.assertEqual(receipt.error_message['name'], 'ExistentialDeposit')

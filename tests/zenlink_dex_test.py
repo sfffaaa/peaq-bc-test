@@ -60,7 +60,7 @@ def compose_balances_setbalance(batch, who, amount):
         'new_free': str(amount),
         'new_reserved': '0',
     }
-    batch.compose_sudo_call('Balances', 'set_balance', params)
+    batch.compose_sudo_call('Balances', 'force_set_balance', params)
 
 
 # Composes a XCM Reserve-Transfer-Asset call to transfer DOT-tokens
@@ -339,7 +339,6 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
     receipt = bt_sender.execute_n_clear()
     assert receipt.is_success
     wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 3})
-    # wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'BNC')
 
 
 def create_pair_n_swap_test(si_relay, si_peaq):
@@ -390,9 +389,10 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # Check that RPC functionality is working on this created lp-pair.
     asset0, asset1 = compose_zdex_lppair_params(DOT_IDX, False)
+    bl_hsh = si_peaq.get_block_hash(None)
     data = si_peaq.rpc_request(
         'zenlinkProtocol_getPairByAssetId',
-        [asset0, asset1])
+        [asset0, asset1, bl_hsh])
     assert not data['result'] is None
 
     # 2.) Swap liquidity pair on Zenlink-DEX
@@ -551,6 +551,10 @@ class TestZenlinkDex(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
         wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        show_title('Zenlink-DEX-Protocol Test')
+        self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
+        self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+        self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_create_pair_swap(self):

@@ -25,8 +25,8 @@ STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:10044'
 BIFROST_WS_URL = 'ws://127.0.0.1:10144'
 RELAYCHAIN_ETH_URL = 'http://127.0.0.1:9933'
-PARACHAIN_ETH_URL = 'http://127.0.0.1:10033'
-BIFROST_ETH_URL = 'http://127.0.0.1:10133'
+PARACHAIN_ETH_URL = 'http://127.0.0.1:10044'
+BIFROST_ETH_URL = 'http://127.0.0.1:10144'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -263,7 +263,7 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
 
 def get_account_balance_locked(substrate, addr):
     result = substrate.query('System', 'Account', [addr])
-    return int(result['data']['misc_frozen'].value)
+    return int(result['data']['frozen'].value)
 
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
@@ -417,7 +417,7 @@ def batch_fund(batch, kp_or_addr, amount):
     addr = kp_or_addr
     if isinstance(kp_or_addr, Keypair):
         addr = kp_or_addr.ss58_address
-    batch.compose_sudo_call('Balances', 'set_balance', {
+    batch.compose_sudo_call('Balances', 'force_set_balance', {
         'who': addr,
         'new_free': amount,
         'new_reserved': 0

@@ -17,7 +17,7 @@ import unittest
 # Global constants
 TRANSFER_AMOUNT = 100 * TOKEN_NUM_BASE_DEV
 PER_BLOCK_AMOUNT = 20 * TOKEN_NUM_BASE_DEV
-NO_OF_BLOCKS_TO_WAIT = math.ceil(TRANSFER_AMOUNT / PER_BLOCK_AMOUNT) + 1 + 2
+NO_OF_BLOCKS_TO_WAIT = math.ceil(TRANSFER_AMOUNT / PER_BLOCK_AMOUNT) + 2
 
 
 # Schedule transfer of some amount from a souce to target account

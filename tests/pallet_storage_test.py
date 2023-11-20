@@ -5,7 +5,6 @@ from peaq.utils import ExtrinsicBatch
 from peaq.storage import storage_add_payload, storage_update_payload, storage_rpc_read
 
 import unittest
-# from tools.pallet_assets_test import pallet_assets_test
 
 
 class TestPalletStorage(unittest.TestCase):

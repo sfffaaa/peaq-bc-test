@@ -4,6 +4,7 @@ from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL
 from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
+from tools.runtime_upgrade import wait_until_block_height
 
 
 import pprint
@@ -185,6 +186,8 @@ class TokenEconomyTest(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
 
     def setUp(self):
+        restart_parachain_and_runtime_upgrade()
+        wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
         self._substrate = SubstrateInterface(url=WS_URL)
         current_height = get_block_height(self._substrate)
         self._block_hash = get_block_hash(self._substrate, current_height)
