@@ -9,9 +9,9 @@ from tools.utils import PARACHAIN_WS_URL, KP_GLOBAL_SUDO
 import requests
 
 
-NUMBER = 16
-WS_PORT_START = 10048
-RPC_PORT_START = 11137
+NUMBER = 10
+WS_PORT_START = 10044
+RPC_PORT_START = 20033
 
 
 def setup_collator(ws_port, rpc_port, kp):
@@ -62,7 +62,7 @@ if __name__ == '__main__':
                 Keypair.create_from_mnemonic(Keypair.generate_mnemonic())) for i in range(0, NUMBER)]
     fund_addrs([entry[2] for entry in entries])
     for ws_port, rpc_port, kp in entries:
-        setup_collator(10044, rpc_port, kp)
+        setup_collator(ws_port, rpc_port, kp)
 
     print('setup actions')
     substrate = SubstrateInterface(
@@ -73,7 +73,7 @@ if __name__ == '__main__':
         'ParachainStaking',
         'set_max_selected_candidates',
         {
-            'new': 16
+            'new': 32
         })
 
     batch.execute_n_clear()

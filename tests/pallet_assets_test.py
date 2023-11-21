@@ -290,13 +290,15 @@ class pallet_assets_test(unittest.TestCase):
 
         receipt = freeze(conn, kp_admin, kp_src, asset_id)
         self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
-        self.assertTrue(
-            get_asset_balance(conn, kp_src.ss58_address, asset_id).value['is_frozen'],
+        self.assertEqual(
+            get_asset_balance(conn, kp_src.ss58_address, asset_id).value['status'],
+            'Frozen',
             f'Asset id: {asset_id}: Account is not frozen: {get_asset_balance(conn, kp_src.ss58_address, asset_id)}')
         receipt = thaw(conn, kp_admin, kp_src, asset_id)
         self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
-        self.assertFalse(
-            get_asset_balance(conn, kp_src.ss58_address, asset_id).value['is_frozen'],
+        self.assertNotEqual(
+            get_asset_balance(conn, kp_src.ss58_address, asset_id).value['status'],
+            'Frozen',
             f'Asset id: {asset_id}: Account is not thawed: {get_asset_balance(conn, kp_src.ss58_address, asset_id)}')
 
     def test_lp_assets_cannot_create(self):
