@@ -1,5 +1,6 @@
 import unittest
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
+from substrateinterface.utils import hasher
 from tools.utils import WS_URL, ETH_URL
 from tools.utils import KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_mint, get_valid_asset_id
@@ -38,7 +39,7 @@ def batch_claim_account(batch, kp_eth, eth_signature):
         'EVMAccounts',
         'claim_account',
         {
-            'eth_address': kp_eth.ss58_address,
+            'evm_address': kp_eth.ss58_address,
             'eth_signature': eth_signature,
         }
     )
@@ -102,6 +103,13 @@ def gen_eth_signature(substrate, kp_sub, kp_eth, chain_id):
     return signature.signature.hex()
 
 
+def calculate_evm_default_addr(sub_addr):
+    evm_addr = b'evm:' + sub_addr
+    hash_key = hasher.blake2_256(evm_addr)
+    new_addr = '0x' + hash_key.hex()[:40]
+    return Web3.to_checksum_address(new_addr.lower())
+
+
 def evm_erc20_trasfer(asset_id, kp_eth_src, kp_eth_dst, amount, eth_chain_id):
     erc20_addr = calculate_asset_to_evm_address(asset_id)
     w3 = Web3(Web3.HTTPProvider(ETH_URL))
@@ -119,6 +127,11 @@ def evm_erc20_trasfer(asset_id, kp_eth_src, kp_eth_dst, amount, eth_chain_id):
     tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     return tx_receipt
+
+
+def get_eth_account_balance(eth_addr):
+    w3 = Web3(Web3.HTTPProvider(ETH_URL))
+    return w3.eth.get_balance(eth_addr)
 
 
 class TestPalletEvmAccounts(unittest.TestCase):
@@ -157,11 +170,12 @@ class TestPalletEvmAccounts(unittest.TestCase):
     def test_claim_account_native(self):
         kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         kp_eth = Keypair.create_from_mnemonic(Keypair.generate_mnemonic(), crypto_type=KeypairType.ECDSA)
-        origin_evm_sub_addr = calculate_evm_account(calculate_evm_addr(kp_sub.ss58_address))
+        origin_evm_sub_addr = calculate_evm_account(kp_eth.ss58_address)
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_fund(batch, kp_sub.ss58_address, FUND_NUMBER)
-        batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
-        receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
+        # We shouldn't fund the evm address because we didn't allow users to claim the existed evm account
+        # batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
+        receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
 
         signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
@@ -237,7 +251,7 @@ class TestPalletEvmAccounts(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_fund(batch, origin_evm_sub_addr, FUND_NUMBER)
         batch_fund(batch, kp_sub.ss58_address, FUND_NUMBER)
-        receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
+        receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
 
         signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
@@ -262,3 +276,55 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self.assertNotEqual(now_value, 0, f'The balance shold not the same, {now_value} == 0')
         now_value = get_account_balance(self._substrate, origin_evm_sub_addr)
         self.assertEqual(now_value, 0, f'The balance is the same, {now_value} != 0')
+
+    def test_claim_default_account(self):
+        kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+        receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
+        self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
+
+        eth_default_addr = calculate_evm_default_addr(kp_sub.public_key)
+        balance = get_eth_account_balance(eth_default_addr)
+        self.assertEqual(balance, 0, f'The balance is not correct, {balance} != 0')
+
+        # Claim the default
+        receipt = claim_default_account(self._substrate, kp_sub)
+        self.assertTrue(
+            receipt.is_success,
+            f'Failed to claim default account {kp_sub.ss58_address}, {receipt.error_message}')
+
+        balance = get_eth_account_balance(eth_default_addr)
+        self.assertNotEqual(balance, 0, f'The balance is not correct, {balance} == 0')
+
+    def test_transfer_to_evm_directly(self):
+        kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch_fund(batch, kp_sub.ss58_address, FUND_NUMBER)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
+
+        receipt = claim_default_account(self._substrate, kp_sub)
+        self.assertTrue(
+            receipt.is_success,
+            f'Failed to claim default account {kp_sub.ss58_address}, {receipt.error_message}')
+
+        balance_before = get_account_balance(self._substrate, kp_sub.ss58_address)
+
+        # Transfer to erc20 address directly from balance transfer
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_call(
+            'Balances',
+            'transfer',
+            {
+                'dest': calculate_evm_default_addr(kp_sub.public_key),
+                'value': FUND_NUMBER
+            }
+        )
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to transfer {receipt.error_message}')
+
+        balance_after = get_account_balance(self._substrate, kp_sub.ss58_address)
+        self.assertEqual(
+            balance_before + FUND_NUMBER, balance_after,
+            f'The balance is not correct, {balance_after} != {balance_before + FUND_NUMBER}')
