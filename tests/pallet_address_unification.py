@@ -36,7 +36,7 @@ def claim_account(substrate, kp_sub, kp_eth, eth_signature):
 
 def batch_claim_account(batch, kp_eth, eth_signature):
     batch.compose_call(
-        'EVMAccounts',
+        'AddressUnification',
         'claim_account',
         {
             'evm_address': kp_eth.ss58_address,
@@ -53,7 +53,7 @@ def claim_default_account(substrate, kp_sub):
 
 def batch_claim_default_account(batch):
     batch.compose_call(
-        'EVMAccounts',
+        'AddressUnification',
         'claim_default_account',
         {}
     )
@@ -162,9 +162,9 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to remove account {kp_sub.ss58_address}, {receipt.error_message}')
 
         # Check
-        out = self._substrate.query('EVMAccounts', 'Accounts', [kp_eth.ss58_address])
+        out = self._substrate.query('AddressUnification', 'Accounts', [kp_eth.ss58_address])
         self.assertEqual(out.value, None, f'Account {kp_eth.ss58_address} is not removed')
-        out = self._substrate.query('EVMAccounts', 'EvmAddresses', [kp_sub.ss58_address])
+        out = self._substrate.query('AddressUnification', 'EvmAddresses', [kp_sub.ss58_address])
         self.assertEqual(out.value, None, f'Account {kp_sub.ss58_address} is not removed')
 
     def test_claim_account_native(self):
