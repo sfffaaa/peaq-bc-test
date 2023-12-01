@@ -24,8 +24,8 @@ STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 PARACHAIN_WS_URL = 'ws://127.0.0.1:10044'
 BIFROST_WS_URL = 'ws://127.0.0.1:10144'
 RELAYCHAIN_ETH_URL = 'http://127.0.0.1:9933'
-PARACHAIN_ETH_URL = 'http://127.0.0.1:10033'
-BIFROST_ETH_URL = 'http://127.0.0.1:10133'
+PARACHAIN_ETH_URL = 'http://127.0.0.1:10044'
+BIFROST_ETH_URL = 'http://127.0.0.1:10144'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -341,7 +341,7 @@ def calculate_evm_addr(addr):
 def fund(substrate, kp_dst, token_num):
     return substrate.compose_call(
         call_module='Balances',
-        call_function='set_balance',
+        call_function='force_set_balance',
         call_params={
             'who': kp_dst.ss58_address,
             'new_free': token_num * TOKEN_NUM_BASE,
@@ -356,7 +356,7 @@ def funds(substrate, dsts, token_num):
     payloads = [
         substrate.compose_call(
             call_module='Balances',
-            call_function='set_balance',
+            call_function='force_set_balance',
             call_params={
                 'who': dst,
                 'new_free': token_num,
@@ -385,7 +385,7 @@ def get_account_balance(substrate, addr, block_hash=None):
 
 def get_account_balance_locked(substrate, addr):
     result = substrate.query('System', 'Account', [addr])
-    return int(result['data']['misc_frozen'].value)
+    return int(result['data']['frozen'].value)
 
 
 def check_and_fund_account(substrate, addr, min_bal, req_bal):
@@ -403,7 +403,8 @@ def show_account(substrate, addr, out_str):
 
 
 def get_eth_chain_id(substrate):
-    chain_name = substrate.rpc_request(method='system_chain', params=[]).get('result')
+    bl_hsh = substrate.get_block_hash(None)
+    chain_name = substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
     return ETH_CHAIN_IDS[chain_name]
 
 
@@ -485,7 +486,8 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
 
 
 def get_chain(substrate):
-    return substrate.rpc_request(method='system_chain', params=[]).get('result')
+    bl_hsh = substrate.get_block_hash(None)
+    return substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
 
 
 def get_collators(substrate, key):

@@ -241,7 +241,7 @@ class TestTreasury(unittest.TestCase):
         print('✅ Reward distributed to treasury as expected')
 
     def batch_fund(self, batch, kp, amount):
-        batch.compose_sudo_call('Balances', 'set_balance', {
+        batch.compose_sudo_call('Balances', 'force_set_balance', {
             'who': kp.ss58_address,
             'new_free': amount,
             'new_reserved': 0
