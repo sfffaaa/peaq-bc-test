@@ -90,10 +90,10 @@ def do_runtime_upgrade(wasm_path):
     if not os.path.exists(wasm_path):
         raise IOError(f'Runtime not found: {wasm_path}')
 
-    fund_account()
     upgrade(wasm_path)
     substrate = SubstrateInterface(url=WS_URL)
     wait_for_n_blocks(substrate, 4)
+    fund_account()
 
 
 def main():

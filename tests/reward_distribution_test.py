@@ -43,7 +43,7 @@ def batch_extend_max_supply(substrate, batch):
 
 class TestRewardDistribution(unittest.TestCase):
     _kp_bob = Keypair.create_from_uri('//Bob')
-    _kp_charlie = Keypair.create_from_uri('//Charlie')
+    _kp_charlie = Keypair.create_from_uri('//Eve')
 
     @classmethod
     def setUpClass(cls):
