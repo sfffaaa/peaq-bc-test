@@ -96,5 +96,4 @@ if __name__ == '__main__':
     print(f"Session key: {session_key}")
     print(f'1. Polkadot.js RPC.author.hasSessionKeys(["{session_key}"])')
     print(f'''2. Use below command to check:
-curl -H "Content-Type: application/json" -d '{{"id":1, "jsonrpc":"2.0", "method": "author_hasSessionKeys", "params":["{session_key}"]}}' http://localhost:9933
-''')
+curl -H "Content-Type: application/json" -d '{{"id":1, "jsonrpc":"2.0", "method": "author_hasSessionKeys", "params":["{session_key}"]}}' http://localhost:9933''')  # noqa: E501
