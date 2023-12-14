@@ -1,12 +1,14 @@
 import sys
 sys.path.append('./')
 import os
+import time
 
 from substrateinterface import SubstrateInterface
 from tools.utils import show_extrinsic, WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
 from substrateinterface.utils.hasher import blake2_256
 from tools.payload import sudo_call_compose, sudo_extrinsic_send
 from tools.utils import wait_for_n_blocks
+from tools.restart import restart_parachain_launch
 import argparse
 
 import pprint
@@ -99,9 +101,14 @@ def do_runtime_upgrade(wasm_path):
 def main():
     parser = argparse.ArgumentParser(description='Upgrade the runtime')
     parser.add_argument('-r', '--runtime', type=str, required=True, help='Your runtime poisiton')
+    parser.add_argument('-d', '--docker-restart', type=bool, default=False, help='Restart the docker container')
 
     args = parser.parse_args()
+    if args.docker_restart:
+        restart_parachain_launch()
     do_runtime_upgrade(args.runtime)
+    print('Done but wait 30s')
+    time.sleep(30)
 
 
 if __name__ == '__main__':
