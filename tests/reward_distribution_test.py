@@ -31,6 +31,23 @@ def batch_compose_block_reward(batch, block_reward):
     )
 
 
+def batch_compose_reward_distribution(batch, collator_reward_rate):
+    batch.compose_sudo_call(
+        'BlockReward',
+        'set_configuration',
+        {
+            'reward_distro_params': {
+                'treasury_percent': 0,
+                'dapps_percent': 0,
+                'collators_percent': 1000000000 * collator_reward_rate,
+                'lp_percent': 0,
+                'machines_percent': 0,
+                'parachain_lease_fund_percent': 1000000000 * (1 - collator_reward_rate),
+            }
+        }
+    )
+
+
 def batch_extend_max_supply(substrate, batch):
     total_issuance = substrate.query(
         module='Balances',
@@ -186,6 +203,7 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_compose_block_reward(batch, 10000)
         batch_extend_max_supply(self._substrate, batch)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Cannot execute the block reward extrinsic {bl_hash}')
 
@@ -209,6 +227,7 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
@@ -239,6 +258,7 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
