@@ -12,7 +12,7 @@ import unittest
 # accounts to carty out diffirent transactions
 KP_USER = Keypair.create_from_uri('//Alice')
 KP_COUNCIL_FIRST_MEMBER = Keypair.create_from_uri('//Bob')
-KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
+KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Eve')
 KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
 KP_TREASURY = '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 

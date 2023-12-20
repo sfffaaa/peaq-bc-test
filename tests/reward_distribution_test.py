@@ -31,6 +31,23 @@ def batch_compose_block_reward(batch, block_reward):
     )
 
 
+def batch_compose_reward_distribution(batch, collator_reward_rate):
+    batch.compose_sudo_call(
+        'BlockReward',
+        'set_configuration',
+        {
+            'reward_distro_params': {
+                'treasury_percent': 0,
+                'dapps_percent': 0,
+                'collators_percent': 1000000000 * collator_reward_rate,
+                'lp_percent': 0,
+                'machines_percent': 0,
+                'parachain_lease_fund_percent': 1000000000 * (1 - collator_reward_rate),
+            }
+        }
+    )
+
+
 def batch_extend_max_supply(substrate, batch):
     total_issuance = substrate.query(
         module='Balances',
@@ -43,7 +60,7 @@ def batch_extend_max_supply(substrate, batch):
 
 class TestRewardDistribution(unittest.TestCase):
     _kp_bob = Keypair.create_from_uri('//Bob')
-    _kp_charlie = Keypair.create_from_uri('//Charlie')
+    _kp_eve = Keypair.create_from_uri('//Eve')
 
     @classmethod
     def setUpClass(cls):
@@ -186,6 +203,7 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_compose_block_reward(batch, 10000)
         batch_extend_max_supply(self._substrate, batch)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Cannot execute the block reward extrinsic {bl_hash}')
 
@@ -202,13 +220,14 @@ class TestRewardDistribution(unittest.TestCase):
 
     def test_transaction_fee_reward_v1(self):
         kp_bob = self._kp_bob
-        kp_charlie = self._kp_charlie
+        kp_eve = self._kp_eve
 
         # setup
         block_reward = self.get_block_issue_reward()
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
@@ -217,7 +236,7 @@ class TestRewardDistribution(unittest.TestCase):
         # Execute
         # Note, the Collator maybe collected by another one
         receipt = transfer(
-            self._substrate, kp_bob, kp_charlie.ss58_address, 0)
+            self._substrate, kp_bob, kp_eve.ss58_address, 0)
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')
         self._check_transaction_fee_reward_from_sender(receipt.block_number)
@@ -230,7 +249,7 @@ class TestRewardDistribution(unittest.TestCase):
     @pytest.mark.skipif(TestUtils.is_runtime_upgrade_test() is True, reason='Skip for runtime upgrade test')
     def test_transaction_fee_reward(self):
         kp_bob = self._kp_bob
-        kp_charlie = self._kp_charlie
+        kp_eve = self._kp_eve
 
         # setup
         block_reward = self.get_block_issue_reward()
@@ -239,6 +258,7 @@ class TestRewardDistribution(unittest.TestCase):
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
+        batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
         bl_hash = batch.execute()
         self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
 
@@ -247,7 +267,7 @@ class TestRewardDistribution(unittest.TestCase):
 
         # Execute
         receipt = transfer_with_tip(
-            self._substrate, kp_bob, kp_charlie.ss58_address,
+            self._substrate, kp_bob, kp_eve.ss58_address,
             1 * TOKEN_NUM_BASE, TIP, 1)
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')

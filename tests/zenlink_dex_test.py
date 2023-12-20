@@ -20,7 +20,7 @@ from tests import utils_func as TestUtils
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
 DOT_IDX = 64  # u8 value for DOT-token (CurrencyId/TokenSymbol)
-BNC_IDX = 129  # u8 value for BNC-token (CurrencyId/TokenSymbol)
+BNC_IDX = 128  # u8 value for BNC-token (CurrencyId/TokenSymbol)
 # Test parameter configurations
 TOK_LIQUIDITY = 50  # generic amount of tokens
 TOK_SWAP = 1  # generic amount of tokens
@@ -307,7 +307,9 @@ def wait_n_check_event(substrate, module, event, attributes=None):
     event = wait_for_event(substrate, module, event,
                            attributes=attributes,
                            timeout=XCM_RTA_TO)
-    assert event is not None
+    # assert event is not None
+    if not event:
+        raise IOError('Event not found')
 
 
 def wait_n_check_token_deposit(substrate, kp_beneficiary, token):
