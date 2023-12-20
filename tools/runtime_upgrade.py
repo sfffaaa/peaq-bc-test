@@ -94,7 +94,7 @@ def do_runtime_upgrade(wasm_path):
 
     upgrade(wasm_path)
     substrate = SubstrateInterface(url=WS_URL)
-    wait_for_n_blocks(substrate, 4)
+    wait_for_n_blocks(substrate, 8)
     fund_account()
 
 
