@@ -2,6 +2,7 @@ from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from tools.utils import ExtrinsicBatch
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
+from tools.utils import get_account_balance
 import unittest
 
 # Assumptions
@@ -22,7 +23,7 @@ WEIGHT_BOND = {
 }
 LENGTH_BOND = 100
 AMOUNT = 10
-TOTAL_AMOUNT = 10 ** 5 * 10 ** 18
+TOTAL_AMOUNT = 20 ** 5 * 10 ** 18
 
 DIVISION_FACTOR = pow(10, 7)
 

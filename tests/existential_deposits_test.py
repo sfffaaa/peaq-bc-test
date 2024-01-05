@@ -3,6 +3,7 @@ from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, RELAYCHAIN_WS_URL
 from tools.utils import transfer, TOKEN_NUM_BASE
 from tools.payload import user_extrinsic_send
+from tools.utils import get_relay_token_symbol, get_parachain_id
 import time
 
 
@@ -85,21 +86,14 @@ class TestExitentialDeposits(unittest.TestCase):
             'Accounts',
             params=[
                 kp.ss58_address,
-                {'Token': 'DOT'}
+                {'Token': get_relay_token_symbol(self.substrate)}
             ]
         )
         return result.value['free']
 
-    def get_parachain_id(self, relay_substrate):
-        result = relay_substrate.query(
-            'Paras',
-            'Parachains',
-        )
-        return result.value[0]
-
     def send_relaychain_token(self, kp):
         relay_substrate = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
-        parachain_id = self.get_parachain_id(relay_substrate)
+        parachain_id = get_parachain_id(self.substrate)
         receipt = send_from_xcm(relay_substrate, kp, parachain_id)
         return receipt
 
@@ -143,6 +137,8 @@ class TestExitentialDeposits(unittest.TestCase):
             count += 1
 
         # Check the error happens
-        receipt = transfer_currencies(self.substrate, self.alice, self.kp, 'DOT', token, 1)
+        receipt = transfer_currencies(
+            self.substrate, self.alice, self.kp,
+            get_relay_token_symbol(self.substrate), token, 1)
         self.assertFalse(receipt.is_success)
         self.assertEqual(receipt.error_message['name'], 'ExistentialDeposit')

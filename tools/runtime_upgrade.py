@@ -27,7 +27,7 @@ def send_ugprade_call(substrate, wasm_file):
         substrate.compose_call(
             call_module='ParachainSystem',
             call_function='authorize_upgrade',
-            call_params={'code_hash': file_hash}
+            call_params={'code_hash': file_hash, 'check_version': False}
         ),
         substrate.compose_call(
             call_module='ParachainSystem',
@@ -80,11 +80,13 @@ def fund_account():
     substrate = SubstrateInterface(url=WS_URL)
     funds(substrate, [
         '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+        '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY',
         '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+        '5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc',
         '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y',
         '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy',
         '5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw',
-        '5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL'
+        '5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL',
     ], 302231 * 10 ** 18)
 
 
@@ -94,7 +96,7 @@ def do_runtime_upgrade(wasm_path):
 
     upgrade(wasm_path)
     substrate = SubstrateInterface(url=WS_URL)
-    wait_for_n_blocks(substrate, 4)
+    wait_for_n_blocks(substrate, 8)
     fund_account()
 
 
