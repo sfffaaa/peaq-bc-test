@@ -60,7 +60,7 @@ def get_relay_token_symbol(substrate):
     # The ROC is only for the moonbeam-peaq-dev node
     chain = get_chain(substrate)
     if chain.startswith('peaq-dev'):
-        return 'ROC'
+        return 'DOT'
     if chain.startswith('krest'):
         return 'KSM'
     if chain.startswith('peaq'):
