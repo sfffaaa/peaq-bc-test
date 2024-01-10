@@ -5,13 +5,12 @@ from tools.utils import WS_URL, ETH_URL
 from tools.utils import KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_mint, get_valid_asset_id
 from tools.asset import get_asset_balance
+from peaq.utils import get_block_hash
+from tools.evm_claim_sign import gen_eth_signature
 from peaq.sudo_extrinsic import fund, funds
 from tools.peaq_eth_utils import get_eth_balance
 from peaq.eth import get_eth_chain_id
 from peaq.utils import ExtrinsicBatch
-from peaq.utils import get_block_hash
-from eth_account import Account as ETHAccount
-from eth_account.messages import encode_structured_data
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
 from tools.peaq_eth_utils import GAS_LIMIT, get_contract
 from peaq.utils import get_account_balance
@@ -45,6 +44,13 @@ def batch_claim_account(batch, kp_eth, eth_signature):
     )
 
 
+def calculate_eth_signature(substrate, kp_sub, kp_eth, chain_id):
+    block_hash_zero = get_block_hash(substrate, 0)
+    sub_pk = kp_sub.public_key
+    eth_sk = kp_eth.private_key
+    return gen_eth_signature(sub_pk, eth_sk, chain_id, block_hash_zero)
+
+
 def claim_default_account(substrate, kp_sub):
     batch = ExtrinsicBatch(substrate, kp_sub)
     batch_claim_default_account(batch)
@@ -70,37 +76,6 @@ def withdraw_evm_addr(substrate, kp_sub, addr_eth, num):
         }
     )
     return batch.execute()
-
-
-def gen_eth_signature(substrate, kp_sub, kp_eth, chain_id):
-    block_hash_zero = get_block_hash(substrate, 0)
-    message = {
-        'types': {
-            'EIP712Domain': [
-                {'type': 'string', 'name': 'name'},
-                {'type': 'string', 'name': 'version'},
-                {'type': 'uint256', 'name': 'chainId'},
-                {'type': 'bytes32', 'name': 'salt'},
-            ],
-            'Transaction': [
-                {'type': 'bytes', 'name': 'substrateAddress'},
-            ]
-        },
-        'primaryType': 'Transaction',
-        'domain': {
-            'name': 'Peaq EVM claim',
-            'version': '1',
-            'chainId': chain_id,
-            # Block hash zero
-            'salt': bytes.fromhex(block_hash_zero[2:]),
-        },
-        'message': {
-            'substrateAddress': kp_sub.public_key,
-        }
-    }
-    signature = ETHAccount.sign_message(encode_structured_data(message), kp_eth.private_key)
-
-    return signature.signature.hex()
 
 
 def calculate_evm_default_addr(sub_addr):
@@ -137,14 +112,14 @@ def get_eth_account_balance(eth_addr):
 class TestPalletEvmAccounts(unittest.TestCase):
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._eth_chain_id = get_eth_chain_id(self._substrate)
+        self._eth_chain_id = 9990  # get_eth_chain_id(self._substrate)
 
     def test_remove_account(self):
         kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         kp_eth = Keypair.create_from_mnemonic(Keypair.generate_mnemonic(), crypto_type=KeypairType.ECDSA)
         receipt = fund(self._substrate, KP_GLOBAL_SUDO, kp_sub, FUND_NUMBER)
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
-        signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
+        signature = calculate_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
         receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
         self.assertTrue(receipt.is_success, f'Failed to claim account {kp_sub.ss58_address}, {receipt.error_message}')
 
@@ -178,7 +153,7 @@ class TestPalletEvmAccounts(unittest.TestCase):
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
 
-        signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
+        signature = calculate_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
 
         # Execute
         receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
@@ -213,7 +188,7 @@ class TestPalletEvmAccounts(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to fund {receipt.error_message}')
 
         for kp_sub, kp_eth in [[kp_sub_src, kp_eth_src], [kp_sub_dst, kp_eth_dst]]:
-            signature = gen_eth_signature(
+            signature = calculate_eth_signature(
                 self._substrate, kp_sub, kp_eth, self._eth_chain_id)
             receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
             self.assertTrue(
@@ -254,7 +229,7 @@ class TestPalletEvmAccounts(unittest.TestCase):
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f'Failed to fund {kp_sub.ss58_address}, {receipt.error_message}')
 
-        signature = gen_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
+        signature = calculate_eth_signature(self._substrate, kp_sub, kp_eth, self._eth_chain_id)
         receipt = claim_account(self._substrate, kp_sub, kp_eth, signature)
         self.assertTrue(receipt.is_success, f'Failed to claim account {kp_sub.ss58_address}, {receipt.error_message}')
 
