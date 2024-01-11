@@ -112,7 +112,7 @@ def get_eth_account_balance(eth_addr):
 class TestPalletEvmAccounts(unittest.TestCase):
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
-        self._eth_chain_id = 9990  # get_eth_chain_id(self._substrate)
+        self._eth_chain_id = get_eth_chain_id(self._substrate)
 
     def test_remove_account(self):
         kp_sub = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
