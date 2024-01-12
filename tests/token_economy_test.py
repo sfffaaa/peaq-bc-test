@@ -173,6 +173,8 @@ class TokenEconomyTest(unittest.TestCase):
             return 'peaq-dev'
         if 'krest-network-fork' == self._chain_spec:
             return 'krest-network'
+        if 'peaq-network-fork' == self._chain_spec:
+            return 'peaq-network'
 
     def get_info(self, test_type):
         if self._chain_spec not in test_type:

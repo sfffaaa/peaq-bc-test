@@ -42,17 +42,48 @@ ETH_CHAIN_IDS = {
     'agung-network': 9990,
     'krest-network': 2241,
     'krest-network-fork': 2241,
-    'peaq-network': 424242,
+    'peaq-network': 3338,
+    'peaq-network-fork': 3338,
 }
 URI_GLOBAL_SUDO = '//Alice'
 KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
-PEAQ_PD_CHAIN_ID = 2000
 BIFROST_PD_CHAIN_ID = 3000
 
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
+
+
+def get_relay_token_symbol(substrate):
+    # Note: In current peaq-dev setting, it's DOT, but not ROC.
+    # The ROC is only for the moonbeam-peaq-dev node
+    chain = get_chain(substrate)
+    if chain.startswith('peaq-dev'):
+        return 'DOT'
+    if chain.startswith('krest'):
+        return 'KSM'
+    if chain.startswith('peaq'):
+        return 'DOT'
+    raise Exception('Unknown chain')
+
+
+def get_relay_token_id(token_symbol):
+    if token_symbol == 'ROC':
+        return 66
+    if token_symbol == 'KSM':
+        return 65
+    if token_symbol == 'DOT':
+        return 64
+    raise Exception('Unknown token symbol')
+
+
+def get_parachain_id(substrate):
+    result = substrate.query(
+        'ParachainInfo',
+        'ParachainId',
+    )
+    return result.value
 
 
 def show_extrinsic(receipt, info_type):

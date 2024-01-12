@@ -8,8 +8,8 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
-from tools.utils import PEAQ_PD_CHAIN_ID
-from tools.utils import ExtrinsicBatch, into_keypair
+from tools.utils import get_parachain_id, get_relay_token_symbol
+from tools.utils import ExtrinsicBatch, into_keypair, get_relay_token_id
 from tools.currency import peaq, dot, bnc
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
@@ -17,9 +17,11 @@ from tests import utils_func as TestUtils
 
 
 # Technical constants
+PARACHAIN_ID = get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
+RELAY_TOKEN_SYMBOL = get_relay_token_symbol(SubstrateInterface(url=PARACHAIN_WS_URL))
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
-DOT_IDX = 64  # u8 value for DOT-token (CurrencyId/TokenSymbol)
+DOT_IDX = get_relay_token_id(RELAY_TOKEN_SYMBOL)  # u8 value for DOT-token (CurrencyId/TokenSymbol)
 BNC_IDX = 128  # u8 value for BNC-token (CurrencyId/TokenSymbol)
 # Test parameter configurations
 TOK_LIQUIDITY = 50  # generic amount of tokens
@@ -36,12 +38,12 @@ def bifrost_amount_w_fees(x):
 
 def compose_zdex_lppair_params(tok_idx, w_str=True):
     if w_str:
-        chain_id = str(PEAQ_PD_CHAIN_ID)
+        chain_id = str(PARACHAIN_ID)
         zero = '0'
         two = '2'
         asset_idx = str(tok_idx)
     else:
-        chain_id = PEAQ_PD_CHAIN_ID
+        chain_id = PARACHAIN_ID
         zero = 0
         two = 2
         asset_idx = tok_idx
@@ -85,7 +87,7 @@ def compose_balances_setbalance(batch, who, amount):
 def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
     dest = {XCM_VER: {
         'parents': '0',
-        'interior': {'X1': {'Parachain': f'{PEAQ_PD_CHAIN_ID}'}}
+        'interior': {'X1': {'Parachain': f'{PARACHAIN_ID}'}}
     }}
     beneficiary = {XCM_VER: {
         'parents': '0',
@@ -111,7 +113,7 @@ def compose_xtokens_transfer(batch, kp_beneficiary, amount):
         'dest': {XCM_VER: {
             'parents': '1',
             'interior': {'X2': [
-                {'Parachain': f'{PEAQ_PD_CHAIN_ID}'},
+                {'Parachain': f'{PARACHAIN_ID}'},
                 {'AccountId32': (None, kp_beneficiary.public_key)}
                 ]}
             }},
@@ -342,7 +344,7 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
     for i, recipi in enumerate(kp_recipi):
         compose_xcm_rta_relay2para(bt_sender, recipi, amnts[i])
     bt_sender.execute()
-    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'DOT')
+    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], RELAY_TOKEN_SYMBOL)
 
 
 def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
@@ -388,10 +390,10 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', '//Dave'], [amount, amount])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
-    dot_liquidity = state_tokens_accounts(si_peaq, kp_para_sudo, 'DOT')
+    dot_liquidity = state_tokens_accounts(si_peaq, kp_para_sudo, RELAY_TOKEN_SYMBOL)
     assert dot_liquidity >= dot(TOK_LIQUIDITY)
     # Check that beneficiary has DOT and PEAQ tokens available
-    dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, 'DOT')
+    dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, RELAY_TOKEN_SYMBOL)
     assert dot_balance > dot(TOK_SWAP)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
@@ -542,7 +544,7 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     bt_usr2.execute_n_clear()
 
     # 9.
-    dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, 'DOT')
+    dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, RELAY_TOKEN_SYMBOL)
     assert dot_balance > 0
 
     # 10. #error
