@@ -8,10 +8,10 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event
-from tools.utils import PEAQ_PD_CHAIN_ID
 from peaq.utils import ExtrinsicBatch, into_keypair
 from peaq.utils import get_account_balance
-from tools.currency import peaq, dot, bnc
+from tools.utils import PEAQ_PD_CHAIN_ID
+from tools.currency import peaq, dot, aca
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from tests import utils_func as TestUtils
@@ -25,11 +25,11 @@ from tools.zenlink import calc_deadline
 
 
 # Technical constants
+PARACHAIN_ID = PEAQ_PD_CHAIN_ID
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
-# [TODO] Need change name
 DOT_IDX = 1  # u8 value for DOT-token (CurrencyId/TokenSymbol)
-BNC_IDX = 3  # u8 value for BNC-token (CurrencyId/TokenSymbol)
+ACA_IDX = 3  # u8 value for ACA-token (CurrencyId/TokenSymbol)
 # Test parameter configurations
 TOK_LIQUIDITY = 50  # generic amount of tokens
 TOK_SWAP = 1  # generic amount of tokens
@@ -42,7 +42,7 @@ def relay_amount_w_fees(x):
 
 
 def bifrost_amount_w_fees(x):
-    return x + bnc(1)
+    return x + aca(1)
 
 
 def compose_balances_transfer(batch, kp_beneficiary, amount):
@@ -68,7 +68,7 @@ def compose_balances_setbalance(batch, who, amount):
 def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
     dest = {XCM_VER: {
         'parents': '0',
-        'interior': {'X1': {'Parachain': f'{PEAQ_PD_CHAIN_ID}'}}
+        'interior': {'X1': {'Parachain': f'{PARACHAIN_ID}'}}
     }}
     beneficiary = {XCM_VER: {
         'parents': '0',
@@ -94,7 +94,7 @@ def compose_xtokens_transfer(batch, kp_beneficiary, amount):
         'dest': {XCM_VER: {
             'parents': '1',
             'interior': {'X2': [
-                {'Parachain': f'{PEAQ_PD_CHAIN_ID}'},
+                {'Parachain': f'{PARACHAIN_ID}'},
                 {'AccountId32': (None, kp_beneficiary.public_key)}
                 ]}
             }},
@@ -233,13 +233,6 @@ def state_system_account(si_peaq, kp_user):
     return int(query['data']['free'].value)
 
 
-# [TODO] Need to mremove
-def state_tokens_accounts(si_peaq, kp_user, token):
-    params = [kp_user.ss58_address, {'Token': token}]
-    query = si_peaq.query('Tokens', 'Accounts', params)
-    return int(query['free'].value)
-
-
 # [TODO] Need to extract
 def state_token_assets_accounts(si_peaq, kp_user, token):
     params = [{'Token': token}, kp_user.ss58_address]
@@ -274,7 +267,9 @@ def wait_n_check_event(substrate, module, event, attributes=None):
     event = wait_for_event(substrate, module, event,
                            attributes=attributes,
                            timeout=XCM_RTA_TO)
-    assert event is not None
+    # assert event is not None
+    if not event:
+        raise IOError('Event not found')
 
 
 def wait_n_check_token_deposit(substrate, kp_beneficiary, token):
@@ -318,7 +313,6 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
     receipt = bt_sender.execute()
     assert receipt.is_success
     wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 1})
-    # wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'DOT')
 
 
 def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
@@ -435,60 +429,60 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     bt_peaq_user = ExtrinsicBatch(si_peaq, kp_user)
 
     # Transfer tokens from parachain to our chain
-    amount = bifrost_amount_w_fees(bnc(TOK_LIQUIDITY)) // 2
+    amount = bifrost_amount_w_fees(aca(TOK_LIQUIDITY)) // 2
     bifrost2para_transfer(
         si_bifrost, si_peaq, URI_GLOBAL_SUDO,
-        [URI_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(bnc(TOK_SWAP))])
+        [URI_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(aca(TOK_SWAP))])
 
     # 1.) Create bootstrap-liquidity-pair & start contributing
-    compose_bootstrap_create_call(bt_peaq_sudo, BNC_IDX,
-                                  peaq(TOK_LIQUIDITY), bnc(TOK_LIQUIDITY),
-                                  peaq(tok_limit), bnc(tok_limit))
-    compose_bootstrap_contribute_call(bt_peaq_sudo, BNC_IDX,
+    compose_bootstrap_create_call(bt_peaq_sudo, ACA_IDX,
+                                  peaq(TOK_LIQUIDITY), aca(TOK_LIQUIDITY),
+                                  peaq(tok_limit), aca(tok_limit))
+    compose_bootstrap_contribute_call(bt_peaq_sudo, ACA_IDX,
                                       peaq(TOK_LIQUIDITY/2), 0)
-    compose_bootstrap_contribute_call(bt_peaq_sudo, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
+    compose_bootstrap_contribute_call(bt_peaq_sudo, ACA_IDX,
+                                      0, aca(TOK_LIQUIDITY/2))
     receipt = bt_peaq_sudo.execute_n_clear()
     assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert lpstatus['target_supply'][0] == peaq(TOK_LIQUIDITY)
-    assert lpstatus['target_supply'][1] == bnc(TOK_LIQUIDITY)
+    assert lpstatus['target_supply'][1] == aca(TOK_LIQUIDITY)
     assert lpstatus['capacity_supply'][0] == peaq(TOK_LIQUIDITY) * 100
-    assert lpstatus['capacity_supply'][1] == bnc(TOK_LIQUIDITY) * 100
+    assert lpstatus['capacity_supply'][1] == aca(TOK_LIQUIDITY) * 100
     assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
-    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
+    assert lpstatus['accumulated_supply'][1] == aca(TOK_LIQUIDITY/2)
 
     # 2.) Contribute to bootstrap-liquidity-pair until goal is reached
-    compose_bootstrap_contribute_call(bt_peaq_cont, BNC_IDX,
+    compose_bootstrap_contribute_call(bt_peaq_cont, ACA_IDX,
                                       peaq(TOK_LIQUIDITY/2), 0)
-    compose_bootstrap_contribute_call(bt_peaq_cont, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
+    compose_bootstrap_contribute_call(bt_peaq_cont, ACA_IDX,
+                                      0, aca(TOK_LIQUIDITY/2))
     receipt = bt_peaq_cont.execute_n_clear()
     assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY)
-    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY)
+    assert lpstatus['accumulated_supply'][1] == aca(TOK_LIQUIDITY)
 
     # 3.) Pool should be filled up (both targets are reached). now end bootstrap
-    compose_call_bootstrap_update_end(bt_peaq_sudo, BNC_IDX)
-    compose_bootstrap_end_call(bt_peaq_sudo, BNC_IDX)
+    compose_call_bootstrap_update_end(bt_peaq_sudo, ACA_IDX)
+    compose_bootstrap_end_call(bt_peaq_sudo, ACA_IDX)
     receipt = bt_peaq_sudo.execute_n_clear()
     assert receipt.is_success
     wait_for_event(si_peaq, 'ZenlinkProtocol', 'BootstrapEnd')
 
     # 4.) User swaps tokens by using the created pool
     balance = get_account_balance(si_peaq, kp_user.ss58_address)
-    compose_zdex_swap_exact_for(bt_peaq_user, BNC_IDX, amount_in1=bnc(TOK_SWAP))
+    compose_zdex_swap_exact_for(bt_peaq_user, ACA_IDX, amount_in1=aca(TOK_SWAP))
     receipt = bt_peaq_user.execute_n_clear()
     assert receipt.is_success
     wait_n_check_swap_event(si_peaq, 1)
 
     # Check that pool has been fully created after goal was reached
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert 'total_supply' in lpstatus.keys()  # means it is a true liquidity-pair
     assert lpstatus['total_supply'] > 0
 
@@ -568,7 +562,7 @@ class TestZenlinkDex(unittest.TestCase):
                 RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
             create_pair_n_swap_test(si_relay, si_peaq)
 
-        except AssertionError:
+        except Exception:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
@@ -587,7 +581,7 @@ class TestZenlinkDex(unittest.TestCase):
 
             bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
 
-        except AssertionError:
+        except Exception:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
@@ -606,7 +600,7 @@ class TestZenlinkDex(unittest.TestCase):
 
             zenlink_empty_lp_swap_test(si_relay, si_peaq)
 
-        except AssertionError:
+        except Exception:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)

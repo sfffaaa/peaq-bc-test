@@ -16,7 +16,7 @@ class TestPalletUtility(unittest.TestCase):
     # source account
     kp_src = Keypair.create_from_uri('//Alice')
     # destination account
-    kp_dst = Keypair.create_from_uri('//Charlie')
+    kp_dst = Keypair.create_from_uri('//Eve')
 
     def setUp(self):
         # deinfe a conneciton with a peaq-network node

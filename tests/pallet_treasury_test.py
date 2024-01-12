@@ -14,7 +14,7 @@ import unittest
 # accounts to carty out diffirent transactions
 KP_USER = Keypair.create_from_uri('//Alice')
 KP_COUNCIL_FIRST_MEMBER = Keypair.create_from_uri('//Bob')
-KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Charlie')
+KP_COUNCIL_SECOND_MEMBER = Keypair.create_from_uri('//Eve')
 KP_BENEFICIARY = Keypair.create_from_uri('//Dave')
 KP_TREASURY = '5EYCAe5ijiYfyeZ2JJCGq56LmPyNRAKzpG4QkoQkkQNB5e6Z'
 
@@ -24,7 +24,7 @@ WEIGHT_BOND = {
 }
 LENGTH_BOND = 100
 AMOUNT = 10
-TOTAL_AMOUNT = 10 ** 5 * 10 ** 18
+TOTAL_AMOUNT = 20 ** 5 * 10 ** 18
 
 DIVISION_FACTOR = pow(10, 7)
 

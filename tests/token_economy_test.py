@@ -27,7 +27,7 @@ STATE_INFOS = [{
     'type': {
         'peaq-dev': {'length': 10},
         'agung-network': {'length': 600},
-        'krest-network': {'length': 600},
+        'krest-network': {'length': 1200},
         'peaq-network': {'length': 600},
     }
 }, {
@@ -174,6 +174,8 @@ class TokenEconomyTest(unittest.TestCase):
             return 'peaq-dev'
         if 'krest-network-fork' == self._chain_spec:
             return 'krest-network'
+        if 'peaq-network-fork' == self._chain_spec:
+            return 'peaq-network'
 
     def get_info(self, test_type):
         if self._chain_spec not in test_type:
@@ -207,7 +209,7 @@ class TokenEconomyTest(unittest.TestCase):
             golden_data = self.get_info(test['type'])
             if isinstance(golden_data, dict):
                 for k, v in golden_data.items():
-                    self.assertEqual(result.value[k], v, f'{result.value} != {k}: {v}')
+                    self.assertEqual(result.value[k], v, f'{result.value} != {k}: {v}, {storage_function}')
             else:
                 if 'almost' in test and test['almost']:
                     self.assertAlmostEqual(result.value / golden_data, 1, 7, msg=f'{result.value} != {test}')

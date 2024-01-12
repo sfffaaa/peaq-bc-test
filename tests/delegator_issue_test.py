@@ -160,7 +160,10 @@ class TestDelegator(unittest.TestCase):
             return
 
         # Check it's the peaq-dev parachain
-        self.assertTrue(self.chain_name in ['peaq-dev', 'peaq-dev-fork', 'krest', 'krest-network-fork'])
+        self.assertTrue(self.chain_name in [
+            'peaq-dev', 'peaq-dev-fork',
+            'krest-network', 'krest-network-fork',
+            'peaq-network', 'peaq-network-fork'])
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
         batch.compose_sudo_call('BlockReward', 'set_max_currency_supply', {

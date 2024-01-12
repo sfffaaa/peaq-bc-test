@@ -5,6 +5,7 @@ sys.path.append('.')
 from peaq import utils as PeaqUtils
 PeaqUtils.DEBUG = True
 
+from substrateinterface import SubstrateInterface
 from substrateinterface import Keypair
 from peaq.utils import get_account_balance, show_extrinsic
 from peaq.sudo_extrinsic import fund
@@ -37,16 +38,22 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = 'http://192.168.178.23:9933'
 # WS_URL = 'wss://wss.test.peaq.network'
 # ETH_URL = 'https://erpc.test.peaq.network:443'
-
 URI_GLOBAL_SUDO = '//Alice'
 KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
-PEAQ_PD_CHAIN_ID = 2000
 BIFROST_PD_CHAIN_ID = 3000
 
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
+
+
+def get_parachain_id(substrate):
+    result = substrate.query(
+        'ParachainInfo',
+        'ParachainId',
+    )
+    return result.value
 
 
 def show_test(name, success, line=0):
@@ -57,6 +64,9 @@ def show_test(name, success, line=0):
             print(f'🔥 Test/{name}, Failed in line {line}')
         else:
             print(f'🔥 Test/{name}, Failed')
+
+
+PEAQ_PD_CHAIN_ID = get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
 
 
 def show_title(name):
