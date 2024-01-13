@@ -19,7 +19,7 @@ from tools.asset import RELAY_ASSET_LOCATION, RELAY_METADATA, RELAY_ASSET_ID
 from tools.asset import PEAQ_METADATA, PEAQ_ASSET_ID
 from tools.asset import ACA_ASSET_ID
 from tools.utils import PEAQ_PD_CHAIN_ID
-from tools.asset import batch_create_asset, batch_mint, batch_set_metadata
+from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
 import time
 # import pytest
@@ -348,6 +348,43 @@ class TestXCMTransfer(unittest.TestCase):
             now_balance, prev_balance,
             f'Actual {now_balance} should > expected {prev_balance} tokens')
 
+    # No fund dst account before receive the relay chain's token
+    def test_from_relay_to_peaq_with_sufficient(self):
+        receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA, 100, True)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+        receipt = setup_xc_register_if_not_exist(
+            self.si_peaq, KP_GLOBAL_SUDO,
+            RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
+        self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+
+        kp_remote_src = KP_CHARLIE
+        kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+        # Send foreigner tokens from the relay chain
+        receipt = self.send_relay_token_from_relay_to_peaq(kp_remote_src, kp_self_dst, TEST_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to send tokens from relay chain, {receipt.error_message}')
+
+        now_token = self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, RELAY_ASSET_ID['peaq'])
+        self.assertGreater(
+            now_token, 0,
+            f'Actual {now_token} should > expected {TEST_TOKEN_NUM} tokens')
+
+        # Send from peaq to relay chain
+        prev_balance = get_account_balance(self.si_relay, kp_remote_src.ss58_address)
+
+        # For paying fee
+        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
+        token = now_token - REMAIN_TOKEN_NUM
+        receipt = send_token_from_peaq_to_relay(
+            self.si_peaq, kp_self_dst, kp_remote_src, RELAY_ASSET_ID['peaq'], token)
+        self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
+
+        now_balance = self.wait_for_account_change(self.si_relay, kp_remote_src, prev_balance)
+        self.assertGreater(
+            now_balance, prev_balance,
+            f'Actual {now_balance} should > expected {prev_balance} tokens')
+
     # @pytest.mark.skip(reason="Success")
     # We don't need to test other token from aca to peaq because the flow is the same
     def test_native_from_aca_to_peaq(self):
@@ -422,16 +459,31 @@ class TestXCMTransfer(unittest.TestCase):
         now_balance = self.wait_for_account_change(self.si_peaq, kp_self_dst, prev_balance)
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
 
-    # @pytest.mark.skip(reason="Success")
-    def test_asset_from_peaq_to_aca(self):
+    def test_asset_from_peaq_to_aca_with_sufficient(self):
         # Create new asset id and register on peaq
         asset_id = TEST_ASSET_ID['peaq']
         kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self._set_up_peaq_asset_on_peaq(asset_id, kp_para_src, True)
+
+        # register on aca
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, TEST_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        kp_self_dst = kp_para_src
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        self._check_peaq_asset_from_peaq_to_aca_and_back(kp_para_src, kp_self_dst)
+
+    def _set_up_peaq_asset_on_peaq(self, asset_id, kp_para_src, is_sufficent=False):
         kp_self_dst = kp_para_src
         batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
         batch_fund(batch, kp_self_dst, INIT_TOKEN_NUM)
-        batch_fund(batch, SOVERIGN_ADDR, INIT_TOKEN_NUM)
-        batch_create_asset(batch, KP_GLOBAL_SUDO.ss58_address, asset_id)
+        if is_sufficent:
+            batch_force_create_asset(batch, KP_GLOBAL_SUDO.ss58_address, asset_id)
+        else:
+            batch_create_asset(batch, KP_GLOBAL_SUDO.ss58_address, asset_id)
         batch_set_metadata(
             batch, asset_id,
             TEST_ASSET_METADATA['name'], TEST_ASSET_METADATA['symbol'], TEST_ASSET_METADATA['decimals'])
@@ -443,15 +495,7 @@ class TestXCMTransfer(unittest.TestCase):
             TEST_ASSET_TOKEN['peaq'], UNITS_PER_SECOND)
         self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
 
-        # register on aca
-        receipt = setup_aca_asset_if_not_exist(
-            self.si_aca, KP_GLOBAL_SUDO, TEST_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
-        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
-
-        kp_self_dst = kp_para_src
-        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
-        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
-
+    def _check_peaq_asset_from_peaq_to_aca_and_back(self, kp_para_src, kp_self_dst):
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, self.alice, kp_para_src,
             BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
@@ -471,6 +515,29 @@ class TestXCMTransfer(unittest.TestCase):
 
         now_balance = self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
+
+    # @pytest.mark.skip(reason="Success")
+    def test_asset_from_peaq_to_aca(self):
+        # Create new asset id and register on peaq
+        asset_id = TEST_ASSET_ID['peaq']
+        kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        self._set_up_peaq_asset_on_peaq(asset_id, kp_para_src, False)
+
+        batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
+        batch_fund(batch, SOVERIGN_ADDR, INIT_TOKEN_NUM)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to create asset: {receipt.error_message}')
+
+        # register on aca
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, TEST_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        kp_self_dst = kp_para_src
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        self._check_peaq_asset_from_peaq_to_aca_and_back(kp_para_src, kp_self_dst)
 
     # Note, lp asset should create by zenlink protocol
     def test_lp_asset_from_peaq_to_aca(self):
