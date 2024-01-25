@@ -1,6 +1,7 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, funds
-from tools.utils import calculate_evm_account, calculate_evm_addr
+from tools.utils import WS_URL, KP_GLOBAL_SUDO
+from peaq.eth import calculate_evm_account, calculate_evm_addr
+from peaq.sudo_extrinsic import funds
 from tools.peaq_eth_utils import get_eth_balance
 from tools.payload import user_extrinsic_send
 import unittest
@@ -106,7 +107,7 @@ class TestEVMSubstrateExtrinsic(unittest.TestCase):
         eth_src = self._eth_src
 
         # Setup
-        funds(conn, [self._eth_deposited_src], TOKEN_NUM)
+        funds(conn, KP_GLOBAL_SUDO, [self._eth_deposited_src], TOKEN_NUM)
 
         eth_balance = get_eth_balance(conn, eth_src)
         print(f'src ETH balance: {eth_balance}')
@@ -132,7 +133,7 @@ class TestEVMSubstrateExtrinsic(unittest.TestCase):
         eth_src = self._eth_src
 
         # Setup
-        funds(conn, [self._eth_deposited_src], TOKEN_NUM)
+        funds(conn, KP_GLOBAL_SUDO, [self._eth_deposited_src], TOKEN_NUM)
         erc20_byte_code = get_byte_code_from_file(ERC20_BYTECODE_FILE)
 
         # Execute -> Deploy contract

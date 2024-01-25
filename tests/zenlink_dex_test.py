@@ -7,61 +7,42 @@ sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
-from tools.utils import show_test, show_title, show_subtitle, wait_for_event, get_account_balance
-from tools.utils import get_parachain_id, get_relay_token_symbol
-from tools.utils import ExtrinsicBatch, into_keypair, get_relay_token_id
-from tools.currency import peaq, dot, bnc
+from tools.utils import show_test, show_title, show_subtitle, wait_for_event
+from peaq.utils import ExtrinsicBatch, into_keypair
+from peaq.utils import get_account_balance
+from tools.utils import PEAQ_PD_CHAIN_ID
+from tools.currency import peaq, dot, aca
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from tests import utils_func as TestUtils
+from tools.asset import setup_asset_if_not_exist, setup_xc_register_if_not_exist
+from tools.asset import UNITS_PER_SECOND
+from tools.asset import ACA_ASSET_LOCATION, ACA_METADATA
+from tools.asset import ACA_ASSET_ID
+from tools.asset import RELAY_ASSET_LOCATION, RELAY_ASSET_ID, RELAY_METADATA
+from tools.zenlink import compose_zdex_create_lppair, compose_zdex_lppair_params, compose_zdex_add_liquidity
+from tools.zenlink import calc_deadline
 
 
 # Technical constants
-PARACHAIN_ID = get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
-RELAY_TOKEN_SYMBOL = get_relay_token_symbol(SubstrateInterface(url=PARACHAIN_WS_URL))
+PARACHAIN_ID = PEAQ_PD_CHAIN_ID
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
-DOT_IDX = get_relay_token_id(RELAY_TOKEN_SYMBOL)  # u8 value for DOT-token (CurrencyId/TokenSymbol)
-BNC_IDX = 128  # u8 value for BNC-token (CurrencyId/TokenSymbol)
+DOT_IDX = 1  # u8 value for DOT-token (CurrencyId/TokenSymbol)
+ACA_IDX = 3  # u8 value for ACA-token (CurrencyId/TokenSymbol)
 # Test parameter configurations
 TOK_LIQUIDITY = 50  # generic amount of tokens
 TOK_SWAP = 1  # generic amount of tokens
+MORE_EXISTENTIAL_TOKENS = 10000
 
 
+# [TODO] Need to move the setup (asset_resgiter/metadata here)
 def relay_amount_w_fees(x):
     return x + dot(2.5)
 
 
 def bifrost_amount_w_fees(x):
-    return x + bnc(1)
-
-
-def compose_zdex_lppair_params(tok_idx, w_str=True):
-    if w_str:
-        chain_id = str(PARACHAIN_ID)
-        zero = '0'
-        two = '2'
-        asset_idx = str(tok_idx)
-    else:
-        chain_id = PARACHAIN_ID
-        zero = 0
-        two = 2
-        asset_idx = tok_idx
-    asset0 = {
-        'chain_id': chain_id,
-        'asset_type': zero,
-        'asset_index': zero,
-    }
-    asset1 = {
-        'chain_id': chain_id,
-        'asset_type': two,
-        'asset_index': asset_idx,
-    }
-    return asset0, asset1
-
-
-def calc_deadline(substrate):
-    return substrate.get_block_number(None) + 10
+    return x + aca(1)
 
 
 def compose_balances_transfer(batch, kp_beneficiary, amount):
@@ -108,7 +89,7 @@ def compose_xcm_rta_relay2para(batch, kp_beneficiary, amount):
 
 def compose_xtokens_transfer(batch, kp_beneficiary, amount):
     params = {
-        'currency_id': {'Token': 'ACA'},
+        'currency_id': ACA_ASSET_ID['para'],
         'amount': str(amount),
         'dest': {XCM_VER: {
             'parents': '1',
@@ -120,30 +101,6 @@ def compose_xtokens_transfer(batch, kp_beneficiary, amount):
         'dest_weight_limit': 'Unlimited',
     }
     batch.compose_call('XTokens', 'transfer', params)
-
-
-def compose_zdex_create_lppair(batch, tok_idx):
-    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
-    params = {
-        'asset_0': asset_0,
-        'asset_1': asset_1,
-    }
-    batch.compose_sudo_call('ZenlinkProtocol', 'create_pair', params)
-
-
-def compose_zdex_add_liquidity(batch, tok_idx, liquidity0, liquidity1):
-    asset_0, asset_1 = compose_zdex_lppair_params(tok_idx)
-    deadline = calc_deadline(batch.substrate)
-    params = {
-        'asset_0': asset_0,
-        'asset_1': asset_1,
-        'amount_0_desired': str(liquidity0),
-        'amount_1_desired': str(liquidity1),
-        'amount_0_min': '0',
-        'amount_1_min': '0',
-        'deadline': str(deadline),
-    }
-    batch.compose_call('ZenlinkProtocol', 'add_liquidity', params)
 
 
 def compose_zdex_swap_exact_for(batch, tok_idx, amount_in0=None, amount_in1=None):
@@ -276,10 +233,11 @@ def state_system_account(si_peaq, kp_user):
     return int(query['data']['free'].value)
 
 
-def state_tokens_accounts(si_peaq, kp_user, token):
-    params = [kp_user.ss58_address, {'Token': token}]
-    query = si_peaq.query('Tokens', 'Accounts', params)
-    return int(query['free'].value)
+# [TODO] Need to extract
+def state_token_assets_accounts(si_peaq, kp_user, token):
+    params = [{'Token': token}, kp_user.ss58_address]
+    query = si_peaq.query('Assets', 'Account', params)
+    return int(query['balance'].value)
 
 
 def state_znlnkprot_lppair_assetidx(si_peaq, tok_idx):
@@ -322,6 +280,15 @@ def wait_n_check_token_deposit(substrate, kp_beneficiary, token):
     wait_n_check_event(substrate, 'Tokens', 'Deposited', attributes)
 
 
+# [TODO] Need to extract
+def wait_n_check_asset_issued(substrate, kp_beneficiary, token):
+    # attributes = {
+    #     'asset_id': token,
+    #     'who': kp_beneficiary.ss58_address,
+    # }
+    wait_n_check_event(substrate, 'Assets', 'Issued')
+
+
 def wait_n_check_swap_event(substrate, min_tokens):
     event = wait_for_event(substrate, 'ZenlinkProtocol', 'AssetSwap', timeout=XCM_RTA_TO)
     assert event is not None
@@ -343,8 +310,9 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
     bt_sender = ExtrinsicBatch(si_relay, sender)
     for i, recipi in enumerate(kp_recipi):
         compose_xcm_rta_relay2para(bt_sender, recipi, amnts[i])
-    bt_sender.execute()
-    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], RELAY_TOKEN_SYMBOL)
+    receipt = bt_sender.execute()
+    assert receipt.is_success
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 1})
 
 
 def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
@@ -362,8 +330,9 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
     bt_sender = ExtrinsicBatch(si_bifrost, sender)
     for i, recipi in enumerate(kp_recipi):
         compose_xtokens_transfer(bt_sender, recipi, amnts[i])
-    bt_sender.execute_n_clear()
-    wait_n_check_token_deposit(si_peaq, kp_recipi[-1], 'ACA')
+    receipt = bt_sender.execute_n_clear()
+    assert receipt.is_success
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 3})
 
 
 def create_pair_n_swap_test(si_relay, si_peaq):
@@ -390,10 +359,12 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', '//Dave'], [amount, amount])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
-    dot_liquidity = state_tokens_accounts(si_peaq, kp_para_sudo, RELAY_TOKEN_SYMBOL)
+    dot_liquidity = state_token_assets_accounts(si_peaq, kp_para_sudo, 1)
+    # Remove the existing liquidity from the account
+    dot_liquidity = dot_liquidity - MORE_EXISTENTIAL_TOKENS
     assert dot_liquidity >= dot(TOK_LIQUIDITY)
     # Check that beneficiary has DOT and PEAQ tokens available
-    dot_balance = state_tokens_accounts(si_peaq, kp_beneficiary, RELAY_TOKEN_SYMBOL)
+    dot_balance = state_token_assets_accounts(si_peaq, kp_beneficiary, 1)
     assert dot_balance > dot(TOK_SWAP)
 
     # 1.) Create a liquidity pair and add liquidity on pallet Zenlink-Protocol
@@ -402,7 +373,9 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     compose_zdex_add_liquidity(bt_para_sudo, DOT_IDX, dot_liquidity, dot_liquidity)
     # Reset user1's account to very low amount, to test payment in local currency
     compose_balances_setbalance(bt_para_sudo, user1, 1000)
-    bt_para_sudo.execute_n_clear()
+    receipt = bt_para_sudo.execute_n_clear()
+    print(f'create_pair_n_swap_test: receipt: {receipt.error_message}')
+    assert receipt.is_success
 
     # Check that liquidity pool is filled with DOT-tokens
     lpstatus = state_znlnkprot_lppair_status(si_peaq, DOT_IDX)
@@ -418,16 +391,19 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # 2.) Swap liquidity pair on Zenlink-DEX
     compose_zdex_swap_exact_for(bt_para_bene, DOT_IDX, amount_in1=dot(TOK_SWAP))
-    bt_para_bene.execute_n_clear()
+    receipt = bt_para_bene.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
     compose_zdex_swap_exact_for(bt_para_bob, DOT_IDX, amount_in0=peaq(TOK_SWAP))
-    bt_para_bob.execute_n_clear()
+    receipt = bt_para_bob.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, dot(TOK_SWAP))
 
     # 3.) Remove some liquidity
     compose_zdex_remove_liquidity(bt_para_sudo, DOT_IDX, int(dot_liquidity / 4))
-    bt_para_sudo.execute_n_clear()
+    receipt = bt_para_sudo.execute_n_clear()
+    assert receipt.is_success
 
     show_test('create_pair_n_swap_test', True)
 
@@ -452,57 +428,61 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     bt_peaq_cont = ExtrinsicBatch(si_peaq, kp_cont)
     bt_peaq_user = ExtrinsicBatch(si_peaq, kp_user)
 
-    # Transfer tokens from relaychain to parachain
-    amount = bifrost_amount_w_fees(bnc(TOK_LIQUIDITY)) // 2
+    # Transfer tokens from parachain to our chain
+    amount = bifrost_amount_w_fees(aca(TOK_LIQUIDITY)) // 2
     bifrost2para_transfer(
         si_bifrost, si_peaq, URI_GLOBAL_SUDO,
-        [URI_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(bnc(TOK_SWAP))])
+        [URI_GLOBAL_SUDO, cont, user], [amount, amount, bifrost_amount_w_fees(aca(TOK_SWAP))])
 
     # 1.) Create bootstrap-liquidity-pair & start contributing
-    compose_bootstrap_create_call(bt_peaq_sudo, BNC_IDX,
-                                  peaq(TOK_LIQUIDITY), bnc(TOK_LIQUIDITY),
-                                  peaq(tok_limit), bnc(tok_limit))
-    compose_bootstrap_contribute_call(bt_peaq_sudo, BNC_IDX,
+    compose_bootstrap_create_call(bt_peaq_sudo, ACA_IDX,
+                                  peaq(TOK_LIQUIDITY), aca(TOK_LIQUIDITY),
+                                  peaq(tok_limit), aca(tok_limit))
+    compose_bootstrap_contribute_call(bt_peaq_sudo, ACA_IDX,
                                       peaq(TOK_LIQUIDITY/2), 0)
-    compose_bootstrap_contribute_call(bt_peaq_sudo, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
-    bt_peaq_sudo.execute_n_clear()
+    compose_bootstrap_contribute_call(bt_peaq_sudo, ACA_IDX,
+                                      0, aca(TOK_LIQUIDITY/2))
+    receipt = bt_peaq_sudo.execute_n_clear()
+    assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert lpstatus['target_supply'][0] == peaq(TOK_LIQUIDITY)
-    assert lpstatus['target_supply'][1] == bnc(TOK_LIQUIDITY)
+    assert lpstatus['target_supply'][1] == aca(TOK_LIQUIDITY)
     assert lpstatus['capacity_supply'][0] == peaq(TOK_LIQUIDITY) * 100
-    assert lpstatus['capacity_supply'][1] == bnc(TOK_LIQUIDITY) * 100
+    assert lpstatus['capacity_supply'][1] == aca(TOK_LIQUIDITY) * 100
     assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY/2)
-    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY/2)
+    assert lpstatus['accumulated_supply'][1] == aca(TOK_LIQUIDITY/2)
 
     # 2.) Contribute to bootstrap-liquidity-pair until goal is reached
-    compose_bootstrap_contribute_call(bt_peaq_cont, BNC_IDX,
+    compose_bootstrap_contribute_call(bt_peaq_cont, ACA_IDX,
                                       peaq(TOK_LIQUIDITY/2), 0)
-    compose_bootstrap_contribute_call(bt_peaq_cont, BNC_IDX,
-                                      0, bnc(TOK_LIQUIDITY/2))
-    bt_peaq_cont.execute_n_clear()
+    compose_bootstrap_contribute_call(bt_peaq_cont, ACA_IDX,
+                                      0, aca(TOK_LIQUIDITY/2))
+    receipt = bt_peaq_cont.execute_n_clear()
+    assert receipt.is_success
 
     # Check that bootstrap-liquidity-pair has been created
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert lpstatus['accumulated_supply'][0] == peaq(TOK_LIQUIDITY)
-    assert lpstatus['accumulated_supply'][1] == bnc(TOK_LIQUIDITY)
+    assert lpstatus['accumulated_supply'][1] == aca(TOK_LIQUIDITY)
 
     # 3.) Pool should be filled up (both targets are reached). now end bootstrap
-    compose_call_bootstrap_update_end(bt_peaq_sudo, BNC_IDX)
-    compose_bootstrap_end_call(bt_peaq_sudo, BNC_IDX)
-    bt_peaq_sudo.execute_n_clear()
+    compose_call_bootstrap_update_end(bt_peaq_sudo, ACA_IDX)
+    compose_bootstrap_end_call(bt_peaq_sudo, ACA_IDX)
+    receipt = bt_peaq_sudo.execute_n_clear()
+    assert receipt.is_success
     wait_for_event(si_peaq, 'ZenlinkProtocol', 'BootstrapEnd')
 
     # 4.) User swaps tokens by using the created pool
     balance = get_account_balance(si_peaq, kp_user.ss58_address)
-    compose_zdex_swap_exact_for(bt_peaq_user, BNC_IDX, amount_in1=bnc(TOK_SWAP))
-    bt_peaq_user.execute_n_clear()
+    compose_zdex_swap_exact_for(bt_peaq_user, ACA_IDX, amount_in1=aca(TOK_SWAP))
+    receipt = bt_peaq_user.execute_n_clear()
+    assert receipt.is_success
     wait_n_check_swap_event(si_peaq, 1)
 
     # Check that pool has been fully created after goal was reached
-    lpstatus = state_znlnkprot_lppair_status(si_peaq, BNC_IDX)
+    lpstatus = state_znlnkprot_lppair_status(si_peaq, ACA_IDX)
     assert 'total_supply' in lpstatus.keys()  # means it is a true liquidity-pair
     assert lpstatus['total_supply'] > 0
 
@@ -533,23 +513,31 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     compose_zdex_create_lppair(bt_sudo, DOT_IDX)
     compose_balances_setbalance(bt_sudo, usr1, peaq(30))
     compose_balances_setbalance(bt_sudo, usr2, peaq(20))
-    bt_sudo.execute_n_clear()
+    receipt = bt_sudo.execute_n_clear()
+    assert receipt.is_success
 
     # 7.
     compose_zdex_add_liquidity(bt_usr1, DOT_IDX, 1000, 1000)
-    bt_usr1.execute_n_clear()
+    receipt = bt_usr1.execute_n_clear()
+    assert receipt.is_success
 
-    # 8.
+    # 8 #less then existential deposit
+    compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=990, amnt_in_max=1000000000000)
+    receipt = bt_usr2.execute_n_clear()
+    assert not receipt.is_success
+
+    # 9. will get 8xx dot tokens
     compose_zdex_swap_exact_for(bt_usr2, DOT_IDX, amount_in0=peaq(1))
-    bt_usr2.execute_n_clear()
+    receipt = bt_usr2.execute_n_clear()
+    assert receipt.is_success
 
-    # 9.
-    dot_balance = state_tokens_accounts(si_peaq, bt_usr2.keypair, RELAY_TOKEN_SYMBOL)
+    dot_balance = state_token_assets_accounts(si_peaq, bt_usr2.keypair, 1)
     assert dot_balance > 0
 
-    # 10. #error
+    # 10. #error, overflow
     compose_zdex_swap_for_exact(bt_usr2, DOT_IDX, amount_out1=1000, amnt_in_max=1000000000000)
-    bt_usr2.execute_n_clear()
+    receipt = bt_usr2.execute_n_clear()
+    assert not receipt.is_success
 
 
 class TestZenlinkDex(unittest.TestCase):
@@ -563,31 +551,57 @@ class TestZenlinkDex(unittest.TestCase):
         self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
-    def test_zenlink_dex(self):
+    def test_create_pair_swap(self):
+        show_title('Zenlink-DEX-Protocol create pair swap Test')
         try:
-            create_pair_n_swap_test(self.si_relay, self.si_peaq)
+            si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
+            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
+            setup_xc_register_if_not_exist(
+                si_peaq, KP_GLOBAL_SUDO,
+                RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
+            create_pair_n_swap_test(si_relay, si_peaq)
 
-        except AssertionError:
+        except Exception:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+            raise
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
-    def test_bootstrap_pair_n_swap(self):
+    def test_booststrap(self):
+        show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
-            bootstrap_pair_n_swap_test(self.si_bifrost, self.si_peaq)
+            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, ACA_ASSET_ID['peaq'], ACA_METADATA)
+            setup_xc_register_if_not_exist(
+                si_peaq, KP_GLOBAL_SUDO,
+                ACA_ASSET_ID['peaq'], ACA_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
 
-        except AssertionError:
+            bootstrap_pair_n_swap_test(si_bifrost, si_peaq)
+
+        except Exception:
             ex_type, ex_val, ex_tb = sys.exc_info()
             tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+            raise
 
-    # @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
-    # def zenlink_empty_lp_swap_test(self):
-    #     try:
-    #         zenlink_empty_lp_swap_test(self.si_relay, self.si_peaq)
+    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
+    def test_empty_lp_swap(self):
+        show_title('Zenlink-DEX-Protocol empty lp swap Test')
+        try:
+            si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
+            si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
+            setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA, 100)
+            setup_xc_register_if_not_exist(
+                si_peaq, KP_GLOBAL_SUDO,
+                RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
 
-    #     except AssertionError:
-    #         ex_type, ex_val, ex_tb = sys.exc_info()
-    #         tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
-    #         show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+            zenlink_empty_lp_swap_test(si_relay, si_peaq)
+
+        except Exception:
+            ex_type, ex_val, ex_tb = sys.exc_info()
+            tb = traceback.TracebackException(ex_type, ex_val, ex_tb)
+            show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
+            raise

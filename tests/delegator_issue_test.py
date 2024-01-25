@@ -2,10 +2,11 @@ import unittest
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, get_chain, get_collators, get_block_height, get_account_balance, get_block_hash
+from tools.utils import WS_URL, get_collators, batch_fund
 from tools.utils import KP_GLOBAL_SUDO, exist_pallet, KP_COLLATOR
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
-from tools.utils import ExtrinsicBatch
+from peaq.utils import get_block_height, get_block_hash, get_chain
+from peaq.utils import ExtrinsicBatch, get_account_balance
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 import warnings
 
@@ -113,13 +114,6 @@ class TestDelegator(unittest.TestCase):
             time.sleep(12)
         return False
 
-    def batch_fund(self, batch, kp, amount):
-        batch.compose_sudo_call('Balances', 'force_set_balance', {
-            'who': kp.ss58_address,
-            'new_free': amount,
-            'new_reserved': 0
-        })
-
     def test_issue_fixed_precentage(self):
         if not exist_pallet(self.substrate, 'StakingFixedRewardCalculator'):
             warnings.warn('StakingFixedRewardCalculator pallet not exist, skip the test')
@@ -135,9 +129,10 @@ class TestDelegator(unittest.TestCase):
             'collator_rate': collator_percentage,
             'delegator_rate': delegator_percentage,
         })
-        self.batch_fund(batch, self.delegators[0], 10000 * 10 ** 18)
-        self.batch_fund(batch, self.delegators[1], 10000 * 10 ** 18)
-        batch.execute_n_clear()
+        batch_fund(batch, self.delegators[0], 10000 * 10 ** 18)
+        batch_fund(batch, self.delegators[1], 10000 * 10 ** 18)
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'batch execute failed, error: {receipt.error_message}')
 
         # setup
         # Get the collator account
@@ -180,11 +175,11 @@ class TestDelegator(unittest.TestCase):
         batch.compose_sudo_call('StakingCoefficientRewardCalculator', 'set_coefficient', {
             'coefficient': 2,
         })
-        self.batch_fund(batch, KP_COLLATOR, 20 * mega_tokens)
-        self.batch_fund(batch, self.delegators[0], 10 * mega_tokens)
-        self.batch_fund(batch, self.delegators[1], 10 * mega_tokens)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, 'Batch failed')
+        batch_fund(batch, KP_COLLATOR, 20 * mega_tokens)
+        batch_fund(batch, self.delegators[0], 10 * mega_tokens)
+        batch_fund(batch, self.delegators[1], 10 * mega_tokens)
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'batch execute failed, error: {receipt.error_message}')
 
         # Get the collator account
         receipt = collator_stake_more(self.substrate, KP_COLLATOR, 5 * mega_tokens)

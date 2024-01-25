@@ -2,13 +2,15 @@ import sys
 import time
 sys.path.append('.')
 
-from dataclasses import dataclass
-from substrateinterface import SubstrateInterface, Keypair
-from substrateinterface.utils import hasher, ss58
-from scalecodec.base import RuntimeConfiguration
-from scalecodec.type_registry import load_type_registry_preset
+from peaq import utils as PeaqUtils
+PeaqUtils.DEBUG = True
 
-from scalecodec.utils.ss58 import ss58_encode
+from substrateinterface import SubstrateInterface
+from substrateinterface import Keypair
+from peaq.utils import get_account_balance, show_extrinsic
+from peaq.sudo_extrinsic import fund
+from peaq.eth import calculate_evm_addr
+from peaq.utils import calculate_multi_sig
 
 # Monkey patch
 from scalecodec.types import FixedLengthArray
@@ -36,15 +38,6 @@ ETH_URL = PARACHAIN_ETH_URL
 # ETH_URL = 'http://192.168.178.23:9933'
 # WS_URL = 'wss://wss.test.peaq.network'
 # ETH_URL = 'https://erpc.test.peaq.network:443'
-ETH_CHAIN_IDS = {
-    'peaq-dev': 9990,
-    'peaq-dev-fork': 9990,
-    'agung-network': 9990,
-    'krest-network': 2241,
-    'krest-network-fork': 2241,
-    'peaq-network': 3338,
-    'peaq-network-fork': 3338,
-}
 URI_GLOBAL_SUDO = '//Alice'
 KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
@@ -55,42 +48,12 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
-def get_relay_token_symbol(substrate):
-    # Note: In current peaq-dev setting, it's DOT, but not ROC.
-    # The ROC is only for the moonbeam-peaq-dev node
-    chain = get_chain(substrate)
-    if chain.startswith('peaq-dev'):
-        return 'DOT'
-    if chain.startswith('krest'):
-        return 'KSM'
-    if chain.startswith('peaq'):
-        return 'DOT'
-    raise Exception('Unknown chain')
-
-
-def get_relay_token_id(token_symbol):
-    if token_symbol == 'ROC':
-        return 66
-    if token_symbol == 'KSM':
-        return 65
-    if token_symbol == 'DOT':
-        return 64
-    raise Exception('Unknown token symbol')
-
-
 def get_parachain_id(substrate):
     result = substrate.query(
         'ParachainInfo',
         'ParachainId',
     )
     return result.value
-
-
-def show_extrinsic(receipt, info_type):
-    if receipt.is_success:
-        print(f'🚀 {info_type}, Success: {receipt.get_extrinsic_identifier()}')
-    else:
-        print(f'💥 {info_type}, Extrinsic Failed: {receipt.error_message} {receipt.get_extrinsic_identifier()}')
 
 
 def show_test(name, success, line=0):
@@ -103,24 +66,15 @@ def show_test(name, success, line=0):
             print(f'🔥 Test/{name}, Failed')
 
 
+PEAQ_PD_CHAIN_ID = get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
+
+
 def show_title(name):
     print(f'========== {name} ==========')
 
 
 def show_subtitle(name):
     print(f'----- {name} -----')
-
-
-def calculate_multi_sig(kps, threshold):
-    '''https://github.com/polkascan/py-scale-codec/blob/f063cfd47c836895886697e7d7112cbc4e7514b3/test/test_scale_types.py#L383'''
-
-    addrs = [kp.ss58_address for kp in kps]
-    RuntimeConfiguration().update_type_registry(load_type_registry_preset('legacy'))
-    multi_account_id = RuntimeConfiguration().get_decoder_class('MultiAccountId')
-
-    multi_sig_account = multi_account_id.create_from_account_list(addrs, threshold)
-    print(multi_sig_account)
-    return ss58_encode(multi_sig_account.value.replace('0x', ''), 42)
 
 
 @user_extrinsic_send
@@ -317,103 +271,6 @@ def approve_refund_token(substrate, kp_consumer, provider_addr, threshold, refun
     _approve_token(substrate, kp_consumer, [provider_addr], threshold, refund_info)
 
 
-def transfer(substrate, kp_src, kp_dst_addr, token_num, token_base=0):
-    return transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, 0, token_base)
-
-
-def transfer_with_tip(substrate, kp_src, kp_dst_addr, token_num, tip, token_base=0):
-    if not token_base:
-        token_base = TOKEN_NUM_BASE
-
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-
-    call = substrate.compose_call(
-        call_module='Balances',
-        call_function='transfer',
-        call_params={
-            'dest': kp_dst_addr,
-            'value': token_num * token_base
-        })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        tip=tip * token_base,
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'transfer')
-    return receipt
-
-
-def _calculate_evm_account(addr):
-    evm_addr = b'evm:' + bytes.fromhex(addr[2:].upper())
-    hash_key = hasher.blake2_256(evm_addr)
-    return hash_key
-
-
-def calculate_evm_account(addr):
-    return ss58.ss58_encode(calculate_evm_account_hex(addr))
-
-
-def calculate_evm_account_hex(addr):
-    return '0x' + _calculate_evm_account(addr).hex()
-
-
-def calculate_evm_addr(addr):
-    return '0x' + ss58.ss58_decode(addr)[:40]
-
-
-# [TODO] Use batch
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def fund(substrate, kp_dst, token_num):
-    return substrate.compose_call(
-        call_module='Balances',
-        call_function='force_set_balance',
-        call_params={
-            'who': kp_dst.ss58_address,
-            'new_free': token_num * TOKEN_NUM_BASE,
-            'new_reserved': 0
-        }
-    )
-
-
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def funds(substrate, dsts, token_num):
-    payloads = [
-        substrate.compose_call(
-            call_module='Balances',
-            call_function='force_set_balance',
-            call_params={
-                'who': dst,
-                'new_free': token_num,
-                'new_reserved': 0
-            }
-        ) for dst in dsts]
-
-    batch_payload = substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': payloads,
-        })
-    return batch_payload
-
-
-def get_block_hash(substrate, block_num):
-    return substrate.get_block_hash(block_id=block_num)
-
-
-def get_account_balance(substrate, addr, block_hash=None):
-    result = substrate.query(
-        'System', 'Account', [addr], block_hash=block_hash)
-    return int(result['data']['free'].value)
-
-
 def get_account_balance_locked(substrate, addr):
     result = substrate.query('System', 'Account', [addr])
     return int(result['data']['frozen'].value)
@@ -431,12 +288,6 @@ def show_account(substrate, addr, out_str):
     result = get_account_balance(substrate, addr)
     print(f'{addr} {out_str}: {result}')
     return result
-
-
-def get_eth_chain_id(substrate):
-    bl_hsh = substrate.get_block_hash(None)
-    chain_name = substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
-    return ETH_CHAIN_IDS[chain_name]
 
 
 # [TODO] Use the batch
@@ -516,11 +367,6 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
         })
 
 
-def get_chain(substrate):
-    bl_hsh = substrate.get_block_hash(None)
-    return substrate.rpc_request(method='system_chain', params=[bl_hsh]).get('result')
-
-
 def get_collators(substrate, key):
     return substrate.query(
            module='ParachainStaking',
@@ -529,219 +375,8 @@ def get_collators(substrate, key):
     )
 
 
-def get_block_height(substrate):
-    latest_block = substrate.get_block()
-    return latest_block['header']['number']
-
-
 def exist_pallet(substrate, pallet_name):
     return substrate.get_block_metadata(decode=True).get_metadata_pallet(pallet_name)
-
-
-@dataclass
-class ExtrinsicBatch:
-    """
-    ExtrinsicBatch class for simple creation of extrinsic-batch to be executed.
-
-    When initialising, pass either an existing SubstrateInterface/WS-URL and
-    optional Keypair/URI, or use the defaults. The ExtrinsicBatch is designed
-    to be used on one chain (relaychain/parachain), because the usage of one
-    SubstrateInterface. It is also designed for one user to execute the batch,
-    because the Utility pallet does not varying users unfortunately.
-
-    Example 1:    ex_stack = ExtrinsicStack(substrate, kp_src)
-    Example 2:    ex_stack = ExtrinsicStack(WS_URL, '//Bob')
-    Example 3:    ex_stack = ExtrinsicStack()
-    """
-    substrate: SubstrateInterface
-    keypair: Keypair
-    batch: list
-
-    def __init__(self, substrate_or_url, keypair_or_uri):
-        self.substrate = into_substrate(substrate_or_url)
-        self.keypair = into_keypair(keypair_or_uri)
-        self.batch = []
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return self
-
-    def __str__(self):
-        return 'ExtrinsicBatch@{}, batch: {}'.format(self.substrate, self.batch)
-
-    def compose_call(self, module, extrinsic, params):
-        """Composes and appends an extrinsic call to this stack"""
-        self.batch.append(compose_call(
-            self.substrate, module, extrinsic, params))
-
-    def compose_sudo_call(self, module, extrinsic, params):
-        """Composes a sudo-user extrinsic call and adds it this stack"""
-        self.batch.append(compose_sudo_call(
-            self.substrate, module, extrinsic, params))
-
-    def execute(self, wait_for_finalization=False, alt_keypair=None) -> str:
-        """Executes the extrinsic-stack"""
-        if not self.batch:
-            return ''
-        if alt_keypair is None:
-            alt_keypair = self.keypair
-        return execute_extrinsic_batch(
-            self.substrate, alt_keypair, self.batch, wait_for_finalization)
-
-    def execute_n_clear(self, alt_keypair=None, wait_for_finalization=False) -> str:
-        """Combination of execute() and clear()"""
-        if alt_keypair is None:
-            alt_keypair = self.keypair
-        bl_hash = self.execute(wait_for_finalization, alt_keypair)
-        self.clear()
-        return bl_hash
-
-    def clear(self):
-        """Clears the current extrinsic-stack"""
-        self.batch = []
-
-    def clone(self, keypair_or_uri=None):
-        """Creates a duplicate, by using the same SubstrateInterface"""
-        if keypair_or_uri is None:
-            keypair_or_uri = self.keypair
-        return ExtrinsicBatch(self.substrate, keypair_or_uri)
-
-
-def compose_call(substrate, module, extrinsic, params):
-    """
-    Composes a substrate-extrinsic-call on any module
-    Example:
-      module = 'Rbac'
-      extrinsic = 'add_role'
-      params = {'role_id': entity_id, 'name': name }
-    """
-    return substrate.compose_call(
-        call_module=module,
-        call_function=extrinsic,
-        call_params=params
-    )
-
-
-def compose_sudo_call(substrate, module, extrinsic, params):
-    """
-    Composes a substrate-sudo-extrinsic-call on any module
-    Parameters same as in compose_call, see above
-    """
-    payload = compose_call(substrate, module, extrinsic, params)
-    return compose_call(substrate, 'Sudo', 'sudo', {'call': payload.value})
-
-
-def execute_extrinsic_batch(substrate, kp_src, batch,
-                            wait_for_finalization=False) -> str:
-    """
-    Executes a extrinsic-stack/batch-call on substrate
-    Parameters:
-      substrate:  SubstrateInterface
-      kp_src:     Keypair
-      batch:      list[compose_call(), compose_call(), ...]
-    """
-    # Wrap payload into a utility batch cal
-    call = substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': batch,
-        })
-
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(
-        extrinsic, wait_for_inclusion=True,
-        wait_for_finalization=wait_for_finalization)
-    if len(batch) == 1:
-        description = generate_call_description(batch[0])
-    else:
-        description = generate_batch_description(batch)
-    show_extrinsic(receipt, description)
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError(f'Extrinsic failed: {receipt.block_hash}, substrate.get_events(receipt.block_hash)')
-    else:
-        return receipt.block_hash
-
-
-def execute_call(substrate: SubstrateInterface, kp_src: Keypair, call,
-                 wait_for_finalization=False) -> str:
-    """Executes a single extrinsic call on substrate"""
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce)
-
-    receipt = substrate.submit_extrinsic(
-        extrinsic, wait_for_inclusion=True,
-        wait_for_finalization=wait_for_finalization)
-    description = generate_call_description(call)
-    show_extrinsic(receipt, description)
-
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
-    else:
-        return receipt.block_hash
-
-
-def generate_call_description(call):
-    """Generates a description for an arbitrary extrinsic call"""
-    # print(type(call), call)
-    # assert type(call) == "scalecodec.types.GenericCall"
-    module = call.call_module.name
-    function = call.call_function.name
-    if module == 'Sudo':
-        # I don't like this solution, but unfortunately I was not able to access
-        # call.call_args in that way to extract the module and function of the payload.
-        desc = call.__str__().split('{')[3]
-        desc = desc.split("'")
-        submodule = desc[3]
-        subfunction = desc[7]
-        return f'{module}.{function}({submodule}.{subfunction})'
-    else:
-        return f'{module}.{function}'
-
-
-def generate_batch_description(batch):
-    """Generates a description for an extrinsic batch"""
-    desc = []
-    for b in batch:
-        desc.append(f'{generate_call_description(b)}')
-    desc = ', '.join(desc)
-    return f'Batch[ {desc} ]'
-
-
-def into_keypair(keypair_or_uri) -> Keypair:
-    """Takes either a Keypair, or transforms a given uri into one"""
-    if isinstance(keypair_or_uri, str):
-        return Keypair.create_from_uri(keypair_or_uri)
-    elif isinstance(keypair_or_uri, Keypair):
-        return keypair_or_uri
-    else:
-        raise TypeError
-
-
-def into_substrate(substrate_or_url) -> SubstrateInterface:
-    """Takes a SubstrateInterface, or takes into one by given url"""
-    if isinstance(substrate_or_url, str):
-        return SubstrateInterface(substrate_or_url)
-    elif isinstance(substrate_or_url, SubstrateInterface):
-        return substrate_or_url
-    else:
-        raise TypeError
 
 
 def wait_for_event(substrate, module, event, attributes={}, timeout=30):
@@ -774,6 +409,7 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
     event_id = e_obj.value['event']['event_id']
     attrib_id = e_obj.value['event']['attributes']
     if module_id == module and event_id == event:
+        print(f'attributes: {attrib_id}')
         if attributes:
             for key in attributes.keys():
                 if key not in attrib_id.keys():
@@ -787,19 +423,15 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
         return False
 
 
-def wait_for_n_blocks(substrate, n=1):
-    """Waits until the next block has been created"""
-    height = get_block_height(substrate)
-    wait_height = height + n
-    past = 0
-    while past < n:
-        next_height = get_block_height(substrate)
-        if height == next_height:
-            time.sleep(1)
-        else:
-            print(f'Current block: {height}, but waiting at {wait_height}')
-            height = next_height
-            past = past + 1
+def batch_fund(batch, kp_or_addr, amount):
+    addr = kp_or_addr
+    if isinstance(kp_or_addr, Keypair):
+        addr = kp_or_addr.ss58_address
+    batch.compose_sudo_call('Balances', 'force_set_balance', {
+        'who': addr,
+        'new_free': amount,
+        'new_reserved': 0
+    })
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr, calculate_evm_account_hex
-from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
+from peaq.eth import calculate_evm_account_hex, calculate_evm_addr, calculate_evm_account
+from peaq.extrinsic import transfer
+from tools.utils import WS_URL, ETH_URL
+from peaq.eth import get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
 from tools.peaq_eth_utils import TX_SUCCESS_STATUS
 from web3 import Web3
@@ -80,8 +82,8 @@ class TestBridgeStorage(unittest.TestCase):
 
         # setup
         transfer(substrate, KP_SRC, calculate_evm_account(eth_src), TOKEN_NUM)
-        bl_hash = call_eth_transfer_a_lot(substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
-        self.assertTrue(bl_hash, f'Failed to transfer token to {eth_kp_src.ss58_address}')
+        receipt = call_eth_transfer_a_lot(substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'Failed to transfer token to {eth_kp_src.ss58_address}')
 
         contract = get_contract(w3, STORAGE_ADDRESS, ABI_FILE)
 

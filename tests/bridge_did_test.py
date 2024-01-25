@@ -1,9 +1,11 @@
 import unittest
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from tools.utils import transfer, calculate_evm_account, calculate_evm_addr
+from peaq.eth import calculate_evm_account, calculate_evm_addr
+from peaq.extrinsic import transfer
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex
-from tools.utils import WS_URL, ETH_URL, get_eth_chain_id
+from tools.utils import WS_URL, ETH_URL
+from peaq.eth import get_eth_chain_id
 from web3 import Web3
 
 
@@ -88,8 +90,8 @@ class TestBridgeDid(unittest.TestCase):
         token_num = 10000 * pow(10, 15)
         transfer(self.substrate, KP_SRC, calculate_evm_account(eth_src), token_num)
         eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
-        bl_hash = call_eth_transfer_a_lot(self.substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
-        self.assertTrue(bl_hash, f'Failed to transfer token to {eth_kp_src.ss58_address}, {bl_hash}')
+        receipt = call_eth_transfer_a_lot(self.substrate, KP_SRC, eth_src, eth_kp_src.ss58_address.lower())
+        self.assertTrue(receipt.is_success, f'Failed to transfer token to {eth_kp_src.ss58_address}, {receipt}')
 
         contract = get_contract(self.w3, DID_ADDRESS, ABI_FILE)
 

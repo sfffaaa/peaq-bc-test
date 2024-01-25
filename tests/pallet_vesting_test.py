@@ -1,9 +1,10 @@
 import math
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
-from tools.utils import get_account_balance, get_account_balance_locked
-from tools.utils import funds
-from tools.utils import wait_for_n_blocks
+from tools.utils import get_account_balance_locked
+from peaq.utils import get_account_balance
+from peaq.sudo_extrinsic import funds
+from peaq.utils import wait_for_n_blocks
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -292,6 +293,7 @@ class TestPalletVesting(unittest.TestCase):
 
         # To fund accounts, if sufficient  funds are not available
         funds(substrate,
+              KP_GLOBAL_SUDO,
               [kp_user.ss58_address, kp_source.ss58_address, kp_target.ss58_address, kp_target_second.ss58_address],
               1000 * TOKEN_NUM_BASE_DEV)
 

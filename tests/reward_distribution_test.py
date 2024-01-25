@@ -2,10 +2,12 @@ import time
 import pytest
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, transfer_with_tip, TOKEN_NUM_BASE, get_account_balance, transfer
+from tools.utils import WS_URL, TOKEN_NUM_BASE
+from peaq.extrinsic import transfer, transfer_with_tip
+from peaq.utils import get_account_balance
 from tools.utils import KP_COLLATOR, KP_GLOBAL_SUDO
 from tools.utils import setup_block_reward
-from tools.utils import ExtrinsicBatch
+from peaq.utils import ExtrinsicBatch
 import unittest
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tests import utils_func as TestUtils
@@ -204,8 +206,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch_compose_block_reward(batch, 10000)
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Cannot execute the block reward extrinsic {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         # Execute
         # While we extend the max supply, the block reward should apply
@@ -228,8 +230,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
         batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         time.sleep(WAIT_TIME_PERIOD)
 
@@ -239,8 +241,9 @@ class TestRewardDistribution(unittest.TestCase):
             self._substrate, kp_bob, kp_eve.ss58_address, 0)
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')
-        self._check_transaction_fee_reward_from_sender(receipt.block_number)
-        self._check_transaction_fee_reward_from_collator(receipt.block_number)
+        block_number = self._substrate.get_block(receipt.block_hash)['header']['number']
+        self._check_transaction_fee_reward_from_sender(block_number)
+        self._check_transaction_fee_reward_from_collator(block_number)
 
         # Reset
         receipt = setup_block_reward(self._substrate, block_reward)
@@ -259,8 +262,8 @@ class TestRewardDistribution(unittest.TestCase):
         batch_extend_max_supply(self._substrate, batch)
         batch_compose_block_reward(batch, 0)
         batch_compose_reward_distribution(batch, COLLATOR_REWARD_RATE)
-        bl_hash = batch.execute()
-        self.assertTrue(bl_hash, f'Failed to execute: {bl_hash}')
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Cannot execute the block reward extrinsic {receipt}')
 
         time.sleep(WAIT_TIME_PERIOD)
         prev_balance = get_account_balance(self._substrate, KP_COLLATOR.ss58_address)

@@ -4,45 +4,36 @@ import os
 import time
 
 from substrateinterface import SubstrateInterface
-from tools.utils import show_extrinsic, WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, get_block_height, funds
+from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL
+from peaq.sudo_extrinsic import funds
+from peaq.utils import show_extrinsic, get_block_height
 from substrateinterface.utils.hasher import blake2_256
-from tools.payload import sudo_call_compose, sudo_extrinsic_send
-from tools.utils import wait_for_n_blocks
+from peaq.utils import wait_for_n_blocks
 from tools.restart import restart_parachain_launch
+from peaq.utils import ExtrinsicBatch
 import argparse
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def send_ugprade_call(substrate, wasm_file):
+def send_upgrade_call(substrate, kp_sudo, wasm_file):
     with open(wasm_file, 'rb') as f:
         data = f.read()
     file_hash = f'0x{blake2_256(data).hex()}'
     print(f'File hash: {file_hash}')
-
-    payloads = [
-        substrate.compose_call(
-            call_module='ParachainSystem',
-            call_function='authorize_upgrade',
-            call_params={'code_hash': file_hash, 'check_version': False}
-        ),
-        substrate.compose_call(
-            call_module='ParachainSystem',
-            call_function='enact_authorized_upgrade',
-            call_params={'code': data}
-        )
-    ]
-
-    batch_payload = substrate.compose_call(
-        call_module='Utility',
-        call_function='batch_all',
-        call_params={
-            'calls': payloads,
-        })
-    return batch_payload
+    batch = ExtrinsicBatch(substrate, kp_sudo)
+    batch.compose_sudo_call(
+        'ParachainSystem',
+        'authorize_upgrade',
+        {'code_hash': file_hash, 'check_version': False}
+    )
+    batch.compose_sudo_call(
+        'ParachainSystem',
+        'enact_authorized_upgrade',
+        {'code': data}
+    )
+    return batch.execute()
 
 
 def wait_until_block_height(substrate, block_height):
@@ -70,7 +61,7 @@ def upgrade(runtime_path):
     wait_for_n_blocks(substrate, 1)
 
     print(f'Global Sudo: {KP_GLOBAL_SUDO.ss58_address}')
-    receipt = send_ugprade_call(substrate, runtime_path)
+    receipt = send_upgrade_call(substrate, KP_GLOBAL_SUDO, runtime_path)
     show_extrinsic(receipt, 'upgrade?')
     wait_relay_upgrade_block()
 
@@ -78,7 +69,7 @@ def upgrade(runtime_path):
 def fund_account():
     print('update the info')
     substrate = SubstrateInterface(url=WS_URL)
-    funds(substrate, [
+    funds(substrate, KP_GLOBAL_SUDO, [
         '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY',
         '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',

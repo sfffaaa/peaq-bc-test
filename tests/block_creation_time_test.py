@@ -1,7 +1,8 @@
 import unittest
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL, get_block_height, wait_for_n_blocks
+from tools.utils import WS_URL
+from peaq.utils import wait_for_n_blocks, get_block_height
 from tools.block_creation_utils import get_block_creation_times
 
 BLOCK_TRAVERSE = 10

@@ -1,6 +1,8 @@
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import show_extrinsic, WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
-from tools.utils import ExtrinsicBatch
+from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
+from peaq.utils import show_extrinsic
+from peaq.utils import ExtrinsicBatch
+from tools.utils import batch_fund
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -240,21 +242,14 @@ class TestTreasury(unittest.TestCase):
 
         print('✅ Reward distributed to treasury as expected')
 
-    def batch_fund(self, batch, kp, amount):
-        batch.compose_sudo_call('Balances', 'force_set_balance', {
-            'who': kp.ss58_address,
-            'new_free': amount,
-            'new_reserved': 0
-        })
-
     def test_tresury_approve(self):
         print('----Start of pallet_treasury_test!! ----')
         print()
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
-        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
 
         print("--set member test started---")
         council_members = [KP_USER.ss58_address,
@@ -266,8 +261,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("--set member test completed successfully!---")
         print()
@@ -282,9 +277,9 @@ class TestTreasury(unittest.TestCase):
         print()
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
-        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
 
         print("--set member test started---")
         council_members = [KP_USER.ss58_address,
@@ -296,8 +291,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("---proposal rejection test started---")
         self.reject_proposal_test()
@@ -309,9 +304,9 @@ class TestTreasury(unittest.TestCase):
         print()
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
-        self.batch_fund(batch, KP_USER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
-        self.batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_USER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_FIRST_MEMBER, TOTAL_AMOUNT)
+        batch_fund(batch, KP_COUNCIL_SECOND_MEMBER, TOTAL_AMOUNT)
 
         print("--set member test started---")
         council_members = [KP_USER.ss58_address,
@@ -323,8 +318,8 @@ class TestTreasury(unittest.TestCase):
                            KP_USER.ss58_address,
                            0,
                            KP_USER.ss58_address)
-        bl_hash = batch.execute_n_clear()
-        self.assertTrue(bl_hash, f'Extrinsic Failed: {bl_hash}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
         print("---Spend test started---")
         receipt = spend(self.substrate, AMOUNT, KP_BENEFICIARY)
