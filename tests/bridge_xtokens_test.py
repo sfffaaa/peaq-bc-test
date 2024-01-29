@@ -95,7 +95,7 @@ def aca_fund(substrate, kp_sudo, kp_dst, new_free):
     return batch.execute()
 
 
-def send_token_from_peaq_to_para(w3, eth_chain_id, kp_sign, kp_dst, parachain_id, asset_id, token):
+def send_xtoken_transfer(w3, eth_chain_id, kp_sign, kp_dst, parachain_id, asset_id, token):
     contract = get_contract(w3, XTOKENS_ADDRESS, ABI_FILE)
     nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
 
@@ -118,25 +118,27 @@ def send_token_from_peaq_to_para(w3, eth_chain_id, kp_sign, kp_dst, parachain_id
     return tx_receipt
 
 
-def send_token_from_para_to_peaq(substrate, kp_sign, kp_dst, parachain_id, currency_id, token):
-    batch = ExtrinsicBatch(substrate, kp_sign)
-    batch.compose_call(
-        'XTokens',
-        'transfer',
-        {
-            'currency_id': currency_id,
-            'amount': str(token),
-            'dest': {XCM_VER: {
-                'parents': '1',
-                'interior': {'X2': [
-                    {'Parachain': f'{parachain_id}'},
-                    {'AccountId32': (None, kp_dst.public_key)}
-                    ]}
-                }},
-            'dest_weight_limit': 'Unlimited',
-        }
-    )
-    return batch.execute()
+def send_xtoken_transfer_multi_asset(w3, eth_chain_id, kp_sign, kp_dst, parachain_id, asset_id, token):
+    contract = get_contract(w3, XTOKENS_ADDRESS, ABI_FILE)
+    nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
+
+    tx = contract.functions.transferMultiasset(
+        [0, ['0x0602' + f'0{asset_id["Token"]}' + '00' * 31]],
+        token,
+        [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
+        10 ** 12).build_transaction({
+            'from': kp_sign.ss58_address,
+            'gas': GAS_LIMIT,
+            'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': eth_chain_id
+        })
+
+    signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_sign.private_key)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    return tx_receipt
 
 
 class TestBridgeXTokens(unittest.TestCase):
@@ -233,7 +235,7 @@ class TestBridgeXTokens(unittest.TestCase):
         receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_dst, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
 
-        evm_receipt = send_token_from_peaq_to_para(
+        evm_receipt = send_xtoken_transfer(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_dst,
             BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
@@ -257,7 +259,7 @@ class TestBridgeXTokens(unittest.TestCase):
         receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
 
-        evm_receipt = send_token_from_peaq_to_para(
+        evm_receipt = send_xtoken_transfer(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
             BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
@@ -265,3 +267,26 @@ class TestBridgeXTokens(unittest.TestCase):
         # Extract...
         got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
+
+    def test_bridge_xtoken_single_transfer_multi_asset(self):
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, PEAQ_ASSET_LOCATION['para'], PEAQ_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        kp_para_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_dst, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        evm_receipt = send_xtoken_transfer_multi_asset(
+            self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_dst,
+            BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        got_token = self.wait_for_aca_account_token_change(kp_para_dst.ss58_address, PEAQ_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
+
+    # def test_bridge_xtoken_transfer_multi_currencies(self):
+    #     raise IOError
+
+    # def test_bridge_xtoken_transfer_multi_assets(self):
+    #     raise IOError
