@@ -2,6 +2,8 @@ import json
 import binascii
 import os
 from peaq.utils import ExtrinsicBatch
+from substrateinterface import Keypair, KeypairType
+from peaq.eth import calculate_evm_account
 from web3 import Web3
 from peaq import eth
 
@@ -87,3 +89,13 @@ def get_eth_chain_id(substrate):
             'peaq-network-fork': 3338,
         }
         return forked_info[chain_name]
+
+
+def get_eth_info():
+    mnemonic = Keypair.generate_mnemonic()
+    kp = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ECDSA)
+    return {
+        'kp': kp,
+        'substrate': calculate_evm_account(kp.ss58_address),
+        'eth': kp.ss58_address
+    }

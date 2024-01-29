@@ -518,6 +518,7 @@ class TestXCMTransfer(unittest.TestCase):
 
     # @pytest.mark.skip(reason="Success")
     def test_asset_from_peaq_to_aca(self):
+        # From Alice transfer to kp_para_src (other chain) and move to the kp_self_dst
         # Create new asset id and register on peaq
         asset_id = TEST_ASSET_ID['peaq']
         kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
