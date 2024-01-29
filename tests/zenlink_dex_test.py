@@ -6,7 +6,7 @@ import pytest
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ACA_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event
 from peaq.utils import ExtrinsicBatch, into_keypair
 from peaq.utils import get_account_balance
@@ -544,11 +544,11 @@ class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
-        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
         show_title('Zenlink-DEX-Protocol Test')
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-        self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_bifrost = SubstrateInterface(url=ACA_WS_URL)
 
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_create_pair_swap(self):
@@ -573,7 +573,7 @@ class TestZenlinkDex(unittest.TestCase):
         show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+            si_bifrost = SubstrateInterface(url=ACA_WS_URL)
             setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, ACA_ASSET_ID['peaq'], ACA_METADATA)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,

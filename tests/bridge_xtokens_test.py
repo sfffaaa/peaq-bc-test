@@ -6,8 +6,7 @@ from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import ETH_URL
-# TODO, Rename BIFROSST_WS_URL TO ACA_WS_URL
-from tools.utils import WS_URL, BIFROST_WS_URL, PARACHAIN_WS_URL
+from tools.utils import WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID
@@ -151,10 +150,10 @@ class TestBridgeXTokens(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
-        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
 
         self.si_peaq = SubstrateInterface(url=WS_URL,)
-        self.si_aca = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_aca = SubstrateInterface(url=ACA_WS_URL)
         self.alice = Keypair.create_from_uri('//Alice')
         self.kp_eth = get_eth_info()
         self._w3 = Web3(Web3.HTTPProvider(ETH_URL))

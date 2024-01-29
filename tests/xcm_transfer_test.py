@@ -5,7 +5,7 @@ import unittest
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, RELAYCHAIN_WS_URL, BIFROST_WS_URL, PARACHAIN_WS_URL
+from tools.utils import WS_URL, RELAYCHAIN_WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
@@ -251,11 +251,11 @@ class TestXCMTransfer(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
-        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
 
         self.si_peaq = SubstrateInterface(url=WS_URL,)
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
-        self.si_aca = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_aca = SubstrateInterface(url=ACA_WS_URL)
         self.alice = Keypair.create_from_uri('//Alice')
 
     def setup_xc_register_if_not_exist(self, asset_id, location, units_per_second):
