@@ -141,6 +141,54 @@ def send_xtoken_transfer_multi_asset(w3, eth_chain_id, kp_sign, kp_dst, parachai
     return tx_receipt
 
 
+def send_xtoken_transfer_multi_currencies(w3, eth_chain_id, kp_sign, kp_dst, parachain_id, asset_id, token):
+    contract = get_contract(w3, XTOKENS_ADDRESS, ABI_FILE)
+    nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
+
+    tx = contract.functions.transferMultiCurrencies(
+        [(calculate_asset_to_evm_address(asset_id), token),
+         (calculate_asset_to_evm_address({'Token': 0}), token)],
+        0,
+        [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
+        10 ** 12).build_transaction({
+            'from': kp_sign.ss58_address,
+            'gas': GAS_LIMIT,
+            'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': eth_chain_id
+        })
+
+    signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_sign.private_key)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    return tx_receipt
+
+
+def send_xtoken_transfer_multi_assets(w3, eth_chain_id, kp_sign, kp_dst, parachain_id, asset_id, token):
+    contract = get_contract(w3, XTOKENS_ADDRESS, ABI_FILE)
+    nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
+
+    tx = contract.functions.transferMultiAssets(
+        [([0, ['0x0602' + '00' + '00' * 31]], token),
+         ([0, ['0x0602' + '00' + f'0{asset_id["Token"]}' + '00' * 30]], token)],
+        0,
+        [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
+        10 ** 12).build_transaction({
+            'from': kp_sign.ss58_address,
+            'gas': GAS_LIMIT,
+            'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': eth_chain_id
+        })
+
+    signed_txn = w3.eth.account.sign_transaction(tx, private_key=kp_sign.private_key)
+    tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    return tx_receipt
+
+
 class TestBridgeXTokens(unittest.TestCase):
     def get_parachain_id(self, relay_substrate):
         result = relay_substrate.query(
@@ -285,8 +333,56 @@ class TestBridgeXTokens(unittest.TestCase):
         got_token = self.wait_for_aca_account_token_change(kp_para_dst.ss58_address, PEAQ_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
 
-    # def test_bridge_xtoken_transfer_multi_currencies(self):
-    #     raise IOError
+    def test_bridge_xtoken_transfer_multi_currencies(self):
+        # From Alice transfer to kp_para_src (other chain)
+        asset_id = TEST_ASSET_ID['peaq']
+        self._set_up_peaq_asset_on_peaq(asset_id, self.kp_eth['substrate'], True)
 
-    # def test_bridge_xtoken_transfer_multi_assets(self):
-    #     raise IOError
+        kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        # register on aca
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, TEST_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, PEAQ_ASSET_LOCATION['para'], PEAQ_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        evm_receipt = send_xtoken_transfer_multi_currencies(
+            self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
+            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
+        got_token = self.get_tokens_account_from_pallet_tokens(kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
+
+    def test_bridge_xtoken_transfer_multi_assets(self):
+        # From Alice transfer to kp_para_src (other chain)
+        asset_id = TEST_ASSET_ID['peaq']
+        self._set_up_peaq_asset_on_peaq(asset_id, self.kp_eth['substrate'], True)
+
+        kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        # register on aca
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, TEST_ASSET_TOKEN['para'], TEST_ASSET_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, PEAQ_ASSET_LOCATION['para'], PEAQ_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
+
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_para_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
+
+        evm_receipt = send_xtoken_transfer_multi_assets(
+            self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
+            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
+        got_token = self.get_tokens_account_from_pallet_tokens(kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
+        self.assertNotEqual(got_token, 0)
