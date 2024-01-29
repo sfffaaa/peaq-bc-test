@@ -1,5 +1,5 @@
 from peaq.utils import ExtrinsicBatch
-from tools.utils import BIFROST_PD_CHAIN_ID, PEAQ_PD_CHAIN_ID
+from tools.utils import ACA_PD_CHAIN_ID, PEAQ_PD_CHAIN_ID
 import copy
 
 
@@ -18,7 +18,7 @@ ACA_ASSET_LOCATION = {
         XCM_VER: {
             'parents': '1',
             'interior': {'X2': [
-                {'Parachain': BIFROST_PD_CHAIN_ID},
+                {'Parachain': ACA_PD_CHAIN_ID},
                 {'GeneralKey': {
                     'length': 2,
                     'data': [0, 0] + [0] * 30,

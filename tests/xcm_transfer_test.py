@@ -9,7 +9,7 @@ from tools.utils import WS_URL, RELAYCHAIN_WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
-from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID, batch_fund
+from tools.utils import KP_GLOBAL_SUDO, ACA_PD_CHAIN_ID, batch_fund
 from tools.asset import setup_asset_if_not_exist
 from tools.asset import batch_register_location, batch_set_units_per_second, setup_xc_register_if_not_exist
 from tools.asset import setup_aca_asset_if_not_exist
@@ -419,7 +419,7 @@ class TestXCMTransfer(unittest.TestCase):
         token = got_token - REMAIN_TOKEN_NUM
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, kp_self_dst,
-            kp_remote_src, BIFROST_PD_CHAIN_ID, asset_id, token)
+            kp_remote_src, ACA_PD_CHAIN_ID, asset_id, token)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
         now_balance = self.wait_for_account_change(self.si_aca, kp_remote_src, prev_balance)
         self.assertGreater(
@@ -441,7 +441,7 @@ class TestXCMTransfer(unittest.TestCase):
 
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, self.alice, kp_para_src,
-            BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
 
         # Extract...
@@ -498,7 +498,7 @@ class TestXCMTransfer(unittest.TestCase):
     def _check_peaq_asset_from_peaq_to_aca_and_back(self, kp_para_src, kp_self_dst):
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, self.alice, kp_para_src,
-            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
 
         # Extract...
@@ -599,7 +599,7 @@ class TestXCMTransfer(unittest.TestCase):
         transfer_token_num = int(liquity_token_num / 2)
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, kp_peaq, kp_aca,
-            BIFROST_PD_CHAIN_ID, TEST_LP_ASSET_ID['peaq'], transfer_token_num)
+            ACA_PD_CHAIN_ID, TEST_LP_ASSET_ID['peaq'], transfer_token_num)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
         got_token = self.wait_for_aca_account_token_change(kp_aca.ss58_address, TEST_LP_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)

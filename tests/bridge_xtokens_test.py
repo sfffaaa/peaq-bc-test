@@ -9,7 +9,7 @@ from tools.utils import ETH_URL
 from tools.utils import WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
-from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID
+from tools.utils import KP_GLOBAL_SUDO, ACA_PD_CHAIN_ID
 from tools.asset import batch_register_location, batch_set_units_per_second, setup_xc_register_if_not_exist
 from tools.asset import setup_aca_asset_if_not_exist
 from tools.asset import UNITS_PER_SECOND
@@ -285,7 +285,7 @@ class TestBridgeXTokens(unittest.TestCase):
 
         evm_receipt = send_xtoken_transfer(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_dst,
-            BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         # Extract...
@@ -309,7 +309,7 @@ class TestBridgeXTokens(unittest.TestCase):
 
         evm_receipt = send_xtoken_transfer(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
-            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         # Extract...
@@ -327,7 +327,7 @@ class TestBridgeXTokens(unittest.TestCase):
 
         evm_receipt = send_xtoken_transfer_multi_asset(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_dst,
-            BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         got_token = self.wait_for_aca_account_token_change(kp_para_dst.ss58_address, PEAQ_ASSET_ID['para'])
@@ -352,7 +352,7 @@ class TestBridgeXTokens(unittest.TestCase):
 
         evm_receipt = send_xtoken_transfer_multi_currencies(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
-            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
@@ -379,7 +379,7 @@ class TestBridgeXTokens(unittest.TestCase):
 
         evm_receipt = send_xtoken_transfer_multi_assets(
             self._w3, self.eth_chain_id, self.kp_eth['kp'], kp_para_src,
-            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
