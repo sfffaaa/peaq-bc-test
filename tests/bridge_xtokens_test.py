@@ -242,7 +242,7 @@ class TestBridgeXTokens(unittest.TestCase):
         got_token = self.wait_for_aca_account_token_change(kp_para_dst.ss58_address, PEAQ_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
 
-    # @pytest.mark.skip(reason="Haven't finish")
+    # @pytest.mark.skip(reason="Success")
     def test_asset_from_peaq_to_aca_with_sufficient(self):
         # From Alice transfer to kp_para_src (other chain)
         asset_id = TEST_ASSET_ID['peaq']
