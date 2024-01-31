@@ -70,26 +70,15 @@ PEAQ_ASSET_LOCATION = {
     'peaq': {
         XCM_VER: {
             'parents': '0',
-            'interior': {
-                'X1': {
-                    'GeneralKey': {
-                        'length': 2,
-                        'data': [0, 0] + [0] * 30,
-                    }
-                }
-            }
+            'interior': 'Here'
         }
     },
     'para': {
         XCM_VER: {
             'parents': '1',
-            'interior': {'X2': [
+            'interior': {'X1':
                 {'Parachain': PEAQ_PD_CHAIN_ID},
-                {'GeneralKey': {
-                    'length': 2,
-                    'data': [0, 0] + [0] * 30,
-                }}
-            ]}
+            }
         }
     },
 }
