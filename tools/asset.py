@@ -76,9 +76,7 @@ PEAQ_ASSET_LOCATION = {
     'para': {
         XCM_VER: {
             'parents': '1',
-            'interior': {'X1':
-                {'Parachain': PEAQ_PD_CHAIN_ID},
-            }
+            'interior': {'X1': {'Parachain': PEAQ_PD_CHAIN_ID}}
         }
     },
 }
