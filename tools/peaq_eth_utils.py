@@ -3,6 +3,8 @@ import binascii
 import os
 from peaq.utils import ExtrinsicBatch
 from web3 import Web3
+from peaq import eth
+
 
 ERC20_ADDR_PREFIX = '0xffffffff00000000000000000000000000000000'
 GAS_LIMIT = 4294967
@@ -71,3 +73,17 @@ def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
 def calculate_asset_to_evm_address(asset_id):
     number = int(ERC20_ADDR_PREFIX, 16) + asset_id['Token']
     return Web3.to_checksum_address(hex(number))
+
+
+def get_eth_chain_id(substrate):
+    try:
+        return eth.get_eth_chain_id(substrate)
+    except KeyError:
+        chain_name = substrate.rpc_request(method='system_chain', params=[]).get('result')
+        forked_info = {
+            'peaq-dev-fork': 9990,
+            'agung-network-fork': 9990,
+            'krest-network-fork': 2241,
+            'peaq-network-fork': 3338,
+        }
+        return forked_info[chain_name]

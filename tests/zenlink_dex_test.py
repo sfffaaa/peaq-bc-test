@@ -356,7 +356,7 @@ def create_pair_n_swap_test(si_relay, si_peaq):
 
     # Transfer tokens from relaychain to parachain
     amount = relay_amount_w_fees(dot(TOK_LIQUIDITY))
-    relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', '//Dave'], [amount, amount])
+    relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', user1], [amount, amount])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
     dot_liquidity = state_token_assets_accounts(si_peaq, kp_para_sudo, 1)
@@ -417,8 +417,8 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
     tok_limit = 5
     assert TOK_LIQUIDITY / 2 > tok_limit
 
-    cont = '//Bob'
-    user = '//Dave'
+    cont = '//Dave'
+    user = '//Bob'
 
     kp_sudo = into_keypair(KP_GLOBAL_SUDO)
     kp_cont = into_keypair(cont)
@@ -501,8 +501,8 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     """
     show_subtitle('zenlink_empty_lp_swap_test')
 
-    usr1 = '//Eve'
-    usr2 = '//Dave'
+    usr1 = '//Dave'
+    usr2 = '//Bob'
 
     bt_sudo = ExtrinsicBatch(si_peaq, KP_GLOBAL_SUDO)
     bt_usr1 = ExtrinsicBatch(si_peaq, usr1)

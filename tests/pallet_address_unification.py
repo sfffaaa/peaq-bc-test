@@ -9,7 +9,7 @@ from peaq.utils import get_block_hash
 from tools.evm_claim_sign import gen_eth_signature
 from peaq.sudo_extrinsic import fund, funds
 from tools.peaq_eth_utils import get_eth_balance
-from peaq.eth import get_eth_chain_id
+from tools.peaq_eth_utils import get_eth_chain_id
 from peaq.utils import ExtrinsicBatch
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
 from tools.peaq_eth_utils import GAS_LIMIT, get_contract
