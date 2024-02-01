@@ -1,6 +1,8 @@
 from peaq.utils import ExtrinsicBatch
 from tools.utils import ACA_PD_CHAIN_ID, PEAQ_PD_CHAIN_ID
+from peaq.utils import get_account_balance
 import copy
+import time
 
 
 XCM_VER = 'V3'  # So far not tested with V2!
@@ -226,3 +228,34 @@ def get_valid_asset_id(conn):
 
 def get_asset_balance(conn, addr, asset_id):
     return conn.query("Assets", "Account", [asset_id, addr])
+
+
+def get_tokens_account_from_pallet_assets(substrate, addr, asset_id):
+    resp = get_asset_balance(substrate, addr, asset_id)
+    if not resp.value:
+        return 0
+    return resp.value['balance']
+
+
+def get_tokens_account_from_pallet_tokens(substrate, addr, asset_id):
+    resp = substrate.query("Tokens", "Accounts", [addr, asset_id])
+    if not resp.value:
+        return 0
+    return resp.value['free']
+
+
+def get_balance_account_from_pallet_balance(substrate, addr, _):
+    return get_account_balance(substrate, addr)
+
+
+def wait_for_account_asset_change_wrap(substrate, addr, asset_id, prev_token, func):
+    if not prev_token:
+        prev_token = func(substrate, addr, asset_id)
+    count = 0
+    while func(substrate, addr, asset_id) == prev_token and count < 10:
+        time.sleep(12)
+        count += 1
+    now_token = func(substrate, addr, asset_id)
+    if now_token == prev_token:
+        raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
+    return now_token

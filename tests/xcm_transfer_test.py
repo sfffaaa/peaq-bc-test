@@ -21,7 +21,10 @@ from tools.asset import ACA_ASSET_ID
 from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
-import time
+from tools.asset import wait_for_account_asset_change_wrap
+from tools.asset import get_balance_account_from_pallet_balance
+from tools.asset import get_tokens_account_from_pallet_assets
+from tools.asset import get_tokens_account_from_pallet_tokens
 # import pytest
 
 
@@ -273,44 +276,17 @@ class TestXCMTransfer(unittest.TestCase):
         receipt = send_token_from_relay_to_peaq(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
 
-    def get_tokens_account_from_pallet_assets(self, addr, asset_id):
-        resp = self.si_peaq.query("Assets", "Account", [asset_id, addr])
-        if not resp.value:
-            return 0
-        return resp.value['balance']
-
-    def get_tokens_account_from_pallet_tokens(self, addr, asset_id):
-        resp = self.si_aca.query("Tokens", "Accounts", [addr, asset_id])
-        if not resp.value:
-            return 0
-        return resp.value['free']
-
-    def get_balance_account_from_pallet_balance(self, addr, _):
-        return get_account_balance(self.si_peaq, addr)
-
-    def _wait_for_account_asset_change(self, addr, asset_id, prev_token, func):
-        if not prev_token:
-            prev_token = func(addr, asset_id)
-        count = 0
-        while func(addr, asset_id) == prev_token and count < 10:
-            time.sleep(12)
-            count += 1
-        now_token = func(addr, asset_id)
-        if now_token == prev_token:
-            raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
-        return now_token
-
     def wait_for_aca_account_token_change(self, addr, asset_id, prev_token=0):
-        return self._wait_for_account_asset_change(
-            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_tokens)
+        return wait_for_account_asset_change_wrap(
+            self.si_aca, addr, asset_id, prev_token, get_tokens_account_from_pallet_tokens)
 
     def wait_for_peaq_account_asset_change(self, addr, asset_id, prev_token=0):
-        return self._wait_for_account_asset_change(
-            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_assets)
+        return wait_for_account_asset_change_wrap(
+            self.si_peaq, addr, asset_id, prev_token, get_tokens_account_from_pallet_assets)
 
     def wait_for_account_change(self, substrate, kp_dst, prev_token):
-        return self._wait_for_account_asset_change(
-            kp_dst.ss58_address, None, prev_token, self.get_balance_account_from_pallet_balance)
+        return wait_for_account_asset_change_wrap(
+            self.si_peaq, kp_dst.ss58_address, None, prev_token, get_balance_account_from_pallet_balance)
 
     # @pytest.mark.skip(reason="Success")
     def test_from_relay_to_peaq(self):
@@ -506,7 +482,8 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertNotEqual(got_token, 0)
 
         transfer_back_token = got_token - REMAIN_TOKEN_NUM
-        prev_balance = self.get_tokens_account_from_pallet_assets(kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
+        prev_balance = get_tokens_account_from_pallet_assets(
+            self.si_peaq, kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
         # Send it back to the peaq chain
         receipt = send_token_from_para_to_peaq(
             self.si_aca, kp_para_src, kp_self_dst,
@@ -606,7 +583,8 @@ class TestXCMTransfer(unittest.TestCase):
 
         # Transfer it back to peaq
         transfer_back_token = got_token - REMAIN_TOKEN_NUM
-        prev_balance = self.get_tokens_account_from_pallet_assets(kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'])
+        prev_balance = get_tokens_account_from_pallet_assets(
+            self.si_peaq, kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'])
         # Send it back to the peaq chain
         receipt = send_token_from_para_to_peaq(
             self.si_aca, kp_aca, kp_peaq,

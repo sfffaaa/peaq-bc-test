@@ -22,7 +22,8 @@ from web3 import Web3
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.peaq_eth_utils import get_eth_chain_id
-import time
+from tools.asset import wait_for_account_asset_change_wrap
+from tools.asset import get_tokens_account_from_pallet_tokens
 # import pytest
 
 ABI_FILE = 'ETH/xtokens/abi'
@@ -231,30 +232,12 @@ class TestBridgeXTokens(unittest.TestCase):
         receipt = batch.execute()
         self.assertTrue(receipt.is_success, f"Failed to register location {location}, {receipt.error_message}")
 
-    def get_tokens_account_from_pallet_tokens(self, addr, asset_id):
-        resp = self.si_aca.query("Tokens", "Accounts", [addr, asset_id])
-        if not resp.value:
-            return 0
-        return resp.value['free']
-
     def get_balance_account_from_pallet_balance(self, addr, _):
         return get_account_balance(self.si_peaq, addr)
 
-    def _wait_for_account_asset_change(self, addr, asset_id, prev_token, func):
-        if not prev_token:
-            prev_token = func(addr, asset_id)
-        count = 0
-        while func(addr, asset_id) == prev_token and count < 10:
-            time.sleep(12)
-            count += 1
-        now_token = func(addr, asset_id)
-        if now_token == prev_token:
-            raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
-        return now_token
-
     def wait_for_aca_account_token_change(self, addr, asset_id, prev_token=0):
-        return self._wait_for_account_asset_change(
-            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_tokens)
+        return wait_for_account_asset_change_wrap(
+            self.si_aca, addr, asset_id, prev_token, get_tokens_account_from_pallet_tokens)
 
     def _set_up_peaq_asset_on_peaq(self, asset_id, para_addr, is_sufficent=False):
         batch = ExtrinsicBatch(self.si_peaq, KP_GLOBAL_SUDO)
@@ -357,7 +340,8 @@ class TestBridgeXTokens(unittest.TestCase):
 
         got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
-        got_token = self.get_tokens_account_from_pallet_tokens(kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
+        got_token = get_tokens_account_from_pallet_tokens(
+            self.si_aca, kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
 
     def test_bridge_xtoken_transfer_multi_assets(self):
@@ -384,5 +368,6 @@ class TestBridgeXTokens(unittest.TestCase):
 
         got_token = self.wait_for_aca_account_token_change(kp_para_src.ss58_address, TEST_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
-        got_token = self.get_tokens_account_from_pallet_tokens(kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
+        got_token = get_tokens_account_from_pallet_tokens(
+            self.si_aca, kp_para_src.ss58_address, PEAQ_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
