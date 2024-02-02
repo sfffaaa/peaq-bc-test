@@ -6,17 +6,11 @@ from peaq.eth import calculate_evm_account_hex
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from peaq.eth import get_eth_chain_id
-from substrateinterface import SubstrateInterface, Keypair
+from substrateinterface import SubstrateInterface
 from peaq.utils import ExtrinsicBatch
 from web3 import Web3
 from tools.utils import KP_GLOBAL_SUDO
-from peaq.utils import get_account_balance
 from tools.peaq_eth_utils import generate_random_hex
-# from tools.utils import ACA_PD_CHAIN_ID
-# from tests.utils_func import restart_parachain_and_runtime_upgrade
-# rom tools.asset import setup_aca_asset_if_not_exist
-# from tools.asset import PEAQ_ASSET_LOCATION, PEAQ_METADATA
-# from tools.asset import PEAQ_ASSET_ID
 
 
 KEY1 = generate_random_hex()
@@ -39,7 +33,6 @@ class TestBridgeBatch(unittest.TestCase):
         self.si_peaq = SubstrateInterface(url=WS_URL)
         self.w3 = Web3(Web3.HTTPProvider(ETH_URL))
         self.kp_eth = get_eth_info()
-        self.eth_chain_id = get_eth_chain_id(self.si_peaq)
 
     def _fund_eth_account(self):
         # transfer
@@ -64,15 +57,11 @@ class TestBridgeBatch(unittest.TestCase):
             'chainId': self.eth_chain_id})
         return tx['data']
 
-    def get_storage_calldata(self, eth_kp, contract, key, value):
-        return contract.encodeABI(fn_name='add_item', args=[key, value])
-
     def test_batch_all(self):
+        self.eth_chain_id = get_eth_chain_id(self.si_peaq)
         self._fund_eth_account()
 
         storage_contract = get_contract(self.w3, STORAGE_ADDRESS, STORAGE_ABI_FILE)
-        storage1_encode_calldata = self.get_storage_calldata(self.kp_eth['kp'], storage_contract, KEY1, VALUE1)
-        storage2_encode_calldata = self.get_storage_calldata(self.kp_eth['kp'], storage_contract, KEY2, VALUE2)
 
         kp_sign = self.kp_eth['kp']
         contract = get_contract(self.w3, BATCH_ADDRESS, ABI_FILE)
@@ -80,8 +69,9 @@ class TestBridgeBatch(unittest.TestCase):
         tx = contract.functions.batchAll(
             [Web3.to_checksum_address(STORAGE_ADDRESS), Web3.to_checksum_address(STORAGE_ADDRESS)],
             [0, 0],
-            [storage1_encode_calldata, storage2_encode_calldata],
-            [20000, 20000],
+            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [0, 0],
             ).build_transaction({
                 'from': kp_sign.ss58_address,
                 'gas': GAS_LIMIT,
@@ -102,3 +92,85 @@ class TestBridgeBatch(unittest.TestCase):
         self.assertEqual(f'0x{data.hex()}', VALUE1)
         data = storage_contract.functions.get_item(account, KEY2).call()
         self.assertEqual(f'0x{data.hex()}', VALUE2)
+
+    def test_batch_some(self):
+        self.eth_chain_id = get_eth_chain_id(self.si_peaq)
+        self._fund_eth_account()
+
+        storage_contract = get_contract(self.w3, STORAGE_ADDRESS, STORAGE_ABI_FILE)
+
+        kp_sign = self.kp_eth['kp']
+        contract = get_contract(self.w3, BATCH_ADDRESS, ABI_FILE)
+        nonce = self.w3.eth.get_transaction_count(kp_sign.ss58_address)
+        tx = contract.functions.batchSome(
+            [Web3.to_checksum_address(STORAGE_ADDRESS),
+             Web3.to_checksum_address(STORAGE_ADDRESS),
+             Web3.to_checksum_address(STORAGE_ADDRESS)],
+            [0, 0, 0],
+            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='update_item', args=["0x1234", VALUE2]),
+             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [0, 0, 0],
+            ).build_transaction({
+                'from': kp_sign.ss58_address,
+                'gas': GAS_LIMIT,
+                'maxFeePerGas': self.w3.to_wei(250, 'gwei'),
+                'maxPriorityFeePerGas': self.w3.to_wei(2, 'gwei'),
+                'nonce': nonce,
+                'chainId': self.eth_chain_id
+            })
+
+        signed_txn = self.w3.eth.account.sign_transaction(tx, private_key=kp_sign.private_key)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        evm_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        # Check
+        account = calculate_evm_account_hex(kp_sign.ss58_address)
+        data = storage_contract.functions.get_item(account, KEY1).call()
+        self.assertEqual(f'0x{data.hex()}', VALUE1)
+        data = storage_contract.functions.get_item(account, KEY2).call()
+        self.assertEqual(f'0x{data.hex()}', VALUE2)
+
+    def test_batch_some_until_fail(self):
+        self.eth_chain_id = get_eth_chain_id(self.si_peaq)
+        self._fund_eth_account()
+
+        storage_contract = get_contract(self.w3, STORAGE_ADDRESS, STORAGE_ABI_FILE)
+
+        kp_sign = self.kp_eth['kp']
+        contract = get_contract(self.w3, BATCH_ADDRESS, ABI_FILE)
+        nonce = self.w3.eth.get_transaction_count(kp_sign.ss58_address)
+        tx = contract.functions.batchSomeUntilFailure(
+            [Web3.to_checksum_address(STORAGE_ADDRESS),
+             Web3.to_checksum_address(STORAGE_ADDRESS),
+             Web3.to_checksum_address(STORAGE_ADDRESS)],
+            [0, 0, 0],
+            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='update_item', args=["0x1234", VALUE2]),
+             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [0, 0, 0],
+            ).build_transaction({
+                'from': kp_sign.ss58_address,
+                'gas': GAS_LIMIT,
+                'maxFeePerGas': self.w3.to_wei(250, 'gwei'),
+                'maxPriorityFeePerGas': self.w3.to_wei(2, 'gwei'),
+                'nonce': nonce,
+                'chainId': self.eth_chain_id
+            })
+
+        signed_txn = self.w3.eth.account.sign_transaction(tx, private_key=kp_sign.private_key)
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        evm_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        # Check
+        account = calculate_evm_account_hex(kp_sign.ss58_address)
+        data = storage_contract.functions.get_item(account, KEY1).call()
+        self.assertEqual(f'0x{data.hex()}', VALUE1)
+        try:
+            data = storage_contract.functions.get_item(account, KEY2).call()
+        except ValueError:
+            pass
+        except Exception as e:
+            raise e
