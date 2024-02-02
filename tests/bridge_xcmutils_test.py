@@ -198,7 +198,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
         balance = get_account_balance(self.si_peaq, kp_dst.ss58_address)
         self.assertNotEqual(balance, 0, f'Error: {balance}')
 
-    @pytest.mark.skip(reason="Success")
+    @pytest.mark.skip(reason="Failure")
     def test_xcm_send(self):
         # import pdb
         # pdb.set_trace()
