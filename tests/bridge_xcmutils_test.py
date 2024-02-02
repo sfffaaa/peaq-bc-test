@@ -239,8 +239,14 @@ class TestBridgeXCMUtils(unittest.TestCase):
         self.assertNotEqual(got_token, 1)
 
     def test_get_units_per_second(self):
-        self.si_peaq = SubstrateInterface(url=WS_URL)
-
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
         data = contract.functions.getUnitsPerSecond([0, ['0x0602' + '00' * 32]]).call()
+        self.assertNotEqual(data, 0)
+
+    def test_weight_message(self):
+        contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
+        kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        encoded_calldata = self._compose_xcm_execute_message(kp_dst).encode().data
+
+        data = contract.functions.weightMessage(encoded_calldata).call()
         self.assertNotEqual(data, 0)
