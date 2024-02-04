@@ -5,7 +5,7 @@ from tools.utils import WS_URL, ETH_URL
 from peaq.eth import calculate_evm_account_hex
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
-from peaq.eth import get_eth_chain_id
+from tools.peaq_eth_utils import get_eth_chain_id
 from substrateinterface import SubstrateInterface
 from peaq.utils import ExtrinsicBatch
 from web3 import Web3

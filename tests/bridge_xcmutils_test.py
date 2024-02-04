@@ -3,7 +3,7 @@ from tools.utils import WS_URL, ETH_URL
 # from tools.runtime_upgrade import wait_until_block_height
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
-from peaq.eth import get_eth_chain_id
+from tools.peaq_eth_utils import get_eth_chain_id
 from substrateinterface import SubstrateInterface, Keypair
 from peaq.utils import ExtrinsicBatch
 from web3 import Web3
@@ -51,14 +51,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
                   'id': {
                     'Concrete': {
                         'parents': 0,
-                        'interior': {
-                            'X1': {
-                                'GeneralKey': {
-                                    'length': 2,
-                                    'data': '0x' + '00' * 32,
-                                }
-                            }
-                        }
+                        'interior': 'Here',
                     }
                   },
                   'fun': {'Fungible': 10 ** 18},
@@ -102,14 +95,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
                   'id': {
                     'Concrete': {
                         'parents': 0,
-                        'interior': {
-                            'X1': {
-                                'GeneralKey': {
-                                    'length': 2,
-                                    'data': '0x' + '00' * 32,
-                                }
-                            }
-                        },
+                        'interior': 'Here',
                     }
                   },
                   'fun': {'Fungible': 10 ** 18},
@@ -122,14 +108,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
                     'id': {
                         'Concrete': {
                             'parents': 0,
-                            'interior': {
-                                'X1': {
-                                    'GeneralKey': {
-                                        'length': 2,
-                                        'data': '0x' + '00' * 32,
-                                    }
-                                }
-                            }
+                            'interior': 'Here',
                         }
                     },
                     'fun': {'Fungible': 10 ** 18},
@@ -240,7 +219,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
 
     def test_get_units_per_second(self):
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
-        data = contract.functions.getUnitsPerSecond([0, ['0x0602' + '00' * 32]]).call()
+        data = contract.functions.getUnitsPerSecond([0, []]).call()
         self.assertNotEqual(data, 0)
 
     def test_weight_message(self):

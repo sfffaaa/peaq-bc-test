@@ -124,7 +124,7 @@ def send_xtoken_transfer_multi_asset(w3, eth_chain_id, kp_sign, kp_dst, parachai
     nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
 
     tx = contract.functions.transferMultiasset(
-        [0, ['0x0602' + f'0{asset_id["Token"]}' + '00' * 31]],
+        [0, []],
         token,
         [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
         10 ** 12).build_transaction({
@@ -171,7 +171,7 @@ def send_xtoken_transfer_multi_assets(w3, eth_chain_id, kp_sign, kp_dst, paracha
     nonce = w3.eth.get_transaction_count(kp_sign.ss58_address)
 
     tx = contract.functions.transferMultiAssets(
-        [([0, ['0x0602' + '00' + '00' * 31]], token),
+        [([0, []], token),
          ([0, ['0x0602' + '00' + f'0{asset_id["Token"]}' + '00' * 30]], token)],
         0,
         [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
