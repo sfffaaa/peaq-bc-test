@@ -1,0 +1,44 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "id",
+				"type": "uint32"
+			}
+		],
+		"name": "convertAssetIdToAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint32",
+				"name": "id",
+				"type": "uint32"
+			},
+			{
+				"internalType": "address",
+				"name": "admin",
+				"type": "address"
+			},
+			{
+				"internalType": "uint128",
+				"name": "minBalance",
+				"type": "uint128"
+			}
+		],
+		"name": "create",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
