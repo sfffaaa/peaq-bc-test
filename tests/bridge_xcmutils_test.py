@@ -1,6 +1,6 @@
 import unittest
-from tools.utils import WS_URL, ETH_URL
-# from tools.runtime_upgrade import wait_until_block_height
+from tools.utils import WS_URL, ETH_URL, ACA_WS_URL
+from tools.utils import ACA_PD_CHAIN_ID
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.peaq_eth_utils import get_eth_chain_id
@@ -9,13 +9,11 @@ from peaq.utils import ExtrinsicBatch
 from web3 import Web3
 from tools.utils import KP_GLOBAL_SUDO
 from peaq.utils import get_account_balance
-# from tools.utils import ACA_PD_CHAIN_ID
-# from tests.utils_func import restart_parachain_and_runtime_upgrade
-# rom tools.asset import setup_aca_asset_if_not_exist
-# from tools.asset import PEAQ_ASSET_LOCATION, PEAQ_METADATA
+from tests import utils_func as TestUtils
+from tools.asset import setup_aca_asset_if_not_exist
+from tools.asset import PEAQ_ASSET_LOCATION, PEAQ_METADATA
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_tokens_account_from_pallet_tokens
-# from tools.asset import PEAQ_ASSET_ID
 import pytest
 
 
@@ -137,8 +135,12 @@ class TestBridgeXCMUtils(unittest.TestCase):
             call_function='send',
             call_params={
                 'dest': {'V3': {
-                    'parents': 0,
-                    'interior': 'Here',
+                    'parents': 1,
+                    'interior': {
+                        'X1': {
+                            'Parachain': 3000
+                        }
+                    },
                 }},
                 'message': message,
             }
@@ -149,6 +151,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
         return wait_for_account_asset_change_wrap(
             self.si_aca, addr, asset_id, prev_token, get_tokens_account_from_pallet_tokens)
 
+    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Note enable xcm_execute on non-dev chain')
     def test_xcm_execute(self):
         self._fund_eth_account()
 
@@ -177,28 +180,25 @@ class TestBridgeXCMUtils(unittest.TestCase):
         balance = get_account_balance(self.si_peaq, kp_dst.ss58_address)
         self.assertNotEqual(balance, 0, f'Error: {balance}')
 
-    @pytest.mark.skip(reason="Failure")
     def test_xcm_send(self):
-        # import pdb
-        # pdb.set_trace()
-
-        # Restart
         self.si_peaq = SubstrateInterface(url=WS_URL)
-        self.si_aca = SubstrateInterface(url=WS_URL)
+        self.si_aca = SubstrateInterface(url=ACA_WS_URL)
+
+        receipt = setup_aca_asset_if_not_exist(
+            self.si_aca, KP_GLOBAL_SUDO, PEAQ_ASSET_LOCATION['para'], PEAQ_METADATA)
+        self.assertTrue(receipt.is_success, f'Failed to register foreign asset: {receipt.error_message}')
 
         self._fund_eth_account()
         # compose the message
         kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         encoded_calldata = self._compose_xcm_send_message(kp_dst).encode().data
 
-        # Address unifi with sudo
-
         # Use the pallet send to send it
         kp_sign = self.kp_eth['kp']
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
         nonce = self.w3.eth.get_transaction_count(kp_sign.ss58_address)
         tx = contract.functions.xcmSend(
-            [0, []], encoded_calldata,
+            [1, ['0x00'+f'00000{hex(ACA_PD_CHAIN_ID)[2:]}']], encoded_calldata,
             ).build_transaction({
                 'from': kp_sign.ss58_address,
                 'gas': GAS_LIMIT,
@@ -212,10 +212,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
         tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
         evm_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
-
-        # got_token = self.wait_for_aca_account_token_change(kp_dst.ss58_address, PEAQ_ASSET_ID['para'])
-        got_token = 0
-        self.assertNotEqual(got_token, 1)
+        # Cannot test on remote side because Acala we used cannot resolve the origin (1, parachain, account)
 
     def test_get_units_per_second(self):
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
