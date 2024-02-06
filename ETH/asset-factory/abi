@@ -2,9 +2,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint32",
+				"internalType": "uint64",
 				"name": "id",
-				"type": "uint32"
+				"type": "uint64"
 			}
 		],
 		"name": "convertAssetIdToAddress",
@@ -21,9 +21,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint32",
+				"internalType": "uint64",
 				"name": "id",
-				"type": "uint32"
+				"type": "uint64"
 			},
 			{
 				"internalType": "address",
@@ -37,6 +37,124 @@
 			}
 		],
 		"name": "create",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			}
+		],
+		"name": "finishDestroy",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			},
+			{
+				"internalType": "bytes",
+				"name": "name",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "symbol",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint8",
+				"name": "decimal",
+				"type": "uint8"
+			}
+		],
+		"name": "setMetadata",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint128",
+				"name": "minBalance",
+				"type": "uint128"
+			}
+		],
+		"name": "setMinBalance",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			},
+			{
+				"internalType": "address",
+				"name": "issuer",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "admin",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "freezer",
+				"type": "address"
+			}
+		],
+		"name": "setTeam",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			}
+		],
+		"name": "startDestroy",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "id",
+				"type": "uint64"
+			},
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
