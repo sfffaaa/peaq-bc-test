@@ -1,7 +1,6 @@
 import sys
 import traceback
 import unittest
-import pytest
 
 sys.path.append('./')
 
