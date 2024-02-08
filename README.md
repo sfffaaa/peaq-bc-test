@@ -36,6 +36,7 @@ python3 test.py
 
 # Runtime upgradae test
 ```
+RUNTIME_UPGRADE_PATH=~/PublicSMB/peaq_dev_runtime.compact.compressed.0.0.8.wasm python3 tools/runtime_upgrade.py
 RUNTIME_UPGRADE_PATH=~/PublicSMB/peaq_dev_runtime.compact.compressed.0.0.8.wasm pytest
 ```
 # Limitation
