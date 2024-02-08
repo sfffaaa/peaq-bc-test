@@ -26,7 +26,7 @@ def send_upgrade_call(substrate, kp_sudo, wasm_file):
     batch.compose_sudo_call(
         'ParachainSystem',
         'authorize_upgrade',
-        {'code_hash': file_hash, 'check_version': False}
+        {'code_hash': file_hash, 'check_version': True}
     )
     batch.compose_sudo_call(
         'ParachainSystem',
@@ -93,13 +93,22 @@ def do_runtime_upgrade(wasm_path):
 
 def main():
     parser = argparse.ArgumentParser(description='Upgrade the runtime')
-    parser.add_argument('-r', '--runtime', type=str, required=True, help='Your runtime poisiton')
+    parser.add_argument('-r', '--runtime', type=str, help='Your runtime poisiton')
     parser.add_argument('-d', '--docker-restart', type=bool, default=False, help='Restart the docker container')
 
     args = parser.parse_args()
+    runtime_path = args.runtime
+    runtime_env = os.environ.get('RUNTIME_UPGRADE_PATH')
+
+    if not runtime_env and not runtime_path:
+        raise IOError('Runtime path is required')
+    if runtime_env:
+        print(f'Use runtime env {runtime_env} to overide the runtime path {runtime_path}')
+        runtime_path = runtime_env
+
     if args.docker_restart:
         restart_parachain_launch()
-    do_runtime_upgrade(args.runtime)
+    do_runtime_upgrade(runtime_path)
     print('Done but wait 30s')
     time.sleep(30)
 

@@ -14,7 +14,6 @@ from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.currency import peaq, dot, aca
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
-from tests import utils_func as TestUtils
 from tools.asset import setup_asset_if_not_exist, setup_xc_register_if_not_exist
 from tools.asset import UNITS_PER_SECOND
 from tools.asset import ACA_ASSET_LOCATION, ACA_METADATA
@@ -550,7 +549,6 @@ class TestZenlinkDex(unittest.TestCase):
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
         self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_create_pair_swap(self):
         show_title('Zenlink-DEX-Protocol create pair swap Test')
         try:
@@ -568,7 +566,6 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_booststrap(self):
         show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
@@ -587,7 +584,6 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_empty_lp_swap(self):
         show_title('Zenlink-DEX-Protocol empty lp swap Test')
         try:

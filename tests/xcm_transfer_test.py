@@ -241,12 +241,12 @@ def send_token_from_para_to_peaq(substrate, kp_sign, kp_dst, parachain_id, curre
 
 
 class TestXCMTransfer(unittest.TestCase):
-    def get_parachain_id(self, relay_substrate):
-        result = relay_substrate.query(
-            'Paras',
-            'Parachains',
+    def get_parachain_id(self, peaq_substrate):
+        result = peaq_substrate.query(
+            'ParachainInfo',
+            'ParachainId',
         )
-        return result.value[0]
+        return result.value
 
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
@@ -269,7 +269,7 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertTrue(receipt.is_success, f"Failed to register location {location}, {receipt.error_message}")
 
     def send_relay_token_from_relay_to_peaq(self, kp_src, kp_dst, token):
-        parachain_id = self.get_parachain_id(self.si_relay)
+        parachain_id = self.get_parachain_id(self.si_peaq)
         receipt = send_token_from_relay_to_peaq(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
 
@@ -400,7 +400,7 @@ class TestXCMTransfer(unittest.TestCase):
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund tokens to self: {receipt.error_message}')
-        parachain_id = self.get_parachain_id(self.si_relay)
+        parachain_id = self.get_parachain_id(self.si_peaq)
 
         # Send foreigner tokens to peaq chain
         receipt = send_token_from_para_to_peaq(
