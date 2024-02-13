@@ -537,6 +537,11 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     receipt = bt_usr2.execute_n_clear()
     assert not receipt.is_success
 
+    # 11. add liquility again
+    compose_zdex_add_liquidity(bt_usr1, DOT_IDX, peaq(10), 1)
+    receipt = bt_usr1.execute_n_clear()
+    assert receipt.is_success
+
 
 class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
