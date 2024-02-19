@@ -4,7 +4,7 @@ sys.path.append('./')
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_set_metadata, batch_mint, get_valid_asset_id
-from tools.asset import get_asset_balance
+from tools.asset import get_asset_balance, convert_enum_to_asset_id
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
 
@@ -317,7 +317,7 @@ class pallet_assets_test(unittest.TestCase):
             'Assets',
             'create',
             {
-                'id': {'LPToken': [0, asset_id['Token']]},
+                'id': convert_enum_to_asset_id({'LPToken': [0, asset_id]}),
                 'admin': KP_GLOBAL_SUDO.ss58_address,
                 'min_balance': 500,
             }
@@ -331,7 +331,7 @@ class pallet_assets_test(unittest.TestCase):
             'Assets',
             'create',
             {
-                'id': {'Token': 0},
+                'id': convert_enum_to_asset_id({'Token': 0}),
                 'admin': KP_GLOBAL_SUDO.ss58_address,
                 'min_balance': 500,
             }
@@ -344,7 +344,7 @@ class pallet_assets_test(unittest.TestCase):
             'Assets',
             'create',
             {
-                'id': {'Token': 2 ** (32 - 3) - 1},
+                'id': convert_enum_to_asset_id({'Token': 2 ** (32 - 3) - 1}),
                 'admin': KP_GLOBAL_SUDO.ss58_address,
                 'min_balance': 500,
             }

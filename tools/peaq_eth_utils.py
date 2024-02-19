@@ -71,7 +71,7 @@ def deploy_contract(w3, kp_src, eth_chain_id, abi_file_name, bytecode):
 
 
 def calculate_asset_to_evm_address(asset_id):
-    number = int(ERC20_ADDR_PREFIX, 16) + asset_id['Token']
+    number = int(ERC20_ADDR_PREFIX, 16) + asset_id
     return Web3.to_checksum_address(hex(number))
 
 

@@ -233,7 +233,7 @@ def state_system_account(si_peaq, kp_user):
 
 # [TODO] Need to extract
 def state_token_assets_accounts(si_peaq, kp_user, token):
-    params = [{'Token': token}, kp_user.ss58_address]
+    params = [token, kp_user.ss58_address]
     query = si_peaq.query('Assets', 'Account', params)
     return int(query['balance'].value)
 
@@ -272,7 +272,7 @@ def wait_n_check_event(substrate, module, event, attributes=None):
 
 def wait_n_check_token_deposit(substrate, kp_beneficiary, token):
     attributes = {
-        'currency_id': {'Token': token},
+        'currency_id': token,
         'who': kp_beneficiary.ss58_address
     }
     wait_n_check_event(substrate, 'Tokens', 'Deposited', attributes)
@@ -310,7 +310,7 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
         compose_xcm_rta_relay2para(bt_sender, recipi, amnts[i])
     receipt = bt_sender.execute()
     assert receipt.is_success
-    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 1})
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], 1)
 
 
 def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
@@ -330,7 +330,7 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
         compose_xtokens_transfer(bt_sender, recipi, amnts[i])
     receipt = bt_sender.execute_n_clear()
     assert receipt.is_success
-    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 3})
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], 3)
 
 
 def create_pair_n_swap_test(si_relay, si_peaq):
