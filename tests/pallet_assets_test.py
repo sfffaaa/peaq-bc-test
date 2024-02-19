@@ -339,18 +339,32 @@ class pallet_assets_test(unittest.TestCase):
         receipt = batch.execute()
         self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
+        # Boundary from 1 ~ 2^28 - 1
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch.compose_call(
             'Assets',
             'create',
             {
-                'id': convert_enum_to_asset_id({'Token': 2 ** (32 - 3) - 1}),
+                'id': convert_enum_to_asset_id({'Token': 2 ** (32 - 4)}),
                 'admin': KP_GLOBAL_SUDO.ss58_address,
                 'min_balance': 500,
             }
         )
         receipt = batch.execute()
         self.assertFalse(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_call(
+            'Assets',
+            'create',
+            {
+                'id': convert_enum_to_asset_id({'Token': 2 ** (32 - 4) - 1}),
+                'admin': KP_GLOBAL_SUDO.ss58_address,
+                'min_balance': 500,
+            }
+        )
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Extrinsic Failed: {receipt.error_message}')
 
     def test_not_enough_existencial_tokens(self):
         conn = self._substrate
