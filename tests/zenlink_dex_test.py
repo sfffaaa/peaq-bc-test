@@ -1,7 +1,6 @@
 import sys
 import traceback
 import unittest
-import pytest
 
 sys.path.append('./')
 
@@ -14,7 +13,6 @@ from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.currency import peaq, dot, aca
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
-from tests import utils_func as TestUtils
 from tools.asset import setup_asset_if_not_exist, setup_xc_register_if_not_exist
 from tools.asset import UNITS_PER_SECOND
 from tools.asset import ACA_ASSET_LOCATION, ACA_METADATA
@@ -235,7 +233,7 @@ def state_system_account(si_peaq, kp_user):
 
 # [TODO] Need to extract
 def state_token_assets_accounts(si_peaq, kp_user, token):
-    params = [{'Token': token}, kp_user.ss58_address]
+    params = [token, kp_user.ss58_address]
     query = si_peaq.query('Assets', 'Account', params)
     return int(query['balance'].value)
 
@@ -274,7 +272,7 @@ def wait_n_check_event(substrate, module, event, attributes=None):
 
 def wait_n_check_token_deposit(substrate, kp_beneficiary, token):
     attributes = {
-        'currency_id': {'Token': token},
+        'currency_id': token,
         'who': kp_beneficiary.ss58_address
     }
     wait_n_check_event(substrate, 'Tokens', 'Deposited', attributes)
@@ -312,7 +310,7 @@ def relay2para_transfer(si_relay, si_peaq, sender, tos, amnts):
         compose_xcm_rta_relay2para(bt_sender, recipi, amnts[i])
     receipt = bt_sender.execute()
     assert receipt.is_success
-    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 1})
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], 1)
 
 
 def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
@@ -332,7 +330,7 @@ def bifrost2para_transfer(si_bifrost, si_peaq, sender, tos, amnts):
         compose_xtokens_transfer(bt_sender, recipi, amnts[i])
     receipt = bt_sender.execute_n_clear()
     assert receipt.is_success
-    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], {'Token': 3})
+    wait_n_check_asset_issued(si_peaq, kp_recipi[-1], 3)
 
 
 def create_pair_n_swap_test(si_relay, si_peaq):
@@ -550,7 +548,6 @@ class TestZenlinkDex(unittest.TestCase):
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
         self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_create_pair_swap(self):
         show_title('Zenlink-DEX-Protocol create pair swap Test')
         try:
@@ -568,7 +565,6 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_booststrap(self):
         show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
@@ -587,7 +583,6 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
-    @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Skip for runtime upgrade test')
     def test_empty_lp_swap(self):
         show_title('Zenlink-DEX-Protocol empty lp swap Test')
         try:
