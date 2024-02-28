@@ -20,6 +20,7 @@ from tools.asset import PEAQ_METADATA, PEAQ_ASSET_ID
 from tools.asset import ACA_ASSET_ID
 from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
+from tools.asset import convert_enum_to_asset_id
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_balance_account_from_pallet_balance
@@ -46,9 +47,7 @@ TEST_ASSET_METADATA = {
 
 TEST_ASSET_IDX = 5
 TEST_ASSET_ID = {
-    'peaq': {
-        'Token': TEST_ASSET_IDX,
-    },
+    'peaq': TEST_ASSET_IDX,
     'para': {
         'ForeignAsset': 0,
     }
@@ -84,9 +83,7 @@ TEST_ASSET_TOKEN = {
 }
 
 TEST_LP_ASSET_ID = {
-    'peaq': {
-        'LPToken': [0, 1],
-    },
+    'peaq': convert_enum_to_asset_id({'LPToken': [0, 1]}),
     'para': {
         'ForeignAsset': 0,
     }

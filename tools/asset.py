@@ -8,9 +8,7 @@ import time
 XCM_VER = 'V3'  # So far not tested with V2!
 
 ACA_ASSET_ID = {
-    'peaq': {
-        'Token': '3',
-    },
+    'peaq': '3',
     'para': {
         'Token': 'ACA',
     }
@@ -49,9 +47,7 @@ RELAY_ASSET_LOCATION = {
     'para': None,
 }
 RELAY_ASSET_ID = {
-    'peaq': {
-        'Token': '1',
-    },
+    'peaq': '1',
     'para': None,
 }
 RELAY_METADATA = {
@@ -61,9 +57,7 @@ RELAY_METADATA = {
 }
 
 PEAQ_ASSET_ID = {
-    'peaq': {
-        'Token': '0',
-    },
+    'peaq': '0',
     'para': {
         'ForeignAsset': '0',
     }
@@ -219,11 +213,11 @@ def setup_xc_register_if_not_exist(si_peaq, KP_GLOBAL_SUDO, asset_id, location, 
 
 def get_valid_asset_id(conn):
     for i in range(1, 100):
-        asset = conn.query("Assets", "Asset", [{'Token': i}])
+        asset = conn.query("Assets", "Asset", [convert_enum_to_asset_id({'Token': i})])
         if asset.value:
             continue
         else:
-            return {'Token': i}
+            return convert_enum_to_asset_id({'Token': i})
 
 
 def get_asset_balance(conn, addr, asset_id):
@@ -259,3 +253,13 @@ def wait_for_account_asset_change_wrap(substrate, addr, asset_id, prev_token, fu
     if now_token == prev_token:
         raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
     return now_token
+
+
+def convert_enum_to_asset_id(enum_info):
+    TOKEN_MASK = 0xFFFFFFFF
+    if 'Token' in enum_info.keys():
+        return enum_info['Token']
+    elif 'LPToken' in enum_info.keys():
+        return ((enum_info['LPToken'][0] & TOKEN_MASK) << 32) + enum_info['LPToken'][1] + (1 << 60)
+    else:
+        raise ValueError(f'Invalid enum_info: {enum_info}')
