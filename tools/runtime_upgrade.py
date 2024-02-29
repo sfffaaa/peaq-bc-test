@@ -18,7 +18,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 
 def send_upgrade_call(substrate, kp_sudo, wasm_file):
-    with open(wasm_file, 'rb') as f:
+    with open(wasm_file, 'rb', buffering=0) as f:
         data = f.read()
     file_hash = f'0x{blake2_256(data).hex()}'
     print(f'File hash: {file_hash}')
@@ -26,7 +26,7 @@ def send_upgrade_call(substrate, kp_sudo, wasm_file):
     batch.compose_sudo_call(
         'ParachainSystem',
         'authorize_upgrade',
-        {'code_hash': file_hash, 'check_version': False}
+        {'code_hash': file_hash, 'check_version': True}
     )
     batch.compose_sudo_call(
         'ParachainSystem',
@@ -81,25 +81,60 @@ def fund_account():
     ], 302231 * 10 ** 18)
 
 
+def remove_asset_id(substrate):
+    batch = ExtrinsicBatch(substrate, KP_GLOBAL_SUDO)
+    batch.compose_sudo_call(
+        'XcAssetConfig',
+        'remove_asset',
+        {
+            'asset_id': {'Token': 1},
+        }
+    )
+    batch.compose_sudo_call(
+        'Assets',
+        'start_destroy',
+        {'id': {'Token': 1}}
+    )
+    batch.compose_call(
+        'Assets',
+        'finish_destroy',
+        {'id': {'Token': 1}}
+    )
+
+    batch.execute()
+
+
 def do_runtime_upgrade(wasm_path):
     if not os.path.exists(wasm_path):
         raise IOError(f'Runtime not found: {wasm_path}')
 
-    upgrade(wasm_path)
     substrate = SubstrateInterface(url=WS_URL)
+    # Remove the asset id 1: relay chain
+    remove_asset_id(substrate)
+
+    upgrade(wasm_path)
     wait_for_n_blocks(substrate, 10)
     fund_account()
 
 
 def main():
     parser = argparse.ArgumentParser(description='Upgrade the runtime')
-    parser.add_argument('-r', '--runtime', type=str, required=True, help='Your runtime poisiton')
+    parser.add_argument('-r', '--runtime', type=str, help='Your runtime poisiton')
     parser.add_argument('-d', '--docker-restart', type=bool, default=False, help='Restart the docker container')
 
     args = parser.parse_args()
+    runtime_path = args.runtime
+    runtime_env = os.environ.get('RUNTIME_UPGRADE_PATH')
+
+    if not runtime_env and not runtime_path:
+        raise IOError('Runtime path is required')
+    if runtime_env:
+        print(f'Use runtime env {runtime_env} to overide the runtime path {runtime_path}')
+        runtime_path = runtime_env
+
     if args.docker_restart:
         restart_parachain_launch()
-    do_runtime_upgrade(args.runtime)
+    do_runtime_upgrade(runtime_path)
     print('Done but wait 30s')
     time.sleep(30)
 

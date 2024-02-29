@@ -20,6 +20,7 @@ from tools.asset import PEAQ_METADATA, PEAQ_ASSET_ID
 from tools.asset import ACA_ASSET_ID
 from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
+from tools.asset import convert_enum_to_asset_id
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_balance_account_from_pallet_balance
@@ -46,9 +47,7 @@ TEST_ASSET_METADATA = {
 
 TEST_ASSET_IDX = 5
 TEST_ASSET_ID = {
-    'peaq': {
-        'Token': TEST_ASSET_IDX,
-    },
+    'peaq': TEST_ASSET_IDX,
     'para': {
         'ForeignAsset': 0,
     }
@@ -84,9 +83,7 @@ TEST_ASSET_TOKEN = {
 }
 
 TEST_LP_ASSET_ID = {
-    'peaq': {
-        'LPToken': [0, 1],
-    },
+    'peaq': convert_enum_to_asset_id({'LPToken': [0, 1]}),
     'para': {
         'ForeignAsset': 0,
     }
@@ -244,12 +241,12 @@ def send_token_from_para_to_peaq(substrate, kp_sign, kp_dst, parachain_id, curre
 
 
 class TestXCMTransfer(unittest.TestCase):
-    def get_parachain_id(self, relay_substrate):
-        result = relay_substrate.query(
-            'Paras',
-            'Parachains',
+    def get_parachain_id(self, peaq_substrate):
+        result = peaq_substrate.query(
+            'ParachainInfo',
+            'ParachainId',
         )
-        return result.value[0]
+        return result.value
 
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
@@ -272,7 +269,7 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertTrue(receipt.is_success, f"Failed to register location {location}, {receipt.error_message}")
 
     def send_relay_token_from_relay_to_peaq(self, kp_src, kp_dst, token):
-        parachain_id = self.get_parachain_id(self.si_relay)
+        parachain_id = self.get_parachain_id(self.si_peaq)
         receipt = send_token_from_relay_to_peaq(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
 
@@ -376,7 +373,7 @@ class TestXCMTransfer(unittest.TestCase):
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund tokens to self: {receipt.error_message}')
-        parachain_id = self.get_parachain_id(self.si_relay)
+        parachain_id = self.get_parachain_id(self.si_peaq)
 
         # Send foreigner tokens to peaq chain
         receipt = send_token_from_para_to_peaq(

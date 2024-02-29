@@ -45,9 +45,7 @@ TEST_ASSET_METADATA = {
 
 TEST_ASSET_IDX = 5
 TEST_ASSET_ID = {
-    'peaq': {
-        'Token': TEST_ASSET_IDX,
-    },
+    'peaq': TEST_ASSET_IDX,
     'para': {
         'ForeignAsset': 0,
     }
@@ -148,7 +146,7 @@ def send_xtoken_transfer_multi_currencies(w3, eth_chain_id, kp_sign, kp_dst, par
 
     tx = contract.functions.transferMultiCurrencies(
         [(calculate_asset_to_evm_address(asset_id), token),
-         (calculate_asset_to_evm_address({'Token': 0}), token)],
+         (calculate_asset_to_evm_address(0), token)],
         0,
         [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
         10 ** 12).build_transaction({
@@ -172,7 +170,7 @@ def send_xtoken_transfer_multi_assets(w3, eth_chain_id, kp_sign, kp_dst, paracha
 
     tx = contract.functions.transferMultiAssets(
         [([0, []], token),
-         ([0, ['0x0602' + '00' + f'0{asset_id["Token"]}' + '00' * 30]], token)],
+         ([0, ['0x0602' + '00' + f'0{asset_id}' + '00' * 30]], token)],
         0,
         [1, ['0x00'+f'00000{hex(parachain_id)[2:]}', f'0x01{kp_dst.public_key.hex()}00']],
         10 ** 12).build_transaction({

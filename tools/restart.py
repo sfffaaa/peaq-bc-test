@@ -16,7 +16,7 @@ def restart_parachain_launch():
     projects = docker.compose.ls()
     project = [p for p in projects if 'parachain-launch' in str(p.config_files[0])]
     if len(project) == 0 or len(project) > 1:
-        return IOError(f'Found {len(project)} parachain-launch projects, {project}')
+        raise IOError(f'Found {len(project)} parachain-launch projects, {project}')
 
     compose_file = str(project[0].config_files[0])
     my_docker = DockerClient(compose_files=[compose_file])
