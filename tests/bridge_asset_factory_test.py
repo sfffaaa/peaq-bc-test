@@ -50,7 +50,7 @@ class bridge_asset_factory_test(unittest.TestCase):
     def evm_asset_create(self, contract, eth_kp_src, asset_id, eth_admin, min_balance):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.create(asset_id['Token'], eth_admin.ss58_address, min_balance).build_transaction({
+        tx = contract.functions.create(asset_id, eth_admin.ss58_address, min_balance).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -66,26 +66,26 @@ class bridge_asset_factory_test(unittest.TestCase):
     def evm_asset_create_code(self, contract, asset_id, eth_admin, min_balance):
         return contract.encodeABI(
             fn_name='create',
-            args=[asset_id['Token'], eth_admin.ss58_address, min_balance]
+            args=[asset_id, eth_admin.ss58_address, min_balance]
         )
 
     def evm_asset_set_metadata_code(self, contract, asset_id, name, symbol, decimal):
         return contract.encodeABI(
             fn_name='setMetadata',
-            args=[asset_id['Token'], f'0x{name.encode().hex()}', f'0x{symbol.encode().hex()}', decimal]
+            args=[asset_id, f'0x{name.encode().hex()}', f'0x{symbol.encode().hex()}', decimal]
         )
 
     def evm_asset_set_min_balance_code(self, contract, asset_id, min_balance):
         return contract.encodeABI(
             fn_name='setMinBalance',
-            args=[asset_id['Token'], min_balance]
+            args=[asset_id, min_balance]
         )
 
     def evm_asset_set_team_code(self, contract, asset_id, teams):
         return contract.encodeABI(
             fn_name='setTeam',
             args=[
-                asset_id['Token'],
+                asset_id,
                 teams[0]['kp'].ss58_address,
                 teams[1]['kp'].ss58_address,
                 teams[2]['kp'].ss58_address
@@ -96,7 +96,7 @@ class bridge_asset_factory_test(unittest.TestCase):
         return contract.encodeABI(
             fn_name='transferOwnership',
             args=[
-                asset_id['Token'],
+                asset_id,
                 eth_owner.ss58_address
             ]
         )
@@ -105,7 +105,7 @@ class bridge_asset_factory_test(unittest.TestCase):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
         tx = contract.functions.startDestroy(
-            asset_id['Token'],
+            asset_id,
         ).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
@@ -123,7 +123,7 @@ class bridge_asset_factory_test(unittest.TestCase):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
         tx = contract.functions.finishDestroy(
-            asset_id['Token'],
+            asset_id,
         ).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
@@ -157,7 +157,7 @@ class bridge_asset_factory_test(unittest.TestCase):
         asset_id = get_valid_asset_id(self._substrate)
 
         contract = get_contract(self._w3, ASSET_FACTORY_ADDR, ASSET_FACTORY_ABI_FILE)
-        erc20_addr = contract.functions.convertAssetIdToAddress(asset_id['Token']).call()
+        erc20_addr = contract.functions.convertAssetIdToAddress(asset_id).call()
         self.assertEqual(erc20_addr, calculate_asset_to_evm_address(asset_id))
 
     def batch_all_execute(self, eth_kp, addrs, values, calls):
