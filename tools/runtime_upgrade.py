@@ -87,18 +87,18 @@ def remove_asset_id(substrate):
         'XcAssetConfig',
         'remove_asset',
         {
-            'asset_id': {'Token': 1},
+            'asset_id': 1,
         }
     )
     batch.compose_sudo_call(
         'Assets',
         'start_destroy',
-        {'id': {'Token': 1}}
+        {'id': 1}
     )
     batch.compose_call(
         'Assets',
         'finish_destroy',
-        {'id': {'Token': 1}}
+        {'id': 1}
     )
 
     batch.execute()
