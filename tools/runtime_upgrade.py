@@ -81,6 +81,21 @@ def fund_account():
     ], 302231 * 10 ** 18)
 
 
+# [TODO] Will need to remove after precompile runtime upgrade
+# Fix from dev 0.0.12 to 0.0.16
+def update_xcm_default_version(substrate):
+    batch = ExtrinsicBatch(substrate, KP_GLOBAL_SUDO)
+    batch.compose_sudo_call(
+        'PolkadotXcm',
+        'force_default_xcm_version',
+        {
+            'maybe_xcm_version': 3,
+        }
+    )
+    batch.execute()
+
+
+# Please check that...
 def remove_asset_id(substrate):
     batch = ExtrinsicBatch(substrate, KP_GLOBAL_SUDO)
     batch.compose_sudo_call(
@@ -115,6 +130,7 @@ def do_runtime_upgrade(wasm_path):
     upgrade(wasm_path)
     wait_for_n_blocks(substrate, 10)
     fund_account()
+    update_xcm_default_version(substrate)
 
 
 def main():
