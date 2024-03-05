@@ -5,11 +5,11 @@ import unittest
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL, RELAYCHAIN_WS_URL, BIFROST_WS_URL, PARACHAIN_WS_URL
+from tools.utils import WS_URL, RELAYCHAIN_WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
-from tools.utils import KP_GLOBAL_SUDO, BIFROST_PD_CHAIN_ID, batch_fund
+from tools.utils import KP_GLOBAL_SUDO, ACA_PD_CHAIN_ID, batch_fund
 from tools.asset import setup_asset_if_not_exist
 from tools.asset import batch_register_location, batch_set_units_per_second, setup_xc_register_if_not_exist
 from tools.asset import setup_aca_asset_if_not_exist
@@ -22,7 +22,10 @@ from tools.utils import PEAQ_PD_CHAIN_ID
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
 from tools.asset import convert_enum_to_asset_id
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_add_liquidity
-import time
+from tools.asset import wait_for_account_asset_change_wrap
+from tools.asset import get_balance_account_from_pallet_balance
+from tools.asset import get_tokens_account_from_pallet_assets
+from tools.asset import get_tokens_account_from_pallet_tokens
 # import pytest
 
 
@@ -248,11 +251,11 @@ class TestXCMTransfer(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
-        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
 
         self.si_peaq = SubstrateInterface(url=WS_URL,)
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
-        self.si_aca = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_aca = SubstrateInterface(url=ACA_WS_URL)
         self.alice = Keypair.create_from_uri('//Alice')
 
     def setup_xc_register_if_not_exist(self, asset_id, location, units_per_second):
@@ -270,44 +273,17 @@ class TestXCMTransfer(unittest.TestCase):
         receipt = send_token_from_relay_to_peaq(self.si_relay, kp_src, kp_dst, parachain_id, token)
         return receipt
 
-    def get_tokens_account_from_pallet_assets(self, addr, asset_id):
-        resp = self.si_peaq.query("Assets", "Account", [asset_id, addr])
-        if not resp.value:
-            return 0
-        return resp.value['balance']
-
-    def get_tokens_account_from_pallet_tokens(self, addr, asset_id):
-        resp = self.si_aca.query("Tokens", "Accounts", [addr, asset_id])
-        if not resp.value:
-            return 0
-        return resp.value['free']
-
-    def get_balance_account_from_pallet_balance(self, addr, _):
-        return get_account_balance(self.si_peaq, addr)
-
-    def _wait_for_account_asset_change(self, addr, asset_id, prev_token, func):
-        if not prev_token:
-            prev_token = func(addr, asset_id)
-        count = 0
-        while func(addr, asset_id) == prev_token and count < 10:
-            time.sleep(12)
-            count += 1
-        now_token = func(addr, asset_id)
-        if now_token == prev_token:
-            raise IOError(f"Account {addr} balance {prev_token} not changed on peaq")
-        return now_token
-
     def wait_for_aca_account_token_change(self, addr, asset_id, prev_token=0):
-        return self._wait_for_account_asset_change(
-            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_tokens)
+        return wait_for_account_asset_change_wrap(
+            self.si_aca, addr, asset_id, prev_token, get_tokens_account_from_pallet_tokens)
 
     def wait_for_peaq_account_asset_change(self, addr, asset_id, prev_token=0):
-        return self._wait_for_account_asset_change(
-            addr, asset_id, prev_token, self.get_tokens_account_from_pallet_assets)
+        return wait_for_account_asset_change_wrap(
+            self.si_peaq, addr, asset_id, prev_token, get_tokens_account_from_pallet_assets)
 
     def wait_for_account_change(self, substrate, kp_dst, prev_token):
-        return self._wait_for_account_asset_change(
-            kp_dst.ss58_address, None, prev_token, self.get_balance_account_from_pallet_balance)
+        return wait_for_account_asset_change_wrap(
+            self.si_peaq, kp_dst.ss58_address, None, prev_token, get_balance_account_from_pallet_balance)
 
     # @pytest.mark.skip(reason="Success")
     def test_from_relay_to_peaq(self):
@@ -416,7 +392,7 @@ class TestXCMTransfer(unittest.TestCase):
         token = got_token - REMAIN_TOKEN_NUM
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, kp_self_dst,
-            kp_remote_src, BIFROST_PD_CHAIN_ID, asset_id, token)
+            kp_remote_src, ACA_PD_CHAIN_ID, asset_id, token)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
         now_balance = self.wait_for_account_change(self.si_aca, kp_remote_src, prev_balance)
         self.assertGreater(
@@ -438,7 +414,7 @@ class TestXCMTransfer(unittest.TestCase):
 
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, self.alice, kp_para_src,
-            BIFROST_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
 
         # Extract...
@@ -495,7 +471,7 @@ class TestXCMTransfer(unittest.TestCase):
     def _check_peaq_asset_from_peaq_to_aca_and_back(self, kp_para_src, kp_self_dst):
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, self.alice, kp_para_src,
-            BIFROST_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+            ACA_PD_CHAIN_ID, TEST_ASSET_ID['peaq'], TEST_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
 
         # Extract...
@@ -503,7 +479,8 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertNotEqual(got_token, 0)
 
         transfer_back_token = got_token - REMAIN_TOKEN_NUM
-        prev_balance = self.get_tokens_account_from_pallet_assets(kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
+        prev_balance = get_tokens_account_from_pallet_assets(
+            self.si_peaq, kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
         # Send it back to the peaq chain
         receipt = send_token_from_para_to_peaq(
             self.si_aca, kp_para_src, kp_self_dst,
@@ -515,6 +492,7 @@ class TestXCMTransfer(unittest.TestCase):
 
     # @pytest.mark.skip(reason="Success")
     def test_asset_from_peaq_to_aca(self):
+        # From Alice transfer to kp_para_src (other chain) and move to the kp_self_dst
         # Create new asset id and register on peaq
         asset_id = TEST_ASSET_ID['peaq']
         kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -595,14 +573,15 @@ class TestXCMTransfer(unittest.TestCase):
         transfer_token_num = int(liquity_token_num / 2)
         receipt = send_token_from_peaq_to_para(
             self.si_peaq, kp_peaq, kp_aca,
-            BIFROST_PD_CHAIN_ID, TEST_LP_ASSET_ID['peaq'], transfer_token_num)
+            ACA_PD_CHAIN_ID, TEST_LP_ASSET_ID['peaq'], transfer_token_num)
         self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
         got_token = self.wait_for_aca_account_token_change(kp_aca.ss58_address, TEST_LP_ASSET_ID['para'])
         self.assertNotEqual(got_token, 0)
 
         # Transfer it back to peaq
         transfer_back_token = got_token - REMAIN_TOKEN_NUM
-        prev_balance = self.get_tokens_account_from_pallet_assets(kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'])
+        prev_balance = get_tokens_account_from_pallet_assets(
+            self.si_peaq, kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'])
         # Send it back to the peaq chain
         receipt = send_token_from_para_to_peaq(
             self.si_aca, kp_aca, kp_peaq,

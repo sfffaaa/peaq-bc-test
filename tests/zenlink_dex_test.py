@@ -5,7 +5,7 @@ import unittest
 sys.path.append('./')
 
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, BIFROST_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ACA_WS_URL, KP_GLOBAL_SUDO, URI_GLOBAL_SUDO
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event
 from peaq.utils import ExtrinsicBatch, into_keypair
 from peaq.utils import get_account_balance
@@ -537,16 +537,21 @@ def zenlink_empty_lp_swap_test(si_relay, si_peaq):
     receipt = bt_usr2.execute_n_clear()
     assert not receipt.is_success
 
+    # 11. add liquility again
+    compose_zdex_add_liquidity(bt_usr1, DOT_IDX, peaq(10), 1)
+    receipt = bt_usr1.execute_n_clear()
+    assert receipt.is_success
+
 
 class TestZenlinkDex(unittest.TestCase):
     def setUp(self):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
-        wait_until_block_height(SubstrateInterface(url=BIFROST_WS_URL), 1)
+        wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
         show_title('Zenlink-DEX-Protocol Test')
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-        self.si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+        self.si_bifrost = SubstrateInterface(url=ACA_WS_URL)
 
     def test_create_pair_swap(self):
         show_title('Zenlink-DEX-Protocol create pair swap Test')
@@ -569,7 +574,7 @@ class TestZenlinkDex(unittest.TestCase):
         show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
             si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
-            si_bifrost = SubstrateInterface(url=BIFROST_WS_URL)
+            si_bifrost = SubstrateInterface(url=ACA_WS_URL)
             setup_asset_if_not_exist(si_peaq, KP_GLOBAL_SUDO, ACA_ASSET_ID['peaq'], ACA_METADATA)
             setup_xc_register_if_not_exist(
                 si_peaq, KP_GLOBAL_SUDO,

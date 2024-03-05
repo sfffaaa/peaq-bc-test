@@ -1,13 +1,12 @@
 import unittest
-from substrateinterface import SubstrateInterface, Keypair, KeypairType
+from substrateinterface import SubstrateInterface, Keypair
 from tools.asset import batch_create_asset, get_valid_asset_id, batch_set_metadata, batch_mint
 from tools.utils import WS_URL, ETH_URL
 from peaq.utils import ExtrinsicBatch
-from peaq.eth import calculate_evm_account
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import get_eth_chain_id
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
-from tools.peaq_eth_utils import GAS_LIMIT
+from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from web3 import Web3
 
 
@@ -29,16 +28,6 @@ def batch_transfer(batch, addr_dst, token_num):
             'value': token_num
         }
     )
-
-
-def get_eth_info():
-    mnemonic = Keypair.generate_mnemonic()
-    kp = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ECDSA)
-    return {
-        'kp': kp,
-        'substrate': calculate_evm_account(kp.ss58_address),
-        'eth': kp.ss58_address
-    }
 
 
 class erc20_asset_test(unittest.TestCase):

@@ -25,10 +25,10 @@ RELAYCHAIN_WS_URL = 'ws://127.0.0.1:9944'
 STANDALONE_WS_URL = 'ws://127.0.0.1:9944'
 
 PARACHAIN_WS_URL = 'ws://127.0.0.1:10044'
-BIFROST_WS_URL = 'ws://127.0.0.1:10144'
+ACA_WS_URL = 'ws://127.0.0.1:10144'
 RELAYCHAIN_ETH_URL = 'http://127.0.0.1:9933'
 PARACHAIN_ETH_URL = 'http://127.0.0.1:10044'
-BIFROST_ETH_URL = 'http://127.0.0.1:10144'
+ACA_ETH_URL = 'http://127.0.0.1:10144'
 # PARACHAIN_WS_URL = 'wss://wsspc1.agung.peaq.network'
 # PARACHAIN_ETH_URL = 'https://rpcpc1.agung.peaq.network'
 # WS_URL = 'ws://127.0.0.1:9944'
@@ -49,7 +49,7 @@ ETH_URL = PARACHAIN_ETH_URL
 URI_GLOBAL_SUDO = '//Alice'
 KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
-BIFROST_PD_CHAIN_ID = 3000
+ACA_PD_CHAIN_ID = 3000
 
 
 import pprint
