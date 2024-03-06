@@ -137,6 +137,42 @@ class bridge_asset_factory_test(unittest.TestCase):
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         return tx_receipt
 
+    def evm_asset_destroy_accounts(self, contract, eth_kp_src, asset_id):
+        w3 = self._w3
+        nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
+        tx = contract.functions.destroyAccounts(
+            asset_id,
+        ).build_transaction({
+            'from': eth_kp_src.ss58_address,
+            'gas': 10633039,
+            'maxFeePerGas': w3.to_wei(2, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': self._eth_chain_id})
+
+        signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return tx_receipt
+
+    def evm_asset_destroy_approvals(self, contract, eth_kp_src, asset_id):
+        w3 = self._w3
+        nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
+        tx = contract.functions.destroyApprovals(
+            asset_id,
+        ).build_transaction({
+            'from': eth_kp_src.ss58_address,
+            'gas': 10633039,
+            'maxFeePerGas': w3.to_wei(2, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': self._eth_chain_id})
+
+        signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return tx_receipt
+
     def test_bridge_asset_create(self):
         self._fund_users()
 
@@ -267,21 +303,29 @@ class bridge_asset_factory_test(unittest.TestCase):
 
         asset_id = get_valid_asset_id(self._substrate)
 
-        contract = get_contract(self._w3, ASSET_FACTORY_ADDR, ASSET_FACTORY_ABI_FILE)
+        asset_contract = get_contract(self._w3, ASSET_FACTORY_ADDR, ASSET_FACTORY_ABI_FILE)
 
         evm_receipt = self.evm_asset_create(
-            contract, self._kp_creator['kp'], asset_id, self._kp_admin['kp'], 555)
+            asset_contract, self._kp_creator['kp'], asset_id, self._kp_admin['kp'], 555)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         evm_receipt = self.evm_asset_start_destroy(
-            contract, self._kp_creator['kp'], asset_id)
+            asset_contract, self._kp_creator['kp'], asset_id)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         asset = self._substrate.query("Assets", "Asset", [asset_id]).value
         self.assertEqual(asset['status'], 'Destroying')
 
+        evm_receipt = self.evm_asset_destroy_approvals(
+            asset_contract, self._kp_creator['kp'], asset_id)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        evm_receipt = self.evm_asset_destroy_accounts(
+            asset_contract, self._kp_creator['kp'], asset_id)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
         evm_receipt = self.evm_asset_finish_destroy(
-            contract, self._kp_creator['kp'], asset_id)
+            asset_contract, self._kp_creator['kp'], asset_id)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         asset = self._substrate.query("Assets", "Asset", [asset_id]).value
