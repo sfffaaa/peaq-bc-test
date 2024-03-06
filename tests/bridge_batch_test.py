@@ -69,8 +69,8 @@ class TestBridgeBatch(unittest.TestCase):
         tx = contract.functions.batchAll(
             [Web3.to_checksum_address(STORAGE_ADDRESS), Web3.to_checksum_address(STORAGE_ADDRESS)],
             [0, 0],
-            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
-             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [storage_contract.encodeABI(fn_name='addItem', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='addItem', args=[KEY2, VALUE2])],
             [0, 0],
             ).build_transaction({
                 'from': kp_sign.ss58_address,
@@ -88,9 +88,9 @@ class TestBridgeBatch(unittest.TestCase):
 
         # Check
         account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.getItem(account, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
-        data = storage_contract.functions.get_item(account, KEY2).call()
+        data = storage_contract.functions.getItem(account, KEY2).call()
         self.assertEqual(f'0x{data.hex()}', VALUE2)
 
     def test_batch_some(self):
@@ -107,9 +107,9 @@ class TestBridgeBatch(unittest.TestCase):
              Web3.to_checksum_address(STORAGE_ADDRESS),
              Web3.to_checksum_address(STORAGE_ADDRESS)],
             [0, 0, 0],
-            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
-             storage_contract.encodeABI(fn_name='update_item', args=["0x1234", VALUE2]),
-             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [storage_contract.encodeABI(fn_name='addItem', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='updateItem', args=["0x1234", VALUE2]),
+             storage_contract.encodeABI(fn_name='addItem', args=[KEY2, VALUE2])],
             [0, 0, 0],
             ).build_transaction({
                 'from': kp_sign.ss58_address,
@@ -127,9 +127,9 @@ class TestBridgeBatch(unittest.TestCase):
 
         # Check
         account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.getItem(account, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
-        data = storage_contract.functions.get_item(account, KEY2).call()
+        data = storage_contract.functions.getItem(account, KEY2).call()
         self.assertEqual(f'0x{data.hex()}', VALUE2)
 
     def test_batch_some_until_fail(self):
@@ -146,9 +146,9 @@ class TestBridgeBatch(unittest.TestCase):
              Web3.to_checksum_address(STORAGE_ADDRESS),
              Web3.to_checksum_address(STORAGE_ADDRESS)],
             [0, 0, 0],
-            [storage_contract.encodeABI(fn_name='add_item', args=[KEY1, VALUE1]),
-             storage_contract.encodeABI(fn_name='update_item', args=["0x1234", VALUE2]),
-             storage_contract.encodeABI(fn_name='add_item', args=[KEY2, VALUE2])],
+            [storage_contract.encodeABI(fn_name='addItem', args=[KEY1, VALUE1]),
+             storage_contract.encodeABI(fn_name='updateItem', args=["0x1234", VALUE2]),
+             storage_contract.encodeABI(fn_name='addItem', args=[KEY2, VALUE2])],
             [0, 0, 0],
             ).build_transaction({
                 'from': kp_sign.ss58_address,
@@ -166,10 +166,10 @@ class TestBridgeBatch(unittest.TestCase):
 
         # Check
         account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.getItem(account, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
         try:
-            data = storage_contract.functions.get_item(account, KEY2).call()
+            data = storage_contract.functions.getItem(account, KEY2).call()
         except ValueError:
             pass
         except Exception as e:
