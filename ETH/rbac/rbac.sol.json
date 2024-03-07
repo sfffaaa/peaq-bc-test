@@ -419,7 +419,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "add_group",
+		"name": "addGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -443,7 +443,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "add_permission",
+		"name": "addPermission",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -467,7 +467,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "add_role",
+		"name": "addRole",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -491,7 +491,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "assign_permission_to_role",
+		"name": "assignPermissionToRole",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -515,7 +515,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "assign_role_to_group",
+		"name": "assignRoleToGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -539,7 +539,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "assign_role_to_user",
+		"name": "assignRoleToUser",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -563,7 +563,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "assign_user_to_group",
+		"name": "assignUserToGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -582,7 +582,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "disable_group",
+		"name": "disableGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -601,7 +601,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "disable_permission",
+		"name": "disablePermission",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -620,7 +620,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "disable_role",
+		"name": "disableRole",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -644,7 +644,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_group",
+		"name": "fetchGroup",
 		"outputs": [
 			{
 				"components": [
@@ -685,7 +685,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_group_permissions",
+		"name": "fetchGroupPermissions",
 		"outputs": [
 			{
 				"components": [
@@ -726,7 +726,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_group_roles",
+		"name": "fetchGroupRoles",
 		"outputs": [
 			{
 				"components": [
@@ -762,7 +762,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_permission",
+		"name": "fetchPermission",
 		"outputs": [
 			{
 				"components": [
@@ -798,7 +798,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_permissions",
+		"name": "fetchPermissions",
 		"outputs": [
 			{
 				"components": [
@@ -839,7 +839,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_role",
+		"name": "fetchRole",
 		"outputs": [
 			{
 				"components": [
@@ -880,7 +880,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_role_permissions",
+		"name": "fetchRolePermissions",
 		"outputs": [
 			{
 				"components": [
@@ -911,7 +911,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_roles",
+		"name": "fetchRoles",
 		"outputs": [
 			{
 				"components": [
@@ -952,7 +952,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_user_groups",
+		"name": "fetchUserGroups",
 		"outputs": [
 			{
 				"components": [
@@ -988,7 +988,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_user_permissions",
+		"name": "fetchUserPermissions",
 		"outputs": [
 			{
 				"components": [
@@ -1029,7 +1029,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "fetch_user_roles",
+		"name": "fetchUserRoles",
 		"outputs": [
 			{
 				"components": [
@@ -1065,7 +1065,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "unassign_permission_to_role",
+		"name": "unassignPermissionToRole",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1089,7 +1089,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "unassign_role_to_group",
+		"name": "unassignRoleToGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1113,7 +1113,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "unassign_role_to_user",
+		"name": "unassignRoleToUser",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1137,7 +1137,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "unassign_user_to_group",
+		"name": "unassignUserToGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1161,7 +1161,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "update_group",
+		"name": "updateGroup",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1185,7 +1185,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "update_permission",
+		"name": "updatePermission",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -1209,7 +1209,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "update_role",
+		"name": "updateRole",
 		"outputs": [
 			{
 				"internalType": "bool",
