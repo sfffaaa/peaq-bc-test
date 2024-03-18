@@ -15,9 +15,6 @@ from web3 import Web3
 PARACHAIN_STAKING_ABI_FILE = 'ETH/parachain-staking/abi'
 PARACHAIN_STAKING_ADDR = '0x0000000000000000000000000000000000000807'
 
-BATCH_ABI_FILE = 'ETH/batch/abi'
-BATCH_ADDRESS = '0x0000000000000000000000000000000000000805'
-
 
 class bridge_parachain_staking_test(unittest.TestCase):
     def setUp(self):
