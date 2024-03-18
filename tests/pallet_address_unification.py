@@ -1,6 +1,5 @@
 import unittest
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
-from substrateinterface.utils import hasher
 from tools.utils import WS_URL, ETH_URL
 from tools.utils import KP_GLOBAL_SUDO
 from tools.asset import batch_create_asset, batch_mint, get_valid_asset_id
@@ -9,7 +8,7 @@ from peaq.utils import get_block_hash
 from tools.evm_claim_sign import gen_eth_signature
 from peaq.sudo_extrinsic import fund, funds
 from tools.peaq_eth_utils import get_eth_balance
-from tools.peaq_eth_utils import get_eth_chain_id
+from tools.peaq_eth_utils import get_eth_chain_id, calculate_evm_default_addr
 from peaq.utils import ExtrinsicBatch
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
 from tools.peaq_eth_utils import GAS_LIMIT, get_contract
@@ -76,13 +75,6 @@ def withdraw_evm_addr(substrate, kp_sub, addr_eth, num):
         }
     )
     return batch.execute()
-
-
-def calculate_evm_default_addr(sub_addr):
-    evm_addr = b'evm:' + sub_addr
-    hash_key = hasher.blake2_256(evm_addr)
-    new_addr = '0x' + hash_key.hex()[:40]
-    return Web3.to_checksum_address(new_addr.lower())
 
 
 def evm_erc20_trasfer(asset_id, kp_eth_src, kp_eth_dst, amount, eth_chain_id):
