@@ -7,6 +7,7 @@ from peaq.utils import ExtrinsicBatch
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import get_eth_chain_id, calculate_evm_default_addr
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
+from tools.evm_claim_sign import calculate_claim_signature, claim_account
 from tools.utils import KP_GLOBAL_SUDO, KP_COLLATOR
 from peaq.utils import get_block_hash
 from web3 import Web3
@@ -289,3 +290,33 @@ class bridge_parachain_staking_test(unittest.TestCase):
 
         # Note: The unlock unstaked didn't success because we have to wait about 20+ blocks;
         # therefore, we don't test here. Can just test maunally
+
+    def test_delegator_customized_claim(self):
+        receipt = self._fund_users()
+        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
+        eth_kp = get_eth_info()
+        signature = calculate_claim_signature(
+            self._substrate,
+            KP_COLLATOR.ss58_address,
+            eth_kp['kp'].private_key.hex(),
+            self._eth_chain_id)
+        receipt = claim_account(self._substrate, KP_COLLATOR, eth_kp['kp'], signature)
+        self.assertTrue(
+            receipt.is_success, f'Failed to claim account {KP_COLLATOR.ss58_address}, {receipt.error_message}')
+
+        contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
+        out = contract.functions.getCollatorList().call()
+
+        collator_eth_addr = out[0][0]
+        collator_eth_addr = Web3.to_checksum_address(collator_eth_addr)
+        collator_num = out[0][1]
+        collator_linked = out[0][2]
+        self.assertEqual(collator_linked, True, f'collator_linked: {collator_linked}')
+        evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
+        self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
+        bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
+        event = self.get_event(bl_hash, 'ParachainStaking', 'Delegation')
+        self.assertEqual(
+            event['attributes'],
+            (self._kp_moon['substrate'], collator_num, KP_COLLATOR.ss58_address, 2 * collator_num),
+            f'join fails, event: {event}')

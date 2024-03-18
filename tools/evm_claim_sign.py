@@ -2,6 +2,7 @@ from substrateinterface import SubstrateInterface
 from peaq.utils import get_block_hash
 from eth_account import Account as ETHAccount
 from eth_account.messages import encode_structured_data
+from peaq.utils import ExtrinsicBatch
 import argparse
 
 
@@ -45,6 +46,23 @@ def calculate_claim_signature(substrate, sub_ss58, eth_sk, eth_chain_id):
     sub_pk = bytes.fromhex(sub_pk)
 
     return gen_eth_signature(sub_pk, eth_sk, eth_chain_id, block_hash_zero)
+
+
+def claim_account(substrate, kp_sub, kp_eth, eth_signature):
+    batch = ExtrinsicBatch(substrate, kp_sub)
+    batch_claim_account(batch, kp_eth, eth_signature)
+    return batch.execute()
+
+
+def batch_claim_account(batch, kp_eth, eth_signature):
+    batch.compose_call(
+        'AddressUnification',
+        'claim_account',
+        {
+            'evm_address': kp_eth.ss58_address,
+            'eth_signature': eth_signature,
+        }
+    )
 
 
 if __name__ == '__main__':
