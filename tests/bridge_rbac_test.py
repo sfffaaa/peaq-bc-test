@@ -1,7 +1,7 @@
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import calculate_evm_addr
 from tools.utils import WS_URL, ETH_URL
-from peaq.eth import calculate_evm_account, calculate_evm_account_hex
+from peaq.eth import calculate_evm_account
 from tools.peaq_eth_utils import get_eth_chain_id
 from tools.peaq_eth_utils import call_eth_transfer_a_lot, get_contract, generate_random_hex, GAS_LIMIT, TX_SUCCESS_STATUS
 from web3 import Web3
@@ -252,7 +252,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_add_update_event(events, self._eth_kp_src.ss58_address, role_id, name)
 
         # fetch role and verify
-        data = self._contract.functions.fetch_role(self._account, role_id).call()
+        data = self._contract.functions.fetch_role(self._eth_kp_src.ss58_address, role_id).call()
         self.assertEqual(data[0], role_id)
         self.assertEqual(data[1], name)
 
@@ -267,7 +267,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_add_update_event(events, self._eth_kp_src.ss58_address, role_id, name)
 
         # fetch role and verify
-        data = self._contract.functions.fetch_role(self._account, role_id).call()
+        data = self._contract.functions.fetch_role(self._eth_kp_src.ss58_address, role_id).call()
         self.assertEqual(data[0], role_id)
         self.assertEqual(data[1], name)
 
@@ -285,7 +285,7 @@ class TestBridgeRbac(unittest.TestCase):
 
         # fetch role and verify
         with self.assertRaises(ValueError) as tx_info:
-            self._contract.functions.fetch_role(self._account, role_id).call()
+            self._contract.functions.fetch_role(self._eth_kp_src.ss58_address, role_id).call()
 
         self.assertIn(RbacErrorType.EntityDisabled.value, tx_info.exception.args[0]['message'])
 
@@ -300,7 +300,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_assign_or_unassign_event(events, self._eth_kp_src.ss58_address, role_id, user_id)
 
         # verify fetch_user_roles returns correct data
-        data = self._contract.functions.fetch_user_roles(self._account, user_id).call()
+        data = self._contract.functions.fetch_user_roles(self._eth_kp_src.ss58_address, user_id).call()
         if not any(role_id in roles for roles in data):
             self.fail(f'Role {role_id} not assigned to user {user_id}')
 
@@ -315,7 +315,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_assign_or_unassign_event(events, self._eth_kp_src.ss58_address, role_id, user_id)
 
         # verify fetch_user_roles returns correct data
-        data = self._contract.functions.fetch_user_roles(self._account, user_id).call()
+        data = self._contract.functions.fetch_user_roles(self._eth_kp_src.ss58_address, user_id).call()
         if any(role_id in roles for roles in data):
             self.fail(f'Role {role_id} still assigned to user {user_id}')
 
@@ -328,7 +328,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_permission_add_or_update_event(events, self._eth_kp_src.ss58_address, permission_id, name)
 
         # fetch permission and verify
-        data = self._contract.functions.fetch_permission(self._account, permission_id).call()
+        data = self._contract.functions.fetch_permission(self._eth_kp_src.ss58_address, permission_id).call()
         self.assertEqual(data[0], permission_id)
         self.assertEqual(data[1], name)
 
@@ -343,7 +343,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_permission_add_or_update_event(events, self._eth_kp_src.ss58_address, permission_id, name)
 
         # fetch permission and verify
-        data = self._contract.functions.fetch_permission(self._account, permission_id).call()
+        data = self._contract.functions.fetch_permission(self._eth_kp_src.ss58_address, permission_id).call()
         self.assertEqual(data[0], permission_id)
         self.assertEqual(data[1], name)
 
@@ -359,7 +359,7 @@ class TestBridgeRbac(unittest.TestCase):
 
         # fetch role and verify
         with self.assertRaises(ValueError) as tx_info:
-            self._contract.functions.fetch_permission(self._account, permission_id).call()
+            self._contract.functions.fetch_permission(self._eth_kp_src.ss58_address, permission_id).call()
 
         self.assertIn(RbacErrorType.EntityDisabled.value, tx_info.exception.args[0]['message'])
 
@@ -374,7 +374,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_permission_assigned_or_unassigned_to_role_event(events, self._eth_kp_src.ss58_address, permission_id, role_id)
 
         # verify fetch_role_permissions returns correct data
-        data = self._contract.functions.fetch_role_permissions(self._account, role_id).call()
+        data = self._contract.functions.fetch_role_permissions(self._eth_kp_src.ss58_address, role_id).call()
         if not any(permission_id in permissions for permissions in data):
             self.fail(f'Permission {permission_id} not assigned to role {role_id}')
 
@@ -389,7 +389,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_permission_assigned_or_unassigned_to_role_event(events, self._eth_kp_src.ss58_address, permission_id, role_id)
 
         # verify fetch_role_permissions returns correct data
-        data = self._contract.functions.fetch_role_permissions(self._account, role_id).call()
+        data = self._contract.functions.fetch_role_permissions(self._eth_kp_src.ss58_address, role_id).call()
         if any(permission_id in permissions for permissions in data):
             self.fail(f'Permission {permission_id} still assigned to role {role_id}')
 
@@ -404,7 +404,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_group_add_or_update_event(events, self._eth_kp_src.ss58_address, group_id, name)
 
         # fetch group and verify
-        data = self._contract.functions.fetch_group(self._account, group_id).call()
+        data = self._contract.functions.fetch_group(self._eth_kp_src.ss58_address, group_id).call()
         self.assertEqual(data[0], group_id)
         self.assertEqual(data[1], name)
 
@@ -419,7 +419,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_group_add_or_update_event(events, self._eth_kp_src.ss58_address, group_id, name)
 
         # fetch group and verify
-        data = self._contract.functions.fetch_group(self._account, group_id).call()
+        data = self._contract.functions.fetch_group(self._eth_kp_src.ss58_address, group_id).call()
         self.assertEqual(data[0], group_id)
         self.assertEqual(data[1], name)
 
@@ -433,7 +433,7 @@ class TestBridgeRbac(unittest.TestCase):
 
         # fetch role and verify
         with self.assertRaises(ValueError) as tx_info:
-            self._contract.functions.fetch_group(self._account, group_id).call()
+            self._contract.functions.fetch_group(self._eth_kp_src.ss58_address, group_id).call()
 
         self.assertIn(RbacErrorType.EntityDisabled.value, tx_info.exception.args[0]['message'])
 
@@ -446,7 +446,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_assigned_or_unassigned_to_group_event(events, self._eth_kp_src.ss58_address, role_id, group_id)
 
         # verify fetch_group_roles returns correct data
-        data = self._contract.functions.fetch_group_roles(self._account, group_id).call()
+        data = self._contract.functions.fetch_group_roles(self._eth_kp_src.ss58_address, group_id).call()
         if not any(role_id in roles for roles in data):
             self.fail(f'Role {role_id} not assigned to group {group_id}')
 
@@ -459,7 +459,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_role_assigned_or_unassigned_to_group_event(events, self._eth_kp_src.ss58_address, role_id, group_id)
 
         # verify fetch_group_roles returns correct data
-        data = self._contract.functions.fetch_group_roles(self._account, group_id).call()
+        data = self._contract.functions.fetch_group_roles(self._eth_kp_src.ss58_address, group_id).call()
         if any(role_id in roles for roles in data):
             self.fail(f'Role {role_id} still assigned to group {group_id}')
 
@@ -472,7 +472,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_user_assigned_or_unassigned_to_group_event(events, self._eth_kp_src.ss58_address, user_id, group_id)
 
         # verify fetch_group_users returns correct data
-        data = self._contract.functions.fetch_user_groups(self._account, user_id).call()
+        data = self._contract.functions.fetch_user_groups(self._eth_kp_src.ss58_address, user_id).call()
         if not any(group_id in groups for groups in data):
             self.fail(f'User {user_id} not assigned to group {group_id}')
 
@@ -485,7 +485,7 @@ class TestBridgeRbac(unittest.TestCase):
         self._verify_user_assigned_or_unassigned_to_group_event(events, self._eth_kp_src.ss58_address, user_id, group_id)
 
         # verify fetch_group_users returns correct data
-        data = self._contract.functions.fetch_user_groups(self._account, user_id).call()
+        data = self._contract.functions.fetch_user_groups(self._eth_kp_src.ss58_address, user_id).call()
         if any(group_id in groups for groups in data):
             self.fail(f'User {user_id} still assigned to group {group_id}')
 
@@ -501,7 +501,6 @@ class TestBridgeRbac(unittest.TestCase):
         self._w3 = Web3(Web3.HTTPProvider(ETH_URL))
         self._substrate = SubstrateInterface(url=WS_URL)
         self._eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
-        self._account = calculate_evm_account_hex(self._eth_kp_src.ss58_address)
         self._contract = get_contract(self._w3, RBAC_ADDRESS, ABI_FILE)
 
     # *************************************************************************

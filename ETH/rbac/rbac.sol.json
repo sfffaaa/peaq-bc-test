@@ -634,9 +634,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -650,7 +650,7 @@
 				"components": [
 					{
 						"internalType": "bytes32",
-						"name": "owner",
+						"name": "id",
 						"type": "bytes32"
 					},
 					{
@@ -675,9 +675,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -691,7 +691,7 @@
 				"components": [
 					{
 						"internalType": "bytes32",
-						"name": "owner",
+						"name": "id",
 						"type": "bytes32"
 					},
 					{
@@ -716,9 +716,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -752,9 +752,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -768,84 +768,7 @@
 				"components": [
 					{
 						"internalType": "bytes32",
-						"name": "owner",
-						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes",
-						"name": "name",
-						"type": "bytes"
-					},
-					{
-						"internalType": "bool",
-						"name": "enabled",
-						"type": "bool"
-					}
-				],
-				"internalType": "struct RBAC.Entity",
-				"name": "",
-				"type": "tuple"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "owner",
-				"type": "bytes32"
-			}
-		],
-		"name": "fetch_permissions",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "bytes32",
-						"name": "owner",
-						"type": "bytes32"
-					},
-					{
-						"internalType": "bytes",
-						"name": "name",
-						"type": "bytes"
-					},
-					{
-						"internalType": "bool",
-						"name": "enabled",
-						"type": "bool"
-					}
-				],
-				"internalType": "struct RBAC.Entity[]",
-				"name": "",
-				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "owner",
-				"type": "bytes32"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "entity",
-				"type": "bytes32"
-			}
-		],
-		"name": "fetch_role",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "bytes32",
-						"name": "owner",
+						"name": "id",
 						"type": "bytes32"
 					},
 					{
@@ -870,9 +793,86 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "fetch_permissions",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes32",
+						"name": "id",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes",
+						"name": "name",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bool",
+						"name": "enabled",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct RBAC.Entity[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "entity",
 				"type": "bytes32"
+			}
+		],
+		"name": "fetch_role",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes32",
+						"name": "id",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes",
+						"name": "name",
+						"type": "bytes"
+					},
+					{
+						"internalType": "bool",
+						"name": "enabled",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct RBAC.Entity",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -906,9 +906,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			}
 		],
 		"name": "fetch_roles",
@@ -917,7 +917,7 @@
 				"components": [
 					{
 						"internalType": "bytes32",
-						"name": "owner",
+						"name": "id",
 						"type": "bytes32"
 					},
 					{
@@ -942,9 +942,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -978,9 +978,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
@@ -994,7 +994,7 @@
 				"components": [
 					{
 						"internalType": "bytes32",
-						"name": "owner",
+						"name": "id",
 						"type": "bytes32"
 					},
 					{
@@ -1019,9 +1019,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "owner",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes32",
