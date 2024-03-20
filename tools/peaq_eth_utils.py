@@ -3,6 +3,7 @@ import binascii
 import os
 from peaq.utils import ExtrinsicBatch
 from substrateinterface import Keypair, KeypairType
+from substrateinterface.utils import hasher
 from peaq.eth import calculate_evm_account
 from web3 import Web3
 from peaq import eth
@@ -99,3 +100,10 @@ def get_eth_info():
         'substrate': calculate_evm_account(kp.ss58_address),
         'eth': kp.ss58_address
     }
+
+
+def calculate_evm_default_addr(sub_addr):
+    evm_addr = b'evm:' + sub_addr
+    hash_key = hasher.blake2_256(evm_addr)
+    new_addr = '0x' + hash_key.hex()[:40]
+    return Web3.to_checksum_address(new_addr.lower())
