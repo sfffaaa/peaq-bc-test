@@ -74,7 +74,8 @@ def show_test(name, success, line=0):
             print(f'🔥 Test/{name}, Failed')
 
 
-PEAQ_PD_CHAIN_ID = get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
+def get_peaq_chain_id():
+    return get_parachain_id(SubstrateInterface(url=PARACHAIN_WS_URL))
 
 
 def show_title(name):

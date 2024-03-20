@@ -9,7 +9,7 @@ from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL, ACA_WS_URL, KP_GLOB
 from tools.utils import show_test, show_title, show_subtitle, wait_for_event
 from peaq.utils import ExtrinsicBatch, into_keypair
 from peaq.utils import get_account_balance
-from tools.utils import PEAQ_PD_CHAIN_ID
+from tools.utils import get_peaq_chain_id
 from tools.currency import peaq, dot, aca
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
@@ -23,7 +23,7 @@ from tools.zenlink import calc_deadline
 
 
 # Technical constants
-PARACHAIN_ID = PEAQ_PD_CHAIN_ID
+PARACHAIN_ID = get_peaq_chain_id()
 XCM_VER = 'V3'  # So far not tested with V2!
 XCM_RTA_TO = 45  # timeout for xcm-rta
 DOT_IDX = 1  # u8 value for DOT-token (CurrencyId/TokenSymbol)

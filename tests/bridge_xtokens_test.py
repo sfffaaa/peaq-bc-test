@@ -15,7 +15,7 @@ from tools.asset import setup_aca_asset_if_not_exist
 from tools.asset import UNITS_PER_SECOND
 from tools.asset import PEAQ_ASSET_LOCATION
 from tools.asset import PEAQ_METADATA, PEAQ_ASSET_ID
-from tools.utils import PEAQ_PD_CHAIN_ID
+from tools.utils import get_peaq_chain_id
 from tools.asset import batch_create_asset, batch_mint, batch_set_metadata, batch_force_create_asset
 from tools.peaq_eth_utils import calculate_asset_to_evm_address
 from web3 import Web3
@@ -25,6 +25,9 @@ from tools.peaq_eth_utils import get_eth_chain_id
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_tokens_account_from_pallet_tokens
 # import pytest
+
+
+PEAQ_PD_CHAIN_ID = get_peaq_chain_id()
 
 ABI_FILE = 'ETH/xtokens/abi'
 XTOKENS_ADDRESS = '0x0000000000000000000000000000000000000803'
