@@ -1,0 +1,137 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegateAnotherCandidate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegatorStakeLess",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegatorStakeMore",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getCollatorList",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "linked",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct ParachainStaking.CollatorInfo[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "joinDelegators",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "leaveDelegators",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "collator",
+				"type": "address"
+			}
+		],
+		"name": "revokeDelegation",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			}
+		],
+		"name": "unlockUnstaked",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
