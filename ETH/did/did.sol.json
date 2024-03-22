@@ -10,9 +10,9 @@
 			},
 			{
 				"indexed": false,
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"indexed": false,
@@ -41,9 +41,9 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"indexed": false,
@@ -66,9 +66,9 @@
 			},
 			{
 				"indexed": false,
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"indexed": false,
@@ -95,9 +95,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes",
@@ -129,9 +129,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes",
@@ -175,9 +175,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes",
@@ -199,9 +199,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "did_account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes",

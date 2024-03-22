@@ -26,10 +26,10 @@ ABI_FILE = 'ETH/did/did.sol.json'
 
 class TestBridgeDid(unittest.TestCase):
 
-    def _eth_add_attribute(self, contract, eth_kp_src, kp_src, key, value):
+    def _eth_add_attribute(self, contract, eth_kp_src, evm_addr, key, value):
         w3 = self.w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.addAttribute(kp_src.public_key, key, value, VALIDITY).build_transaction({
+        tx = contract.functions.addAttribute(evm_addr, key, value, VALIDITY).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -44,10 +44,10 @@ class TestBridgeDid(unittest.TestCase):
         print('✅ eth_add_attribute, Success')
         return tx_receipt['blockNumber']
 
-    def _eth_update_attribute(self, contract, eth_kp_src, kp_src, key, value):
+    def _eth_update_attribute(self, contract, eth_kp_src, evm_addr, key, value):
         w3 = self.w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.updateAttribute(kp_src.public_key, key, value, VALIDITY).build_transaction({
+        tx = contract.functions.updateAttribute(evm_addr, key, value, VALIDITY).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -62,10 +62,10 @@ class TestBridgeDid(unittest.TestCase):
         print('✅ eth_update_attribute, Success')
         return tx_receipt['blockNumber']
 
-    def _eth_remove_attribute(self, contract, eth_kp_src, kp_src, key):
+    def _eth_remove_attribute(self, contract, eth_kp_src, evm_addr, key):
         w3 = self.w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.removeAttribute(kp_src.public_key, key).build_transaction({
+        tx = contract.functions.removeAttribute(evm_addr, key).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -87,6 +87,7 @@ class TestBridgeDid(unittest.TestCase):
 
     def test_bridge_did(self):
         eth_src = calculate_evm_addr(KP_SRC.ss58_address)
+        eth_src = Web3.to_checksum_address(eth_src)
         token_num = 10000 * pow(10, 15)
         transfer(self.substrate, KP_SRC, calculate_evm_account(eth_src), token_num)
         eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
@@ -95,38 +96,38 @@ class TestBridgeDid(unittest.TestCase):
 
         contract = get_contract(self.w3, DID_ADDRESS, ABI_FILE)
 
-        block_idx = self._eth_add_attribute(contract, eth_kp_src, KP_SRC, KEY, VALUE)
-        data = contract.functions.readAttribute(KP_SRC.public_key, KEY).call()
+        block_idx = self._eth_add_attribute(contract, eth_kp_src, eth_src, KEY, VALUE)
+        data = contract.functions.readAttribute(eth_src, KEY).call()
         self.assertEqual(f'0x{data[0].hex()}', KEY)
         self.assertEqual(f'0x{data[1].hex()}', VALUE)
 
         event = contract.events.AddAttribute.create_filter(fromBlock=block_idx, toBlock=block_idx)
         events = event.get_all_entries()
         self.assertEqual(f"{events[0]['args']['sender'].upper()}", f"0X{eth_kp_src.public_key.hex().upper()}")
-        self.assertEqual(f"{events[0]['args']['did_account'].hex()}", f"{KP_SRC.public_key.hex()}")
+        self.assertEqual(f"{events[0]['args']['did_account']}", f"{eth_src}")
         self.assertEqual(f"0x{events[0]['args']['name'].hex()}", f"{KEY}")
         self.assertEqual(f"0x{events[0]['args']['value'].hex()}", f"{VALUE}")
         self.assertEqual(f"{events[0]['args']['validity']}", f"{VALIDITY}")
 
-        block_idx = self._eth_update_attribute(contract, eth_kp_src, KP_SRC, KEY, NEW_VALUE)
-        data = contract.functions.readAttribute(KP_SRC.public_key, KEY).call()
+        block_idx = self._eth_update_attribute(contract, eth_kp_src, eth_src, KEY, NEW_VALUE)
+        data = contract.functions.readAttribute(eth_src, KEY).call()
         self.assertEqual(f'0x{data[0].hex()}', KEY)
         self.assertEqual(f'0x{data[1].hex()}', NEW_VALUE)
 
         event = contract.events.UpdateAttribute.create_filter(fromBlock=block_idx, toBlock=block_idx)
         events = event.get_all_entries()
         self.assertEqual(f"{events[0]['args']['sender'].upper()}", f"0X{eth_kp_src.public_key.hex().upper()}")
-        self.assertEqual(f"{events[0]['args']['did_account'].hex()}", f"{KP_SRC.public_key.hex()}")
+        self.assertEqual(f"{events[0]['args']['did_account']}", f"{eth_src}")
         self.assertEqual(f"0x{events[0]['args']['name'].hex()}", f"{KEY}")
         self.assertEqual(f"0x{events[0]['args']['value'].hex()}", f"{NEW_VALUE}")
         self.assertEqual(f"{events[0]['args']['validity']}", f"{VALIDITY}")
 
-        block_idx = self._eth_remove_attribute(contract, eth_kp_src, KP_SRC, KEY)
-        self.assertRaises(ValueError, contract.functions.readAttribute(KP_SRC.public_key, KEY).call)
+        block_idx = self._eth_remove_attribute(contract, eth_kp_src, eth_src, KEY)
+        self.assertRaises(ValueError, contract.functions.readAttribute(eth_src, KEY).call)
 
         event = contract.events.RemoveAttribte.create_filter(fromBlock=block_idx, toBlock=block_idx)
         events = event.get_all_entries()
-        self.assertEqual(f"{events[0]['args']['did_account'].hex()}", f"{KP_SRC.public_key.hex()}")
+        self.assertEqual(f"{events[0]['args']['did_account']}", f"{eth_src}")
         self.assertEqual(f"0x{events[0]['args']['name'].hex()}", f"{KEY}")
 
         print('Passssss test_did_bridge')
