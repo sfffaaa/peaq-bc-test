@@ -2,7 +2,6 @@ import unittest
 
 from tools.utils import WS_URL, ETH_URL
 # from tools.runtime_upgrade import wait_until_block_height
-from peaq.eth import calculate_evm_account_hex
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.peaq_eth_utils import get_eth_chain_id
@@ -48,7 +47,7 @@ class TestBridgeBatch(unittest.TestCase):
         batch.execute()
 
     def get_did_calldata(self, eth_kp, addr, contract, key, value):
-        tx = contract.functions.add_attribute(eth_kp.public_key, key, value, 1000000).build_transaction({
+        tx = contract.functions.add_attribute(eth_kp.ss58_address, key, value, 1000000).build_transaction({
             'from': eth_kp.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': self.w3.to_wei(250, 'gwei'),
@@ -87,10 +86,9 @@ class TestBridgeBatch(unittest.TestCase):
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         # Check
-        account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
-        data = storage_contract.functions.get_item(account, KEY2).call()
+        data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY2).call()
         self.assertEqual(f'0x{data.hex()}', VALUE2)
 
     def test_batch_some(self):
@@ -126,10 +124,9 @@ class TestBridgeBatch(unittest.TestCase):
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         # Check
-        account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
-        data = storage_contract.functions.get_item(account, KEY2).call()
+        data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY2).call()
         self.assertEqual(f'0x{data.hex()}', VALUE2)
 
     def test_batch_some_until_fail(self):
@@ -165,11 +162,10 @@ class TestBridgeBatch(unittest.TestCase):
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         # Check
-        account = calculate_evm_account_hex(kp_sign.ss58_address)
-        data = storage_contract.functions.get_item(account, KEY1).call()
+        data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY1).call()
         self.assertEqual(f'0x{data.hex()}', VALUE1)
         try:
-            data = storage_contract.functions.get_item(account, KEY2).call()
+            data = storage_contract.functions.get_item(kp_sign.ss58_address, KEY2).call()
         except ValueError:
             pass
         except Exception as e:
