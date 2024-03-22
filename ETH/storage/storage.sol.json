@@ -10,12 +10,6 @@
 			},
 			{
 				"indexed": false,
-				"internalType": "bytes32",
-				"name": "account",
-				"type": "bytes32"
-			},
-			{
-				"indexed": false,
 				"internalType": "bytes",
 				"name": "item_type",
 				"type": "bytes"
@@ -38,12 +32,6 @@
 				"internalType": "address",
 				"name": "sender",
 				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "bytes32",
-				"name": "account",
-				"type": "bytes32"
 			},
 			{
 				"indexed": false,
@@ -88,9 +76,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "bytes32",
+				"internalType": "address",
 				"name": "account",
-				"type": "bytes32"
+				"type": "address"
 			},
 			{
 				"internalType": "bytes",

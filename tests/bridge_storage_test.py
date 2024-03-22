@@ -67,9 +67,9 @@ class TestBridgeStorage(unittest.TestCase):
         self._eth_kp_src = Keypair.create_from_private_key(ETH_PRIVATE_KEY, crypto_type=KeypairType.ECDSA)
         self._account = calculate_evm_account_hex(self._eth_kp_src.ss58_address)
 
-    def check_item_from_event(self, event, account, item_type, item):
+    def check_item_from_event(self, event, sender, item_type, item):
         events = event.get_all_entries()
-        self.assertEqual(f"0x{events[0]['args']['account'].hex()}", account)
+        self.assertEqual(f"{events[0]['args']['sender']}", sender)
         self.assertEqual(f"0x{events[0]['args']['item_type'].hex()}", f"{item_type}")
         self.assertEqual(f"0x{events[0]['args']['item'].hex()}", f"{item}")
 
@@ -78,7 +78,6 @@ class TestBridgeStorage(unittest.TestCase):
         eth_src = self._eth_src
         w3 = self._w3
         eth_kp_src = self._eth_kp_src
-        account = self._account
 
         # setup
         transfer(substrate, KP_SRC, calculate_evm_account(eth_src), TOKEN_NUM)
@@ -93,10 +92,10 @@ class TestBridgeStorage(unittest.TestCase):
         block_idx = tx_receipt['blockNumber']
 
         # Cehck
-        data = contract.functions.get_item(account, ITEM_TYPE).call()
+        data = contract.functions.get_item(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
         self.assertEqual(f'0x{data.hex()}', ITEM)
         event = contract.events.ItemAdded.create_filter(fromBlock=block_idx, toBlock=block_idx)
-        self.check_item_from_event(event, account, ITEM_TYPE, ITEM)
+        self.check_item_from_event(event, self._eth_kp_src.ss58_address, ITEM_TYPE, ITEM)
 
         # Executed: Update
         tx_receipt = _eth_update_item(substrate, w3, contract, eth_kp_src, ITEM_TYPE, NEW_ITEM)
@@ -104,7 +103,7 @@ class TestBridgeStorage(unittest.TestCase):
         block_idx = tx_receipt['blockNumber']
 
         # Check
-        data = contract.functions.get_item(account, ITEM_TYPE).call()
+        data = contract.functions.get_item(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
         self.assertEqual(f'0x{data.hex()}', NEW_ITEM)
         event = contract.events.ItemUpdated.create_filter(fromBlock=block_idx, toBlock=block_idx)
-        self.check_item_from_event(event, account, ITEM_TYPE, NEW_ITEM)
+        self.check_item_from_event(event, self._eth_kp_src.ss58_address, ITEM_TYPE, NEW_ITEM)
