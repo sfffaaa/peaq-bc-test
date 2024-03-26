@@ -5,7 +5,8 @@ from substrateinterface import SubstrateInterface
 from tools.utils import WS_URL, ETH_URL
 from peaq.utils import ExtrinsicBatch
 from tools.peaq_eth_utils import get_contract
-from tools.peaq_eth_utils import get_eth_chain_id, calculate_evm_default_addr
+from tools.peaq_eth_utils import get_eth_chain_id
+# , calculate_evm_default_addr
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.evm_claim_sign import calculate_claim_signature, claim_account
 from tools.utils import KP_GLOBAL_SUDO, KP_COLLATOR
@@ -49,10 +50,10 @@ class bridge_parachain_staking_test(unittest.TestCase):
         )
         return batch.execute()
 
-    def evm_join_delegators(self, contract, eth_kp_src, eth_collator_addr, stake):
+    def evm_join_delegators(self, contract, eth_kp_src, sub_collator_addr, stake):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.joinDelegators(eth_collator_addr, stake).build_transaction({
+        tx = contract.functions.joinDelegators(sub_collator_addr, stake).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': 10633039,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -65,10 +66,10 @@ class bridge_parachain_staking_test(unittest.TestCase):
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         return tx_receipt
 
-    def evm_delegator_stake_more(self, contract, eth_kp_src, eth_collator_addr, stake):
+    def evm_delegator_stake_more(self, contract, eth_kp_src, sub_collator_addr, stake):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.delegatorStakeMore(eth_collator_addr, stake).build_transaction({
+        tx = contract.functions.delegatorStakeMore(sub_collator_addr, stake).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -81,10 +82,10 @@ class bridge_parachain_staking_test(unittest.TestCase):
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         return tx_receipt
 
-    def evm_delegator_stake_less(self, contract, eth_kp_src, eth_collator_addr, stake):
+    def evm_delegator_stake_less(self, contract, eth_kp_src, sub_collator_addr, stake):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.delegatorStakeLess(eth_collator_addr, stake).build_transaction({
+        tx = contract.functions.delegatorStakeLess(sub_collator_addr, stake).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -113,10 +114,10 @@ class bridge_parachain_staking_test(unittest.TestCase):
         tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         return tx_receipt
 
-    def evm_delegator_revoke_delegation(self, contract, eth_kp_src, eth_collator_addr):
+    def evm_delegator_revoke_delegation(self, contract, eth_kp_src, sub_collator_addr):
         w3 = self._w3
         nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
-        tx = contract.functions.revokeDelegation(eth_collator_addr).build_transaction({
+        tx = contract.functions.revokeDelegation(sub_collator_addr).build_transaction({
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
@@ -163,25 +164,8 @@ class bridge_parachain_staking_test(unittest.TestCase):
         for i in range(len(out)):
             # self.assertEqual(out[i]['addr'], golden_data[i]['collator'])
             pk = bytes.fromhex(self._substrate.ss58_decode(golden_data[i]["owner"]))
-            addr = calculate_evm_default_addr(pk)
-            self.assertEqual(out[i][0], addr)
+            self.assertEqual(out[i][0], pk)
             self.assertEqual(out[i][1], golden_data[i]['amount'])
-
-    def collator_claim_default(self, kp):
-        batch = ExtrinsicBatch(self._substrate, kp)
-        batch.compose_call(
-            'AddressUnification',
-            'claim_default_account',
-            {}
-        )
-        return batch.execute()
-
-    def test_delegator_not_claim(self):
-        contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
-        out = contract.functions.getCollatorList().call()
-
-        collator_linked = out[0][2]
-        self.assertEqual(collator_linked, False, f'collator_linked: {collator_linked}')
 
     def get_event(self, block_hash, module, event):
         events = self._substrate.get_events(block_hash)
@@ -193,17 +177,12 @@ class bridge_parachain_staking_test(unittest.TestCase):
     def test_delegator_join_more_less_leave(self):
         receipt = self._fund_users()
         self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
-        receipt = self.collator_claim_default(KP_COLLATOR)
-        self.assertEqual(receipt.is_success, True, f'collator_claim_default fails, receipt: {receipt}')
 
         contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
         out = contract.functions.getCollatorList().call()
 
         collator_eth_addr = out[0][0]
-        collator_eth_addr = Web3.to_checksum_address(collator_eth_addr)
         collator_num = out[0][1]
-        collator_linked = out[0][2]
-        self.assertEqual(collator_linked, True, f'collator_linked: {collator_linked}')
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
@@ -254,17 +233,12 @@ class bridge_parachain_staking_test(unittest.TestCase):
     def test_delegator_revoke(self):
         receipt = self._fund_users()
         self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
-        receipt = self.collator_claim_default(KP_COLLATOR)
-        self.assertEqual(receipt.is_success, True, f'collator_claim_default fails, receipt: {receipt}')
 
         contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
         out = contract.functions.getCollatorList().call()
 
         collator_eth_addr = out[0][0]
-        collator_eth_addr = Web3.to_checksum_address(collator_eth_addr)
         collator_num = out[0][1]
-        collator_linked = out[0][2]
-        self.assertEqual(collator_linked, True, f'collator_linked: {collator_linked}')
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
@@ -308,10 +282,7 @@ class bridge_parachain_staking_test(unittest.TestCase):
         out = contract.functions.getCollatorList().call()
 
         collator_eth_addr = out[0][0]
-        collator_eth_addr = Web3.to_checksum_address(collator_eth_addr)
         collator_num = out[0][1]
-        collator_linked = out[0][2]
-        self.assertEqual(collator_linked, True, f'collator_linked: {collator_linked}')
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
