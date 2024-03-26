@@ -7,6 +7,7 @@ from tools.utils import TOKEN_NUM_BASE, show_extrinsic, calculate_multi_sig, WS_
 from tools.utils import transfer
 # from tools.pallet_assets_test import pallet_assets_test
 import random
+import binascii
 
 
 def show_account(substrate, addr, out_str):
@@ -27,7 +28,7 @@ def send_proposal(substrate, kp_src, kp_dst, threshold, payload):
             'maybe_timepoint': None,
             'call': payload.value,
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -58,7 +59,7 @@ def send_approval(substrate, kp_src, kps, threshold, payload, timepoint):
             'other_signatories': [kp.ss58_address for kp in kps],
             'maybe_timepoint': timepoint,
             'call_hash': f'0x{payload.call_hash.hex()}',
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
 
     extrinsic = substrate.create_signed_extrinsic(
@@ -217,7 +218,7 @@ def did_add(substrate, kp_src, name, value):
 
 
 def did_rpc_read(substrate, kp_src, name, value):
-    data = substrate.rpc_request('peaqdid_readAttributes', [kp_src.ss58_address, name])
+    data = substrate.rpc_request('peaqdid_readAttribute', [kp_src.ss58_address, name])
     assert(data['result']['name'] == name)
     assert(data['result']['value'] == value)
 
@@ -276,7 +277,7 @@ def create_as_approve(substrate, kp_provider, kp_consumer, kp_target, token_num,
             'maybe_timepoint': None,
             'call': payload_spent.value,
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
     return payload_spent, as_multi_call
 
@@ -370,7 +371,6 @@ def pallet_batchall_test():
     except ConnectionRefusedError:
         print("⚠️ No local Substrate node running, try running 'start_local_substrate_node.sh' first")
         sys.exit()
-
 
 if __name__ == '__main__':
     # kp_src = Keypair.create_from_mnemonic('nature exchange gasp toy result bacon coin broccoli rule oyster believe lyrics')

@@ -4,14 +4,14 @@ import json
 
 from substrateinterface import SubstrateInterface, Keypair, KeypairType
 from tools.utils import show_extrinsic, SCALE_CODEC, transfer, calculate_evm_account, calculate_evm_addr
-from tools.utils import WS_URL, ETH_URL
+from tools.utils import WS_URL, ETH_URL, ETH_CHAIN_ID
 from web3 import Web3
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 ERC_TOKEN_TRANSFER = 34
-CHAIN_ID = 9999
+CHAIN_ID = ETH_CHAIN_ID
 HEX_STR = '1111'
 GAS_LIMIT = 4294967
 

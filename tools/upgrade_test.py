@@ -74,7 +74,7 @@ def upgrade(substrate, kp_src):
         call_function='sudo_unchecked_weight',
         call_params={
             'call': call_internal.value,
-            'weight': 10000000,
+            'max_weight': {'ref_time': 1000000000}
         })
 
     extrinsic = substrate.create_signed_extrinsic(

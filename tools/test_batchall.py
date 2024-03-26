@@ -25,7 +25,7 @@ def create_as_approve(substrate, kp_provider, kp_consumer, kp_target, token_num,
             'maybe_timepoint': None,
             'call': payload_spent.value,
             'store_call': True,
-            'max_weight': 1000000000,
+            'max_weight': {'ref_time': 1000000000},
         })
     return payload_spent, as_multi_call
 
