@@ -31,7 +31,7 @@ ETH_URL = 'http://127.0.0.1:9936'
 ```
 4. Run the integration test
 ```
-python3 test.py
+pytest
 ```
 
 # Runtime upgradae test

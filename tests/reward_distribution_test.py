@@ -40,11 +40,11 @@ def batch_compose_reward_distribution(batch, collator_reward_rate):
         {
             'reward_distro_params': {
                 'treasury_percent': 0,
-                'dapps_percent': 0,
-                'collators_percent': 1000000000 * collator_reward_rate,
-                'lp_percent': 0,
-                'machines_percent': 0,
-                'parachain_lease_fund_percent': 1000000000 * (1 - collator_reward_rate),
+                'depin_incentivization_percent': 0,
+                'collators_delegators_percent': 1000000000 * collator_reward_rate,
+                'depin_staking_percent': 0,
+                'coretime_percent': 0,
+                'subsidization_pool_percent': 1000000000 * (1 - collator_reward_rate),
             }
         }
     )

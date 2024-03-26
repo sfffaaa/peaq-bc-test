@@ -18,11 +18,11 @@ class TestPalletBlockReward(unittest.TestCase):
     def test_config(self):
         set_value = {
             'treasury_percent': 10000000,
-            'dapps_percent': 20000000,
-            'collators_percent': 30000000,
-            'lp_percent': 40000000,
-            'machines_percent': 50000000,
-            'parachain_lease_fund_percent': 850000000,
+            'depin_incentivization_percent': 20000000,
+            'collators_delegators_percent': 30000000,
+            'depin_staking_percent': 40000000,
+            'coretime_percent': 50000000,
+            'subsidization_pool_percent': 850000000,
         }
         previous_value = self.substrate.query(
             module='BlockReward',
