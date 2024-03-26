@@ -57,36 +57,36 @@ STATE_INFOS = [{
         # It's special case because below is percentage,
         # and then you have to divide by 1000000000
         'peaq-dev': {
-            'treasury_percent': 200000000,
-            'dapps_percent': 250000000,
-            'collators_percent': 100000000,
-            'lp_percent': 250000000,
-            'machines_percent': 100000000,
-            'parachain_lease_fund_percent': 100000000
+            'treasury_percent': 250000000,
+            'collators_delegators_percent': 400000000,
+            'coretime_percent': 100000000,
+            'subsidization_pool_percent': 50000000,
+            'depin_staking_percent': 50000000,
+            'depin_incentivization_percent': 150000000,
         },
         'agung-network': {
-            'treasury_percent': 200000000,
-            'dapps_percent': 250000000,
-            'collators_percent': 100000000,
-            'lp_percent': 250000000,
-            'machines_percent': 100000000,
-            'parachain_lease_fund_percent': 100000000
+            'treasury_percent': 250000000,
+            'collators_delegators_percent': 400000000,
+            'coretime_percent': 100000000,
+            'subsidization_pool_percent': 50000000,
+            'depin_staking_percent': 50000000,
+            'depin_incentivization_percent': 150000000,
         },
         'krest-network': {
-            'treasury_percent': 150000000,
-            'dapps_percent': 150000000,
-            'collators_percent': 300000000,
-            'lp_percent': 150000000,
-            'machines_percent': 150000000,
-            'parachain_lease_fund_percent': 100000000
+            'treasury_percent': 250000000,
+            'collators_delegators_percent': 400000000,
+            'coretime_percent': 100000000,
+            'subsidization_pool_percent': 50000000,
+            'depin_staking_percent': 50000000,
+            'depin_incentivization_percent': 150000000,
         },
         'peaq-network': {
-            'treasury_percent': 200000000,
-            'dapps_percent': 250000000,
-            'collators_percent': 100000000,
-            'lp_percent': 250000000,
-            'machines_percent': 100000000,
-            'parachain_lease_fund_percent': 100000000
+            'treasury_percent': 250000000,
+            'collators_delegators_percent': 400000000,
+            'coretime_percent': 100000000,
+            'subsidization_pool_percent': 50000000,
+            'depin_staking_percent': 50000000,
+            'depin_incentivization_percent': 150000000,
         }
     }
 }]

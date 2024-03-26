@@ -320,11 +320,11 @@ def set_block_reward_configuration(substrate, data):
         call_params={
             'reward_distro_params': {
                 'treasury_percent': data['treasury_percent'],
-                'dapps_percent': data['dapps_percent'],
-                'collators_percent': data['collators_percent'],
-                'lp_percent': data['lp_percent'],
-                'machines_percent': data['machines_percent'],
-                'parachain_lease_fund_percent': data['parachain_lease_fund_percent'],
+                'depin_incentivization_percent': data['depin_incentivization_percent'],
+                'collators_delegators_percent': data['collators_delegators_percent'],
+                'depin_staking_percent': data['depin_staking_percent'],
+                'coretime_percent': data['coretime_percent'],
+                'subsidization_pool_percent': data['subsidization_pool_percent'],
             }
         }
     )
