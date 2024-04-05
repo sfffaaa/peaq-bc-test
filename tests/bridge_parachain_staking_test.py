@@ -29,23 +29,23 @@ class bridge_parachain_staking_test(unittest.TestCase):
         self._kp_mars = get_eth_info()
         self._eth_chain_id = get_eth_chain_id(self._substrate)
 
-    def _fund_users(self):
+    def _fund_users(self, num=100 * 10 ** 18):
         # Fund users
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
-        batch.compose_call(
+        batch.compose_sudo_call(
             'Balances',
-            'transfer',
+            'force_set_balance',
             {
-                'dest': self._kp_moon['substrate'],
-                'value': 100 * 10 ** 18,
+                'who': self._kp_moon['substrate'],
+                'new_free': num,
             }
         )
-        batch.compose_call(
+        batch.compose_sudo_call(
             'Balances',
-            'transfer',
+            'force_set_balance',
             {
-                'dest': self._kp_mars['substrate'],
-                'value': 100 * 10 ** 18,
+                'who': self._kp_mars['substrate'],
+                'new_free': num,
             }
         )
         return batch.execute()
@@ -175,14 +175,14 @@ class bridge_parachain_staking_test(unittest.TestCase):
         return None
 
     def test_delegator_join_more_less_leave(self):
-        receipt = self._fund_users()
-        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
-
         contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
         out = contract.functions.getCollatorList().call()
 
         collator_eth_addr = out[0][0]
         collator_num = out[0][1]
+        receipt = self._fund_users(collator_num * 3)
+        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
+
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
@@ -231,14 +231,14 @@ class bridge_parachain_staking_test(unittest.TestCase):
         # therefore, we don't test here. Can just test maunally
 
     def test_delegator_revoke(self):
-        receipt = self._fund_users()
-        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
-
         contract = get_contract(self._w3, PARACHAIN_STAKING_ADDR, PARACHAIN_STAKING_ABI_FILE)
         out = contract.functions.getCollatorList().call()
 
         collator_eth_addr = out[0][0]
         collator_num = out[0][1]
+        receipt = self._fund_users(collator_num * 2)
+        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
+
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
@@ -266,8 +266,6 @@ class bridge_parachain_staking_test(unittest.TestCase):
         # therefore, we don't test here. Can just test maunally
 
     def test_delegator_customized_claim(self):
-        receipt = self._fund_users()
-        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
         eth_kp = get_eth_info()
         signature = calculate_claim_signature(
             self._substrate,
@@ -283,6 +281,8 @@ class bridge_parachain_staking_test(unittest.TestCase):
 
         collator_eth_addr = out[0][0]
         collator_num = out[0][1]
+        receipt = self._fund_users(collator_num * 2)
+        self.assertEqual(receipt.is_success, True, f'fund_users fails, receipt: {receipt}')
         evm_receipt = self.evm_join_delegators(contract, self._kp_moon['kp'], collator_eth_addr, collator_num)
         self.assertEqual(evm_receipt['status'], 1, f'join fails, evm_receipt: {evm_receipt}')
         bl_hash = get_block_hash(self._substrate, evm_receipt['blockNumber'])
