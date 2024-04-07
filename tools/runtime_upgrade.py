@@ -42,8 +42,8 @@ def wait_until_block_height(substrate, block_height):
     wait_for_n_blocks(substrate, block_num)
 
 
-def wait_relay_upgrade_block():
-    relay_substrate = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
+def wait_relay_upgrade_block(url=RELAYCHAIN_WS_URL):
+    relay_substrate = SubstrateInterface(url, type_registry_preset='rococo')
     result = relay_substrate.query(
         'Paras',
         'UpcomingUpgrades',
