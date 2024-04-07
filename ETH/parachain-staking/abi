@@ -2,9 +2,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "bytes32",
 				"name": "collator",
-				"type": "address"
+				"type": "bytes32"
 			},
 			{
 				"internalType": "uint256",
@@ -20,9 +20,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "bytes32",
 				"name": "collator",
-				"type": "address"
+				"type": "bytes32"
 			},
 			{
 				"internalType": "uint256",
@@ -38,9 +38,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "bytes32",
 				"name": "collator",
-				"type": "address"
+				"type": "bytes32"
 			},
 			{
 				"internalType": "uint256",
@@ -60,19 +60,14 @@
 			{
 				"components": [
 					{
-						"internalType": "address",
+						"internalType": "bytes32",
 						"name": "owner",
-						"type": "address"
+						"type": "bytes32"
 					},
 					{
 						"internalType": "uint256",
 						"name": "amount",
 						"type": "uint256"
-					},
-					{
-						"internalType": "bool",
-						"name": "linked",
-						"type": "bool"
 					}
 				],
 				"internalType": "struct ParachainStaking.CollatorInfo[]",
@@ -86,9 +81,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "bytes32",
 				"name": "collator",
-				"type": "address"
+				"type": "bytes32"
 			},
 			{
 				"internalType": "uint256",
@@ -111,9 +106,9 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
+				"internalType": "bytes32",
 				"name": "collator",
-				"type": "address"
+				"type": "bytes32"
 			}
 		],
 		"name": "revokeDelegation",

@@ -115,7 +115,7 @@
 				"type": "uint32"
 			}
 		],
-		"name": "add_attribute",
+		"name": "addAttribute",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -139,7 +139,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "read_attribute",
+		"name": "readAttribute",
 		"outputs": [
 			{
 				"components": [
@@ -185,7 +185,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "remove_attribute",
+		"name": "removeAttribute",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -219,7 +219,7 @@
 				"type": "uint32"
 			}
 		],
-		"name": "update_attribute",
+		"name": "updateAttribute",
 		"outputs": [
 			{
 				"internalType": "bool",

@@ -37,7 +37,7 @@ def _calcualte_evm_basic_req(substrate, w3, addr):
 
 
 def _eth_add_item(substrate, w3, contract, eth_kp_src, item_type, item):
-    tx = contract.functions.add_item(item_type, item).build_transaction(
+    tx = contract.functions.addItem(item_type, item).build_transaction(
         _calcualte_evm_basic_req(substrate, w3, eth_kp_src.ss58_address)
     )
 
@@ -48,7 +48,7 @@ def _eth_add_item(substrate, w3, contract, eth_kp_src, item_type, item):
 
 
 def _eth_update_item(substrate, w3, contract, eth_kp_src, item_type, item):
-    tx = contract.functions.update_item(item_type, item).build_transaction(
+    tx = contract.functions.updateItem(item_type, item).build_transaction(
         _calcualte_evm_basic_req(substrate, w3, eth_kp_src.ss58_address)
     )
 
@@ -92,7 +92,7 @@ class TestBridgeStorage(unittest.TestCase):
         block_idx = tx_receipt['blockNumber']
 
         # Cehck
-        data = contract.functions.get_item(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
+        data = contract.functions.getItem(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
         self.assertEqual(f'0x{data.hex()}', ITEM)
         event = contract.events.ItemAdded.create_filter(fromBlock=block_idx, toBlock=block_idx)
         self.check_item_from_event(event, self._eth_kp_src.ss58_address, ITEM_TYPE, ITEM)
@@ -103,7 +103,7 @@ class TestBridgeStorage(unittest.TestCase):
         block_idx = tx_receipt['blockNumber']
 
         # Check
-        data = contract.functions.get_item(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
+        data = contract.functions.getItem(self._eth_kp_src.ss58_address, ITEM_TYPE).call()
         self.assertEqual(f'0x{data.hex()}', NEW_ITEM)
         event = contract.events.ItemUpdated.create_filter(fromBlock=block_idx, toBlock=block_idx)
         self.check_item_from_event(event, self._eth_kp_src.ss58_address, ITEM_TYPE, NEW_ITEM)

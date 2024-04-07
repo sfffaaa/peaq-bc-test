@@ -1,9 +1,11 @@
 from peaq.utils import ExtrinsicBatch
-from tools.utils import ACA_PD_CHAIN_ID, PEAQ_PD_CHAIN_ID
+from tools.utils import ACA_PD_CHAIN_ID, get_peaq_chain_id
 from peaq.utils import get_account_balance
 import copy
 import time
 
+
+PEAQ_PD_CHAIN_ID = get_peaq_chain_id()
 
 XCM_VER = 'V3'  # So far not tested with V2!
 
@@ -201,11 +203,11 @@ def setup_asset_if_not_exist(si_peaq, kp_sudo, asset_id, metadata, min_balance=1
     return batch.execute()
 
 
-def setup_xc_register_if_not_exist(si_peaq, KP_GLOBAL_SUDO, asset_id, location, units_per_second):
+def setup_xc_register_if_not_exist(si_peaq, kp_sudo, asset_id, location, units_per_second):
     resp = si_peaq.query("XcAssetConfig", "AssetIdToLocation", [asset_id])
     if resp.value:
         return AlwaysTrueReceipt()
-    batch = ExtrinsicBatch(si_peaq, KP_GLOBAL_SUDO)
+    batch = ExtrinsicBatch(si_peaq, kp_sudo)
     batch_register_location(batch, asset_id, location)
     batch_set_units_per_second(batch, location, units_per_second)
     return batch.execute()
