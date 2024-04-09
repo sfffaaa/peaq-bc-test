@@ -30,6 +30,8 @@ class bridge_parachain_staking_test(unittest.TestCase):
         self._eth_chain_id = get_eth_chain_id(self._substrate)
 
     def _fund_users(self, num=100 * 10 ** 18):
+        if num < 100 * 10 ** 18:
+            num = 100 * 10 ** 18
         # Fund users
         batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
         batch.compose_sudo_call(
