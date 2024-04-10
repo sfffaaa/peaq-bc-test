@@ -62,7 +62,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "add_item",
+		"name": "addItem",
 		"outputs": [
 			{
 				"internalType": "bool",
@@ -86,7 +86,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "get_item",
+		"name": "getItem",
 		"outputs": [
 			{
 				"internalType": "bytes",
@@ -110,7 +110,7 @@
 				"type": "bytes"
 			}
 		],
-		"name": "update_item",
+		"name": "updateItem",
 		"outputs": [
 			{
 				"internalType": "bool",

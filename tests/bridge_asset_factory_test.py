@@ -17,6 +17,8 @@ ASSET_FACTORY_ADDR = '0x0000000000000000000000000000000000000806'
 BATCH_ABI_FILE = 'ETH/batch/abi'
 BATCH_ADDRESS = '0x0000000000000000000000000000000000000805'
 
+IERC20PLUS_ABI_FILE = 'ETH/erc20/plus.abi'
+
 
 class bridge_asset_factory_test(unittest.TestCase):
     def setUp(self):
@@ -75,6 +77,18 @@ class bridge_asset_factory_test(unittest.TestCase):
             args=[asset_id, f'0x{name.encode().hex()}', f'0x{symbol.encode().hex()}', decimal]
         )
 
+    def erc20_mint(self, contract, eth_kp_src, token_num):
+        return contract.encodeABI(
+            fn_name='mint',
+            args=[eth_kp_src.ss58_address, token_num]
+        )
+
+    def erc20_approval(self, contract, eth_kp_src, eth_dst):
+        return contract.encodeABI(
+            fn_name='approve',
+            args=[eth_dst]
+        )
+
     def evm_asset_set_min_balance_code(self, contract, asset_id, min_balance):
         return contract.encodeABI(
             fn_name='setMinBalance',
@@ -128,6 +142,42 @@ class bridge_asset_factory_test(unittest.TestCase):
             'from': eth_kp_src.ss58_address,
             'gas': GAS_LIMIT,
             'maxFeePerGas': w3.to_wei(250, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': self._eth_chain_id})
+
+        signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return tx_receipt
+
+    def evm_asset_destroy_accounts(self, contract, eth_kp_src, asset_id):
+        w3 = self._w3
+        nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
+        tx = contract.functions.destroyAccounts(
+            asset_id,
+        ).build_transaction({
+            'from': eth_kp_src.ss58_address,
+            'gas': 10633039,
+            'maxFeePerGas': w3.to_wei(2, 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
+            'nonce': nonce,
+            'chainId': self._eth_chain_id})
+
+        signed_txn = w3.eth.account.sign_transaction(tx, private_key=eth_kp_src.private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        return tx_receipt
+
+    def evm_asset_destroy_approvals(self, contract, eth_kp_src, asset_id):
+        w3 = self._w3
+        nonce = w3.eth.get_transaction_count(eth_kp_src.ss58_address)
+        tx = contract.functions.destroyApprovals(
+            asset_id,
+        ).build_transaction({
+            'from': eth_kp_src.ss58_address,
+            'gas': 10633039,
+            'maxFeePerGas': w3.to_wei(2, 'gwei'),
             'maxPriorityFeePerGas': w3.to_wei(2, 'gwei'),
             'nonce': nonce,
             'chainId': self._eth_chain_id})
@@ -267,21 +317,43 @@ class bridge_asset_factory_test(unittest.TestCase):
 
         asset_id = get_valid_asset_id(self._substrate)
 
-        contract = get_contract(self._w3, ASSET_FACTORY_ADDR, ASSET_FACTORY_ABI_FILE)
+        asset_contract = get_contract(self._w3, ASSET_FACTORY_ADDR, ASSET_FACTORY_ABI_FILE)
 
         evm_receipt = self.evm_asset_create(
-            contract, self._kp_creator['kp'], asset_id, self._kp_admin['kp'], 555)
+            asset_contract, self._kp_creator['kp'], asset_id, self._kp_creator['kp'], 555)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        erc20_addr = asset_contract.functions.convertAssetIdToAddress(asset_id).call()
+        erc20_contract = get_contract(self._w3, erc20_addr, IERC20PLUS_ABI_FILE)
+
+        # Fund new_account
+        evm_receipt = self.batch_all_execute(
+            self._kp_creator['kp'],
+            [erc20_addr, erc20_addr, erc20_addr],
+            [0, 0, 0],
+            [erc20_contract.encodeABI(fn_name='mint', args=[self._kp_creator['kp'].ss58_address, 10 ** 10]),
+             erc20_contract.encodeABI(fn_name='mint', args=[self._kp_admin['kp'].ss58_address, 10 ** 10]),
+             erc20_contract.encodeABI(fn_name='approve', args=[self._kp_admin['kp'].ss58_address, 10 ** 5])]
+        )
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         evm_receipt = self.evm_asset_start_destroy(
-            contract, self._kp_creator['kp'], asset_id)
+            asset_contract, self._kp_creator['kp'], asset_id)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         asset = self._substrate.query("Assets", "Asset", [asset_id]).value
         self.assertEqual(asset['status'], 'Destroying')
 
+        evm_receipt = self.evm_asset_destroy_approvals(
+            asset_contract, self._kp_creator['kp'], asset_id)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
+        evm_receipt = self.evm_asset_destroy_accounts(
+            asset_contract, self._kp_creator['kp'], asset_id)
+        self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
+
         evm_receipt = self.evm_asset_finish_destroy(
-            contract, self._kp_creator['kp'], asset_id)
+            asset_contract, self._kp_creator['kp'], asset_id)
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
 
         asset = self._substrate.query("Assets", "Asset", [asset_id]).value

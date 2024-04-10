@@ -1,4 +1,7 @@
-from tools.utils import PEAQ_PD_CHAIN_ID
+from tools.utils import get_peaq_chain_id
+
+
+PEAQ_PD_CHAIN_ID = get_peaq_chain_id()
 
 
 def calc_deadline(substrate):
