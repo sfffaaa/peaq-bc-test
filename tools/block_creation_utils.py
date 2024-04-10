@@ -1,10 +1,8 @@
 import sys
-sys.path.append('./')
+sys.path.append('.')
 
 
-def get_block_height(substrate):
-    latest_block = substrate.get_block()
-    return latest_block['header']['number']
+from peaq.utils import get_block_height
 
 
 def get_block_timestamp(substrate, height):

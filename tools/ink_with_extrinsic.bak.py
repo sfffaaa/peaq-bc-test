@@ -2,13 +2,8 @@ import sys
 
 from substrateinterface import SubstrateInterface, Keypair
 from substrateinterface.contracts import ContractCode
-from utils import TOKEN_NUM_BASE, show_extrinsic, WS_URL
-
-
-def show_account(substrate, addr, out_str):
-    result = substrate.query("System", "Account", [addr])
-    print(f'{addr} {out_str}: {result["data"]["free"]}')
-    return int(result['data']['free'].value)
+from utils import TOKEN_NUM_BASE, WS_URL
+from peaq.utils import show_extrinsic
 
 
 def transfer(substrate, kp_src, kp_dst_addr, token_num):
@@ -31,33 +26,6 @@ def transfer(substrate, kp_src, kp_dst_addr, token_num):
 
     receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
     show_extrinsic(receipt, 'transfer')
-    if not receipt.is_success:
-        print(substrate.get_events(receipt.block_hash))
-        raise IOError
-
-
-def did_add(substrate, kp_src, name, value):
-    nonce = substrate.get_account_nonce(kp_src.ss58_address)
-    call = substrate.compose_call(
-        call_module='PeaqDid',
-        call_function='add_attribute',
-        call_params={
-            'did_account': kp_src.ss58_address,
-            'name': name,
-            'value': value,
-            'valid_for': None,
-        })
-
-    extrinsic = substrate.create_signed_extrinsic(
-        call=call,
-        keypair=kp_src,
-        era={'period': 64},
-        nonce=nonce
-    )
-
-    receipt = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-    show_extrinsic(receipt, 'did_add')
-
     if not receipt.is_success:
         print(substrate.get_events(receipt.block_hash))
         raise IOError

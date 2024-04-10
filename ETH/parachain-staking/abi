@@ -1,0 +1,132 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "collator",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegateAnotherCandidate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "collator",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegatorStakeLess",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "collator",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "delegatorStakeMore",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getCollatorList",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "bytes32",
+						"name": "owner",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct ParachainStaking.CollatorInfo[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "collator",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			}
+		],
+		"name": "joinDelegators",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "leaveDelegators",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "collator",
+				"type": "bytes32"
+			}
+		],
+		"name": "revokeDelegation",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			}
+		],
+		"name": "unlockUnstaked",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
