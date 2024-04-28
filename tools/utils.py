@@ -51,6 +51,8 @@ KP_GLOBAL_SUDO = Keypair.create_from_uri(URI_GLOBAL_SUDO)
 KP_COLLATOR = Keypair.create_from_uri('//Ferdie')
 ACA_PD_CHAIN_ID = 3000
 
+PARACHAIN_STAKING_POT = '5EYCAe5cKPAoFh2HnQQvpKqRYZGqBpaA87u4Zzw89qPE58is'
+
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -441,6 +443,14 @@ def batch_fund(batch, kp_or_addr, amount):
         'new_free': amount,
         'new_reserved': 0
     })
+
+
+def get_existential_deposit(substrate):
+    result = substrate.get_constant(
+        'Balances',
+        'ExistentialDeposit',
+    )
+    return result.value
 
 
 if __name__ == '__main__':

@@ -1,16 +1,12 @@
 import unittest
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import WS_URL
+from tools.utils import WS_URL, get_existential_deposit
 from peaq.extrinsic import transfer
 
 
 class TestExitentialDeposits(unittest.TestCase):
     def get_existential_deposit(self):
-        result = self.substrate.get_constant(
-            'Balances',
-            'ExistentialDeposit',
-        )
-        return result.value
+        return get_existential_deposit(self.substrate)
 
     def setUp(self):
         self.substrate = SubstrateInterface(url=WS_URL,)
