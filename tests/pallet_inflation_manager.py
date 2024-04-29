@@ -12,8 +12,8 @@ from enum import StrEnum
 
 INFLATION_CONFIG = {
             'base_inflation_parameters': {
-                'effective_inflation_rate': 35000000,
-                'effective_disinflation_rate': 900000000,
+                'inflation_rate': 35000000,
+                'disinflation_rate': 900000000,
                 },
             'inflation_stagnation_rate': 10000000,
             'inflation_stagnation_year': 13,
@@ -24,10 +24,10 @@ RECALCULATION_AFTER = 365 * 24 * 60 * 60 / 12
 
 class InflationState(StrEnum):
     InflationConfiguration = 'InflationConfiguration',
-    YearlyInflationParameters = 'YearlyInflationParameters',
+    YearlyInflationParameters = 'InflationParameters',
     BlockRewards = 'BlockRewards',
     CurrentYear = 'CurrentYear',
-    RecalculationAt = 'RecalculationAt'
+    RecalculationAt = 'DoRecalculationAt'
 
 
 class TestPalletInflationManager(unittest.TestCase):
