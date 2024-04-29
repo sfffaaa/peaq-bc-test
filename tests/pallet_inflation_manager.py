@@ -51,11 +51,6 @@ class TestPalletInflationManager(unittest.TestCase):
         onchain_inflation_config = self._fetch_pallet_storage(InflationState.InflationConfiguration, 0)
         onchain_base_inflation_parameters = self._fetch_pallet_storage(InflationState.YearlyInflationParameters, 0)
         onchain_year = self._fetch_pallet_storage(InflationState.CurrentYear, 0)
-        # onchain_block_rewards = self._fetch_pallet_storage(0, InflationState.BlockRewards)
-
-        print("YEAR: ", onchain_year)
-        print(onchain_inflation_config)
-        print(onchain_base_inflation_parameters)
 
         self.assertEqual(INFLATION_CONFIG, onchain_inflation_config)
         self.assertEqual(INFLATION_CONFIG['base_inflation_parameters'], onchain_base_inflation_parameters)
