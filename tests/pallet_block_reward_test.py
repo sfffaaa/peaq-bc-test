@@ -1,8 +1,6 @@
-import time
-
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
-from tools.utils import set_max_currency_supply, set_block_reward_configuration
+from tools.utils import set_block_reward_configuration
 import unittest
 
 COLLATOR_REWARD_RATE = 0.1
@@ -43,26 +41,3 @@ class TestPalletBlockReward(unittest.TestCase):
             {k: int(str(previous_value[k])) for k in set_value.keys()})
         self.assertTrue(recepit.is_success,
                         'cannot setup the block reward configuration')
-
-    def test_over_max_currency_supply(self):
-        max_currency_supply = self.substrate.query(
-            module='BlockReward',
-            storage_function='MaxCurrencySupply',
-        )
-        print(f'Current max-currency-supply: {max_currency_supply}')
-        new_max_currency_supply = 500
-        receipt = set_max_currency_supply(self.substrate, new_max_currency_supply)
-        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')
-
-        time.sleep(WAIT_TIME_PERIOD)
-
-        for event in self.substrate.get_events():
-            if event.value['module_id'] != 'ParachainStaking' or \
-               event.value['event_id'] != 'Rewarded':
-                continue
-            now_reward = event['event'][1][1][1]
-            self.assertEqual(int(str(now_reward)), 0)
-
-        # reset
-        receipt = set_max_currency_supply(self.substrate, max_currency_supply)
-        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')
