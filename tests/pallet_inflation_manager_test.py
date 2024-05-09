@@ -25,10 +25,10 @@ RECALCULATION_AFTER = 2628000
 
 
 class InflationState(Enum):
-    InflationConfiguration = 'InflationConfiguration',
-    YearlyInflationParameters = 'InflationParameters',
-    BlockRewards = 'BlockRewards',
-    CurrentYear = 'CurrentYear',
+    InflationConfiguration = 'InflationConfiguration'
+    YearlyInflationParameters = 'InflationParameters'
+    BlockRewards = 'BlockRewards'
+    CurrentYear = 'CurrentYear'
     RecalculationAt = 'DoRecalculationAt'
 
 
@@ -50,10 +50,10 @@ class TestPalletInflationManager(unittest.TestCase):
     def test_genesis_state(self):
         # If it's forked chain, we shouldn't test
         # Set the inflation configuration
-        onchain_inflation_config = self._fetch_pallet_storage(InflationState.InflationConfiguration, 0)
-        onchain_base_inflation_parameters = self._fetch_pallet_storage(InflationState.YearlyInflationParameters, 0)
-        onchain_year = self._fetch_pallet_storage(InflationState.CurrentYear, 0)
-        onchain_do_recalculation_at = self._fetch_pallet_storage(InflationState.RecalculationAt, 0)
+        onchain_inflation_config = self._fetch_pallet_storage(InflationState.InflationConfiguration.value, 0)
+        onchain_base_inflation_parameters = self._fetch_pallet_storage(InflationState.YearlyInflationParameters.value, 0)
+        onchain_year = self._fetch_pallet_storage(InflationState.CurrentYear.value, 0)
+        onchain_do_recalculation_at = self._fetch_pallet_storage(InflationState.RecalculationAt.value, 0)
 
         self.assertEqual(INFLATION_CONFIG, onchain_inflation_config)
         self.assertEqual(INFLATION_PARAMETERS, onchain_base_inflation_parameters)
