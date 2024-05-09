@@ -5,6 +5,7 @@ from tools.utils import WS_URL
 from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
+from tools.utils import get_event
 
 
 import pprint
@@ -29,26 +30,6 @@ STATE_INFOS = [{
         'agung-network': {'length': 600},
         'krest-network': {'length': 1200},
         'peaq-network': {'length': 600},
-    }
-}, {
-    'module': 'BlockReward',
-    'storage_function': 'BlockIssueReward',
-    'almost': True,
-    'type': {
-        'peaq-dev': 1 * 10 ** 18,
-        'agung-network': 79098670000000008192,
-        'krest-network': 3.80517503805 * 10 ** 18,
-        'peaq-network': 79098670000000008192,
-    }
-}, {
-    'module': 'BlockReward',
-    'storage_function': 'MaxCurrencySupply',
-    'almost': True,
-    'type': {
-        'peaq-dev': 4200000000 * 10 ** 18,
-        'agung-network': 4200000000 * 10 ** 18,
-        'krest-network': 400000000 * 10 ** 18,
-        'peaq-network': 4200000000 * 10 ** 18,
     }
 }, {
     'module': 'BlockReward',
@@ -228,3 +209,22 @@ class TokenEconomyTest(unittest.TestCase):
 
             golden_data = self.get_info(test['type'])
             self.assertEqual(result.value, golden_data, f'{result.value} != {test}')
+
+    def test_block_reward(self):
+        block_reward = {
+            'agung-network-fork': 79098670000000008192,
+            'krest-network-fork': 79098670000000008192,
+            'peaq-network-fork': int(55.93607306 * 10 ** 18),
+        }
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        result = get_event(
+            self._substrate,
+            self._substrate.get_block_hash(),
+            'BlockReward', 'BlockRewardsDistributed')
+        self.assertIsNotNone(result, 'BlockReward event not found')
+        self.assertEqual(result.value['block_reward'], block_reward[self._chain_spec])

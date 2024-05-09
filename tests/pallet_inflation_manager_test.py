@@ -2,7 +2,7 @@ import unittest
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
 # from tools.utils import wait_for_event
-from enum import StrEnum
+from enum import Enum
 
 # Expected InflationConfiguration at genesis
 INFLATION_CONFIG = {
@@ -24,7 +24,7 @@ INFLATION_PARAMETERS = {
 RECALCULATION_AFTER = 2628000
 
 
-class InflationState(StrEnum):
+class InflationState(Enum):
     InflationConfiguration = 'InflationConfiguration',
     YearlyInflationParameters = 'InflationParameters',
     BlockRewards = 'BlockRewards',
@@ -48,6 +48,7 @@ class TestPalletInflationManager(unittest.TestCase):
         self.kp_src = Keypair.create_from_uri('//Alice')
 
     def test_genesis_state(self):
+        # If it's forked chain, we shouldn't test
         # Set the inflation configuration
         onchain_inflation_config = self._fetch_pallet_storage(InflationState.InflationConfiguration, 0)
         onchain_base_inflation_parameters = self._fetch_pallet_storage(InflationState.YearlyInflationParameters, 0)
