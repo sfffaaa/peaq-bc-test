@@ -49,16 +49,21 @@ def main():
     parser = argparse.ArgumentParser(description='Setup the delegator')
     parser.add_argument('--number', type=int, required=True, help='Number of delegators you want to setup')
     parser.add_argument('--url', type=str, required=True, help='websocket URL')
+    parser.add_argument('--collator', type=str, help='Collator address')
 
     args = parser.parse_args()
     substrate = SubstrateInterface(url=args.url)
 
-    # Get total valdators length
-    validators = get_validators_info(substrate)
+    if args.collator:
+        validators = [args.collator]
+    else:
+        # Get total valdators length
+        validators = get_validators_info(substrate)
 
+    print(f'Number of validators are {len(validators)}')
     # Get default staking number
     collator_stake = get_collator_stake(substrate, validators[0])
-    fund_value = collator_stake
+    fund_value = collator_stake * 2
     if fund_value < 2 * 10 ** 18:
         fund_value = 2 * 10 ** 18
         print(f'Collator stake {collator_stake} is less than {fund_value}, so we will fund it with {fund_value}')
