@@ -1,7 +1,7 @@
 import unittest
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL
+from tools.utils import WS_URL, get_modified_chain_spec
 from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
@@ -29,7 +29,7 @@ STATE_INFOS = [{
         'peaq-dev': {'length': 10},
         'agung-network': {'length': 600},
         'krest-network': {'length': 1200},
-        'peaq-network': {'length': 600},
+        'peaq-network': {'length': 1200},
     }
 }, {
     'module': 'BlockReward',
@@ -98,7 +98,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 25,
         'agung-network': 25,
         'krest-network': 25,
-        'peaq-network': 25,
+        'peaq-network': 32,
     }
 }, {
     'module': 'ParachainStaking',
@@ -107,7 +107,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 16,
         'agung-network': 16,
         'krest-network': 128,
-        'peaq-network': 16,
+        'peaq-network': 32,
     }
 }, {
     'module': 'ParachainStaking',
@@ -116,7 +116,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 32000,
         'agung-network': 32000,
         'krest-network': 50000 * 10 ** 18,
-        'peaq-network': 32000,
+        'peaq-network': 50000 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -125,7 +125,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 32000,
         'agung-network': 32000,
         'krest-network': 50000 * 10 ** 18,
-        'peaq-network': 32000,
+        'peaq-network': 50000 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -134,7 +134,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 20000,
         'agung-network': 20000,
         'krest-network': 100 * 10 ** 18,
-        'peaq-network': 20000,
+        'peaq-network': 100 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -143,24 +143,16 @@ CONSTANT_INFOS = [{
         'peaq-dev': 20000,
         'agung-network': 20000,
         'krest-network': 100 * 10 ** 18,
-        'peaq-network': 20000,
+        'peaq-network': 100 * 10 ** 18,
     }
 }]
 
 
 class TokenEconomyTest(unittest.TestCase):
 
-    def get_modified_chain_spec(self):
-        if 'peaq-dev-fork' == self._chain_spec:
-            return 'peaq-dev'
-        if 'krest-network-fork' == self._chain_spec:
-            return 'krest-network'
-        if 'peaq-network-fork' == self._chain_spec:
-            return 'peaq-network'
-
     def get_info(self, test_type):
         if self._chain_spec not in test_type:
-            return test_type[self.get_modified_chain_spec()]
+            return test_type[get_modified_chain_spec(self._chain_spec)]
         else:
             return test_type[self._chain_spec]
 
@@ -169,7 +161,6 @@ class TokenEconomyTest(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
 
     def setUp(self):
-        restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
         self._substrate = SubstrateInterface(url=WS_URL)
         current_height = get_block_height(self._substrate)

@@ -428,6 +428,16 @@ def batch_fund(batch, kp_or_addr, amount):
     })
 
 
+def get_modified_chain_spec(chain_spec):
+    if 'peaq-dev-fork' == chain_spec:
+        return 'peaq-dev'
+    if 'krest-network-fork' == chain_spec:
+        return 'krest-network'
+    if 'peaq-network-fork' == chain_spec:
+        return 'peaq-network'
+    return chain_spec
+
+
 if __name__ == '__main__':
     data = '5F1e2nuSgxwWZiL9jTxv3jrMQHeHHhuwP7oDmU87SMp1Ncxv'
     print(calculate_evm_addr(data))

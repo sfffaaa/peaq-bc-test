@@ -2,10 +2,11 @@ import time
 import pytest
 
 from substrateinterface import SubstrateInterface, Keypair
+from peaq.utils import get_chain
 from tools.utils import WS_URL, TOKEN_NUM_BASE
 from peaq.extrinsic import transfer, transfer_with_tip
 from peaq.utils import get_account_balance
-from tools.utils import get_event
+from tools.utils import get_event, get_modified_chain_spec
 from tools.utils import KP_COLLATOR
 import unittest
 # from tests.utils_func import restart_parachain_and_runtime_upgrade
@@ -13,11 +14,30 @@ from tests import utils_func as TestUtils
 
 WAIT_BLOCK_NUMBER = 10
 WAIT_ONLY_ONE_BLOCK_PERIOD = 12
-REWARD_PERCENTAGE = 0.5
+
+EOT_FEE_PERCENTAGE = {
+    'peaq-network': 0.0,
+    'krest-network': 0.5,
+    'peaq-dev': 0.5
+}
+PEAQ_REWARD_PERCENTAGE = 0.0
+OTHER_REWARD_PERCENTAGE = 0.5
 REWARD_ERROR = 0.0001
 TIP = 10 ** 20
-FEE_MIN_LIMIT = 30 * 10**9  # 30nPEAQ
-FEE_MAX_LIMIT = 90 * 10**9  # 90nPEAQ
+FEE_CONFIG = {
+    'peaq-network': {
+        'min': 0.1 * 10 ** 15,
+        'max': 10 * 10 ** 15,
+    },
+    'krest-network': {
+        'min': 30 * 10 ** 9,
+        'max': 90 * 10 ** 9,
+    },
+    'peaq-dev': {
+        'min': 30 * 10 ** 9,
+        'max': 90 * 10 ** 9,
+    }
+}
 
 COLLATOR_DELEGATOR_POT = '5EYCAe5cKPAoFh2HnQQvpKqRYZGqBpaA87u4Zzw89qPE58is'
 DIVISION_FACTOR = pow(10, 7)
@@ -27,12 +47,10 @@ class TestRewardDistribution(unittest.TestCase):
     _kp_bob = Keypair.create_from_uri('//Bob')
     _kp_eve = Keypair.create_from_uri('//Eve')
 
-    # @classmethod
-    # def setUpClass(cls):
-    #     restart_parachain_and_runtime_upgrade()
-
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
+        self._chain_spec = get_chain(self._substrate)
+        self._chain_spec = get_modified_chain_spec(self._chain_spec)
 
     def get_collator_delegator_precentage(self):
         reward_config = self._substrate.query(
@@ -70,7 +88,7 @@ class TestRewardDistribution(unittest.TestCase):
             return event['event']
         return None
 
-    def _check_transaction_fee_reward_from_sender(self, block_height):
+    def _check_transaction_fee_reward_from_sender(self, block_height, reward_percentage):
         block_hash = self._substrate.get_block_hash(block_height)
         tx_reward = self.get_transaction_fee_distributed(block_hash)
         self.assertNotEqual(
@@ -82,8 +100,8 @@ class TestRewardDistribution(unittest.TestCase):
             f'Cannot find the block event for transaction reward {tx_fee_ori}')
 
         self.assertEqual(
-            int(tx_reward), int(tx_fee_ori * (1 + REWARD_PERCENTAGE)),
-            f'The transaction fee reward is not correct {tx_fee_ori} v.s. {tx_fee_ori * (1 + REWARD_PERCENTAGE)}')
+            int(tx_reward), int(tx_fee_ori * (1 + reward_percentage)),
+            f'The transaction fee reward is not correct {tx_fee_ori} v.s. {tx_fee_ori * (1 + reward_percentage)}')
 
     def _get_withdraw_events(self, block_hash, dest):
         events = []
@@ -110,22 +128,25 @@ class TestRewardDistribution(unittest.TestCase):
             1, 7,
             f'The transaction fee reward is not correct {events[-1]} v.s. {tx_reward} * {collator_percentage}')
 
+    def _check_tx_fee(self, fee):
+        # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
+        # raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
+        fee_min_limit = FEE_CONFIG[self._chain_spec]['min']
+        fee_max_limit = FEE_CONFIG[self._chain_spec]['max']
+        self.assertGreaterEqual(
+            fee, fee_min_limit,
+            f'The transaction fee w/o tip is out of limit: {fee} > {fee_min_limit}')
+        self.assertLessEqual(
+            fee, fee_max_limit,
+            f'The transaction fee w/o tip is out of limit: {fee} < {fee_max_limit}')
+
     # TODO: improve testing fees, by using fee-model, when ready...
     def _check_transaction_fee_reward_event(self, block_hash, tip):
         now_reward = self.get_transaction_fee_distributed(block_hash)
         self.assertNotEqual(now_reward, None, f'Cannot find the block event for transaction reward {now_reward}')
 
-        # real_rate = (now_reward - tip) / tip
         fee_wo_tip = now_reward - tip
-        # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
-        # raise IOError(f'The fee reward percentage is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
-        self.assertGreaterEqual(
-            fee_wo_tip, FEE_MIN_LIMIT,
-            f'The transaction fee w/o tip is out of limit: {fee_wo_tip} > {FEE_MIN_LIMIT}')
-
-        self.assertLessEqual(
-            fee_wo_tip, FEE_MAX_LIMIT,
-            f'The transaction fee w/o tip is out of limit: {fee_wo_tip} < {FEE_MAX_LIMIT}')
+        self._check_tx_fee(fee_wo_tip)
 
     # TODO: improve testing fees, by using fee-model, when ready
     def _check_transaction_fee_reward_balance(self, addr, prev_balance, now_balance, tip, block_reward, collator_percentage):
@@ -133,12 +154,7 @@ class TestRewardDistribution(unittest.TestCase):
         # if real_rate > REWARD_PERCENTAGE + REWARD_ERROR or real_rate < REWARD_PERCENTAGE - REWARD_ERROR:
         #     raise IOError(f'The balance is strange {real_rate} v.s. {REWARD_PERCENTAGE}')
         rewards_wo_tip = (now_balance - prev_balance - tip * collator_percentage - block_reward * collator_percentage) / collator_percentage
-        self.assertGreaterEqual(
-            rewards_wo_tip, FEE_MIN_LIMIT,
-            f'The transaction fee w/o tip is out of limit: {rewards_wo_tip} > {FEE_MIN_LIMIT}')
-        self.assertLessEqual(
-            rewards_wo_tip, FEE_MAX_LIMIT,
-            f'The transaction fee w/o tip is out of limit: {rewards_wo_tip} < {FEE_MAX_LIMIT}')
+        self._check_tx_fee(rewards_wo_tip)
 
     def _check_block_reward_in_event(self, kp_src, block_reward, collator_percentage):
         for i in range(0, WAIT_BLOCK_NUMBER):
@@ -164,16 +180,19 @@ class TestRewardDistribution(unittest.TestCase):
 
             now_balance = get_account_balance(self._substrate, kp_src.ss58_address, block_hash=now_hash)
             previous_balance = get_account_balance(self._substrate, kp_src.ss58_address, block_hash=prev_hash)
-            self.assertEqual(now_balance - previous_balance, block_reward * collator_percentage,
-                             f'The block reward {now_balance - previous_balance} is '
-                             f'not the same as {block_reward * collator_percentage}')
+
+            self.assertAlmostEqual(
+                (now_balance - previous_balance) / (block_reward * collator_percentage),
+                1, 7,
+                f'The block reward {now_balance - previous_balance} is '
+                f'not the same as {block_reward * collator_percentage} ')
+
             return True
         return False
 
     def test_block_reward(self):
         # Setup
         collator_percentage = self.get_collator_delegator_precentage()
-        print(f'Collator percentage: {collator_percentage}')
         while self._substrate.get_block()['header']['number'] == 0:
             time.sleep(WAIT_ONLY_ONE_BLOCK_PERIOD)
 
@@ -205,7 +224,9 @@ class TestRewardDistribution(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to transfer: {receipt.error_message}')
         print(f'Block hash: {receipt.block_hash}')
         block_number = self._substrate.get_block(receipt.block_hash)['header']['number']
-        self._check_transaction_fee_reward_from_sender(block_number)
+
+        eot_fee_percentage = EOT_FEE_PERCENTAGE[self._chain_spec]
+        self._check_transaction_fee_reward_from_sender(block_number, eot_fee_percentage)
         self._check_transaction_fee_reward_from_collator(block_number, collator_percentage)
 
     @pytest.mark.skipif(TestUtils.is_runtime_upgrade_test() is True, reason='Skip for runtime upgrade test')
