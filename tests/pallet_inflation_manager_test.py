@@ -103,4 +103,5 @@ class TestPalletInflationManager(unittest.TestCase):
         self.assertEqual(golden_inflation_config, onchain_inflation_config)
         self.assertEqual(golden_inflation_parameters, onchain_base_inflation_parameters)
         self.assertEqual(onchain_year, 1)
+        # If it's forked chain, it should be after 1 year + upgrade time
         self.assertEqual(onchain_do_recalculation_at, RECALCULATION_AFTER)

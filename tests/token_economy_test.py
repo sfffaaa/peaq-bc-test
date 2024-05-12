@@ -159,9 +159,9 @@ class TokenEconomyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         restart_parachain_and_runtime_upgrade()
+        wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
 
     def setUp(self):
-        wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
         self._substrate = SubstrateInterface(url=WS_URL)
         current_height = get_block_height(self._substrate)
         self._block_hash = get_block_hash(self._substrate, current_height)
@@ -203,8 +203,8 @@ class TokenEconomyTest(unittest.TestCase):
 
     def test_block_reward(self):
         block_reward = {
-            'agung-network-fork': 79098670000000008192,
-            'krest-network-fork': 79098670000000008192,
+            'peaq-dev-fork': int(23.972602739 * 10 ** 18),
+            'krest-network-fork': int(3.805175038 * 10 ** 18),
             'peaq-network-fork': int(55.93607306 * 10 ** 18),
         }
         if 'peaq-dev-fork' != self._chain_spec and \
@@ -218,4 +218,7 @@ class TokenEconomyTest(unittest.TestCase):
             self._substrate.get_block_hash(),
             'BlockReward', 'BlockRewardsDistributed')
         self.assertIsNotNone(result, 'BlockReward event not found')
-        self.assertEqual(result.value['block_reward'], block_reward[self._chain_spec])
+        self.assertAlmostEqual(
+            result.value['attributes'] / block_reward[self._chain_spec],
+            1, 7,
+            msg=f'{result.value["attributes"]} != {block_reward[self._chain_spec]}')
