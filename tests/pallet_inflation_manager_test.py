@@ -19,18 +19,18 @@ INFLATION_CONFIG = {
     'krest-network': {
         'inflation_parameters': {
           'inflation_rate': 25000000,
-          'disinflation_rate': 1000000000,
+          'disinflation_rate': 900000000,
         },
         'inflation_stagnation_rate': 10000000,
-        'inflation_stagnation_year': 13
+        'inflation_stagnation_year': 10
     },
     'peaq-dev': {
         'inflation_parameters': {
-          'inflation_rate': 15000000,
-          'disinflation_rate': 700000000,
+          'inflation_rate': 25000000,
+          'disinflation_rate': 900000000,
         },
-        'inflation_stagnation_rate': 20000000,
-        'inflation_stagnation_year': 15
+        'inflation_stagnation_rate': 10000000,
+        'inflation_stagnation_year': 10
     }
 }
 
