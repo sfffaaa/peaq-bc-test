@@ -31,8 +31,8 @@ from tools.asset import get_tokens_account_from_pallet_tokens
 
 PEAQ_PD_CHAIN_ID = get_peaq_chain_id()
 
-TEST_TOKEN_NUM = 10 * 10 ** 15
-INIT_TOKEN_NUM = 10 ** 18
+TEST_TOKEN_NUM = 100 * 10 ** 18
+INIT_TOKEN_NUM = 1000 * 10 ** 18
 # For avoid exhaust tokens
 REMAIN_TOKEN_NUM = 10000
 KP_CHARLIE = Keypair.create_from_uri('//Charlie')
@@ -300,6 +300,8 @@ class TestXCMTransfer(unittest.TestCase):
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
+        receipt = fund(self.si_relay, KP_GLOBAL_SUDO, kp_remote_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
 
         # Send foreigner tokens from the relay chain
         receipt = self.send_relay_token_from_relay_to_peaq(kp_remote_src, kp_self_dst, TEST_TOKEN_NUM)
@@ -334,6 +336,8 @@ class TestXCMTransfer(unittest.TestCase):
 
         kp_remote_src = KP_CHARLIE
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        receipt = fund(self.si_relay, KP_GLOBAL_SUDO, kp_remote_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
 
         # Send foreigner tokens from the relay chain
         receipt = self.send_relay_token_from_relay_to_peaq(kp_remote_src, kp_self_dst, TEST_TOKEN_NUM)
@@ -372,6 +376,8 @@ class TestXCMTransfer(unittest.TestCase):
         self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
 
         kp_remote_src = KP_CHARLIE
+        receipt = aca_fund(self.si_aca, KP_GLOBAL_SUDO, kp_remote_src, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to aca: {receipt.error_message}')
         kp_self_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
         receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_self_dst, INIT_TOKEN_NUM)
         self.assertTrue(receipt.is_success, f'Failed to fund tokens to self: {receipt.error_message}')
@@ -537,6 +543,9 @@ class TestXCMTransfer(unittest.TestCase):
             self.si_peaq, KP_GLOBAL_SUDO,
             RELAY_ASSET_ID['peaq'], RELAY_ASSET_LOCATION['peaq'], UNITS_PER_SECOND)
         self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
+
+        receipt = fund(self.si_relay, KP_GLOBAL_SUDO, KP_GLOBAL_SUDO, INIT_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to fund tokens to peaq: {receipt.error_message}')
 
         # Transfer dot
         receipt = self.send_relay_token_from_relay_to_peaq(KP_GLOBAL_SUDO, kp_peaq, TEST_TOKEN_NUM)
