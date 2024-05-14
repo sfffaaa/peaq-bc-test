@@ -166,9 +166,6 @@ class TestDelegator(unittest.TestCase):
             'peaq-network', 'peaq-network-fork'])
 
         batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
-        batch.compose_sudo_call('BlockReward', 'set_max_currency_supply', {
-            'limit': 10 ** 5 * mega_tokens
-        })
         batch.compose_sudo_call('ParachainStaking', 'set_max_candidate_stake', {
             'new': 10 ** 5 * mega_tokens
         })

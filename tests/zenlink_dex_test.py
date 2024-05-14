@@ -352,9 +352,17 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     bt_para_bob = ExtrinsicBatch(si_peaq, kp_para_bob)
     bt_para_bene = ExtrinsicBatch(si_peaq, kp_beneficiary)
 
+    # Setup the relay accounts
+    relay_token = 10 ** 23
+    bt_relay_sudo = ExtrinsicBatch(si_relay, kp_para_sudo)
+    compose_balances_setbalance(bt_relay_sudo, '//Alice', relay_token * 10)
+    compose_balances_setbalance(bt_relay_sudo, user1, relay_token * 10)
+    receipt = bt_relay_sudo.execute_n_clear()
+    assert receipt.is_success
+
     # Transfer tokens from relaychain to parachain
-    amount = relay_amount_w_fees(dot(TOK_LIQUIDITY))
-    relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', user1], [amount, amount])
+    # tansfer a lot because we want to use relay chain's token to pay fee
+    relay2para_transfer(si_relay, si_peaq, '//Alice', ['//Alice', user1], [relay_token, relay_token])
 
     # Check that DOT tokens for liquidity have been transfered succesfully
     dot_liquidity = state_token_assets_accounts(si_peaq, kp_para_sudo, 1)
@@ -370,6 +378,7 @@ def create_pair_n_swap_test(si_relay, si_peaq):
     # Check different amounts of liquidity!!!
     compose_zdex_add_liquidity(bt_para_sudo, DOT_IDX, dot_liquidity, dot_liquidity)
     # Reset user1's account to very low amount, to test payment in local currency
+    # force pay the fee by other currency
     compose_balances_setbalance(bt_para_sudo, user1, 1000)
     receipt = bt_para_sudo.execute_n_clear()
     print(f'create_pair_n_swap_test: receipt: {receipt.error_message}')
