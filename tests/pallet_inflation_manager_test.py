@@ -45,7 +45,7 @@ INFLATION_PARAMETERS = {
         'disinflation_rate': 1000000000,
     },
     'peaq-dev': {
-        'inflation_rate': 15000000,
+        'inflation_rate': 25000000,
         'disinflation_rate': 1000000000,
     }
 }
