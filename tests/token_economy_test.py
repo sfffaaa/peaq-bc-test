@@ -1,11 +1,13 @@
 import unittest
 
-from substrateinterface import SubstrateInterface
+from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, get_modified_chain_spec
 from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
-from tools.utils import get_event
+from tools.utils import get_event, get_account_balance
+from tools.utils import KP_GLOBAL_SUDO
+from peaq.utils import ExtrinsicBatch
 
 
 import pprint
@@ -222,3 +224,54 @@ class TokenEconomyTest(unittest.TestCase):
             result.value['attributes'] / block_reward[self._chain_spec],
             1, 7,
             msg=f'{result.value["attributes"]} != {block_reward[self._chain_spec]}')
+
+    def test_total_issuance(self):
+        golden_issuance_number = {
+            'peaq-dev-fork': int(400 * 10 ** 6 * 10 ** 18),
+            'krest-network-fork': int(400 * 10 ** 6 * 10 ** 18),
+            'peaq-network-fork': int(4200 * 10 ** 6 * 10 ** 18),
+        }
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        total_balance = self._substrate.query(
+            module='Balances',
+            storage_function='TotalIssuance',
+            params=[],
+        )
+        self.assertGreater(
+            total_balance.value,
+            golden_issuance_number[self._chain_spec],
+            f'{total_balance.value} <= {golden_issuance_number[self._chain_spec]}')
+
+        self.assertLess(
+            total_balance.value,
+            golden_issuance_number[self._chain_spec] * 1.01,
+            f'{total_balance.value} >= {golden_issuance_number[self._chain_spec] + 10 ** 18}')
+
+    # Will fail after this runtime upgrade
+    def test_inflation_mgr_transfer_all_pot(self):
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_sudo_call(
+            'InflationManager',
+            'transfer_all_pot',
+            {
+                'dest': kp_dst.ss58_address
+            }
+        )
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to transfer all pot: {receipt}')
+
+        balance = get_account_balance(self._substrate, kp_dst.ss58_address)
+        self.assertGreater(balance, 0, f'Balance is zero: {balance}')
