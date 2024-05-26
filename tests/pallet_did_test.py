@@ -2,23 +2,10 @@ import unittest
 import time
 
 from substrateinterface import SubstrateInterface, Keypair
+from tools.utils import get_balance_reserve_value
 from tools.utils import WS_URL
 from peaq.utils import ExtrinsicBatch
 from peaq.did import did_add_payload, did_update_payload, did_remove_payload, did_rpc_read
-
-
-def get_reserve_value(substrate, account, key):
-    hex_key = f'0x{key.encode("utf-8").hex()}'
-
-    reserve_value = substrate.query(
-        'Balances',
-        'Reserves',
-        params=[account]
-    )
-    for item in reserve_value.value:
-        if item['id'] == hex_key:
-            return item['amount']
-    return 0
 
 
 class TestPalletDid(unittest.TestCase):
@@ -27,7 +14,7 @@ class TestPalletDid(unittest.TestCase):
         self.kp_src = Keypair.create_from_uri('//Alice')
 
     def test_did_add(self):
-        reserved_before = get_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
+        reserved_before = get_balance_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
         name = int(time.time())
         batch = ExtrinsicBatch(self.substrate, self.kp_src)
 
@@ -41,7 +28,7 @@ class TestPalletDid(unittest.TestCase):
         data = did_rpc_read(self.substrate, self.kp_src.ss58_address, key)
         self.assertEqual(data['name'], key)
         self.assertEqual(data['value'], value)
-        reserved_after = get_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
+        reserved_after = get_balance_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
         self.assertGreater(reserved_after, reserved_before)
 
     def test_did_update(self):
@@ -62,7 +49,7 @@ class TestPalletDid(unittest.TestCase):
         self.assertEqual(data['value'], value)
 
     def test_did_remove(self):
-        reserved_before = get_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
+        reserved_before = get_balance_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
         name = int(time.time())
         key = f'0x{name}'
         value = '0x02'
@@ -76,5 +63,5 @@ class TestPalletDid(unittest.TestCase):
 
         data = did_rpc_read(self.substrate, self.kp_src.ss58_address, key)
         self.assertEqual(data, None)
-        reserved_after = get_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
+        reserved_after = get_balance_reserve_value(self.substrate, self.kp_src.ss58_address, 'peaq_did')
         self.assertEqual(reserved_after, reserved_before)

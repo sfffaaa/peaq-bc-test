@@ -438,6 +438,20 @@ def get_modified_chain_spec(chain_spec):
     return chain_spec
 
 
+def get_balance_reserve_value(substrate, account, key):
+    hex_key = f'0x{key.encode("utf-8").hex()}'
+
+    reserve_value = substrate.query(
+        'Balances',
+        'Reserves',
+        params=[account]
+    )
+    for item in reserve_value.value:
+        if item['id'] == hex_key:
+            return item['amount']
+    return 0
+
+
 if __name__ == '__main__':
     data = '5F1e2nuSgxwWZiL9jTxv3jrMQHeHHhuwP7oDmU87SMp1Ncxv'
     print(calculate_evm_addr(data))
