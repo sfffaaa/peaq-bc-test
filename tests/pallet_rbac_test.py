@@ -85,6 +85,7 @@ class TestPalletRBAC(unittest.TestCase):
         # g1|
         # g2|
 
+        # TODO Add reserved test
         batch = ExtrinsicBatch(self.substrate, kp_src)
         # Add some roles
         rbac_add_role_payload(batch, f'0x{ROLE_ID1}', ROLE_NM1)

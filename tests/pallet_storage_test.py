@@ -12,6 +12,7 @@ class TestPalletStorage(unittest.TestCase):
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
 
+    # [TODO] Add reserve test
     def test_storage(self):
         kp_src = Keypair.create_from_uri('//Alice')
         batch = ExtrinsicBatch(self._substrate, kp_src)
