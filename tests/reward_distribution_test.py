@@ -17,8 +17,8 @@ WAIT_ONLY_ONE_BLOCK_PERIOD = 12
 
 EOT_FEE_PERCENTAGE = {
     'peaq-network': 0.0,
-    'krest-network': 0.5,
-    'peaq-dev': 0.5
+    'krest-network': 0.0,
+    'peaq-dev': 0.0
 }
 PEAQ_REWARD_PERCENTAGE = 0.0
 OTHER_REWARD_PERCENTAGE = 0.5
@@ -30,11 +30,11 @@ FEE_CONFIG = {
         'max': 10 * 10 ** 15,
     },
     'krest-network': {
-        'min': 30 * 10 ** 9,
+        'min': 20 * 10 ** 9,
         'max': 90 * 10 ** 9,
     },
     'peaq-dev': {
-        'min': 30 * 10 ** 9,
+        'min': 20 * 10 ** 9,
         'max': 90 * 10 ** 9,
     }
 }
