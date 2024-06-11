@@ -20,6 +20,7 @@ from tools.asset import ACA_ASSET_ID
 from tools.asset import RELAY_ASSET_LOCATION, RELAY_ASSET_ID, RELAY_METADATA
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_lppair_params, compose_zdex_add_liquidity
 from tools.zenlink import calc_deadline
+from tools.xcm_setup import setup_hrmp_channel
 
 
 # Technical constants
@@ -557,6 +558,7 @@ class TestZenlinkDex(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
         wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
+        setup_hrmp_channel(RELAYCHAIN_WS_URL)
         show_title('Zenlink-DEX-Protocol Test')
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL)
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)

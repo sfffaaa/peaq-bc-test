@@ -5,7 +5,7 @@ import unittest
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import ETH_URL
+from tools.utils import ETH_URL, RELAYCHAIN_WS_URL
 from tools.utils import WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
@@ -24,6 +24,7 @@ from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.peaq_eth_utils import get_eth_chain_id
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_tokens_account_from_pallet_tokens
+from tools.xcm_setup import setup_hrmp_channel
 # import pytest
 
 
@@ -203,6 +204,7 @@ class TestBridgeXTokens(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
         wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
+        setup_hrmp_channel(RELAYCHAIN_WS_URL)
 
         self.si_peaq = SubstrateInterface(url=WS_URL,)
         self.si_aca = SubstrateInterface(url=ACA_WS_URL)
