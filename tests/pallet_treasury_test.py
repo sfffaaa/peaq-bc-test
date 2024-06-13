@@ -2,7 +2,7 @@ from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, TOKEN_NUM_BASE_DEV, KP_GLOBAL_SUDO
 from peaq.utils import show_extrinsic
 from peaq.utils import ExtrinsicBatch
-from tools.utils import batch_fund
+from tools.utils import batch_fund, get_event
 from tools.payload import sudo_call_compose, sudo_extrinsic_send, user_extrinsic_send
 import unittest
 
@@ -204,8 +204,12 @@ class TestTreasury(unittest.TestCase):
     def treasury_rewards_test(self):
 
         # To get current block reward as configured in BlockReward.BlockIssueReward
-        result = self.substrate.query('BlockReward', 'BlockIssueReward')
-        block_reward = result.decode()
+        result = get_event(
+            self.substrate,
+            self.substrate.get_block_hash(),
+            'BlockReward', 'BlockRewardsDistributed')
+        self.assertIsNotNone(result, 'BlockReward event not found')
+        block_reward = result.value['attributes']
         print("Block reward:", block_reward)
 
         # To get treasury percentage in block reward

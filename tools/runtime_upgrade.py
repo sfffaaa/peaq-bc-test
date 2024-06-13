@@ -4,13 +4,14 @@ import os
 import time
 
 from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL
+from tools.utils import WS_URL, KP_GLOBAL_SUDO, RELAYCHAIN_WS_URL, KP_COLLATOR
 from peaq.sudo_extrinsic import funds
 from peaq.utils import show_extrinsic, get_block_height
 from substrateinterface.utils.hasher import blake2_256
 from peaq.utils import wait_for_n_blocks
 from tools.restart import restart_parachain_launch
 from peaq.utils import ExtrinsicBatch
+from peaq.utils import get_account_balance
 import argparse
 
 import pprint
@@ -69,7 +70,7 @@ def upgrade(runtime_path):
 def fund_account():
     print('update the info')
     substrate = SubstrateInterface(url=WS_URL)
-    funds(substrate, KP_GLOBAL_SUDO, [
+    accounts = [
         '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
         '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY',
         '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
@@ -78,7 +79,9 @@ def fund_account():
         '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy',
         '5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw',
         '5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL',
-    ], 302231 * 10 ** 18)
+    ]
+    account_balances = [get_account_balance(substrate, a) for a in accounts]
+    funds(substrate, KP_GLOBAL_SUDO, accounts, max(account_balances) + 302231 * 10 ** 18)
 
 
 # [TODO] Will need to remove after precompile runtime upgrade
@@ -131,6 +134,18 @@ def do_runtime_upgrade(wasm_path):
     wait_for_n_blocks(substrate, 10)
     fund_account()
     update_xcm_default_version(substrate)
+
+    batch = ExtrinsicBatch(substrate, KP_GLOBAL_SUDO)
+    batch.compose_sudo_call(
+        'ParachainStaking',
+        'set_max_candidate_stake',
+        {'new': 1500000 * 10 ** 18}
+    )
+    batch.execute()
+
+    batch = ExtrinsicBatch(substrate, KP_COLLATOR)
+    batch.compose_call('ParachainStaking', 'candidate_stake_more', {'more': 50000 * 10 ** 18})
+    batch.execute()
 
 
 def main():

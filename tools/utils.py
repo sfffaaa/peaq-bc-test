@@ -301,19 +301,6 @@ def show_account(substrate, addr, out_str):
     return result
 
 
-# [TODO] Use the batch
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def set_max_currency_supply(substrate, max_currency_supply):
-    return substrate.compose_call(
-        call_module='BlockReward',
-        call_function='set_max_currency_supply',
-        call_params={
-            'limit': max_currency_supply
-        }
-    )
-
-
 @sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
 @sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
 def set_block_reward_configuration(substrate, data):
@@ -329,18 +316,6 @@ def set_block_reward_configuration(substrate, data):
                 'coretime_percent': data['coretime_percent'],
                 'subsidization_pool_percent': data['subsidization_pool_percent'],
             }
-        }
-    )
-
-
-@sudo_extrinsic_send(sudo_keypair=KP_GLOBAL_SUDO)
-@sudo_call_compose(sudo_keypair=KP_GLOBAL_SUDO)
-def setup_block_reward(substrate, block_reward):
-    return substrate.compose_call(
-        call_module='BlockReward',
-        call_function='set_block_issue_reward',
-        call_params={
-            'block_reward': block_reward
         }
     )
 
@@ -434,6 +409,16 @@ def _is_it_this_event(e_obj, module, event, attributes) -> bool:
         return False
 
 
+def get_event(substrate, block_hash, pallet, event_name):
+    block_hash = substrate.get_block_hash()
+    for event in substrate.get_events(block_hash):
+        if event.value['module_id'] != pallet or \
+           event.value['event_id'] != event_name:
+            continue
+        return event['event']
+    return None
+
+
 def batch_fund(batch, kp_or_addr, amount):
     addr = kp_or_addr
     if isinstance(kp_or_addr, Keypair):
@@ -451,6 +436,30 @@ def get_existential_deposit(substrate):
         'ExistentialDeposit',
     )
     return result.value
+
+
+def get_modified_chain_spec(chain_spec):
+    if 'peaq-dev-fork' == chain_spec:
+        return 'peaq-dev'
+    if 'krest-network-fork' == chain_spec:
+        return 'krest-network'
+    if 'peaq-network-fork' == chain_spec:
+        return 'peaq-network'
+    return chain_spec
+
+
+def get_balance_reserve_value(substrate, account, key):
+    hex_key = f'0x{key.encode("utf-8").hex()}'
+
+    reserve_value = substrate.query(
+        'Balances',
+        'Reserves',
+        params=[account]
+    )
+    for item in reserve_value.value:
+        if item['id'] == hex_key:
+            return item['amount']
+    return 0
 
 
 if __name__ == '__main__':

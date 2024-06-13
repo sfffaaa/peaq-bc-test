@@ -1,10 +1,6 @@
-import time
-
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL
-from tools.utils import set_max_currency_supply, set_block_reward_configuration, get_existential_deposit
-from peaq.utils import ExtrinsicBatch, get_account_balance
-from tools.utils import KP_GLOBAL_SUDO, PARACHAIN_STAKING_POT
+from tools.utils import set_block_reward_configuration
 import unittest
 
 COLLATOR_REWARD_RATE = 0.1
@@ -46,45 +42,3 @@ class TestPalletBlockReward(unittest.TestCase):
             {k: int(str(previous_value[k])) for k in set_value.keys()})
         self.assertTrue(recepit.is_success,
                         'cannot setup the block reward configuration')
-
-    def test_over_max_currency_supply(self):
-        max_currency_supply = self.substrate.query(
-            module='BlockReward',
-            storage_function='MaxCurrencySupply',
-        )
-        print(f'Current max-currency-supply: {max_currency_supply}')
-        new_max_currency_supply = 500
-
-        receipt = set_max_currency_supply(self.substrate, new_max_currency_supply)
-        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')
-
-        batch = ExtrinsicBatch(self.substrate, KP_GLOBAL_SUDO)
-        batch.compose_sudo_call(
-            'ParachainStaking',
-            'force_new_round',
-            {}
-        )
-        receipt = batch.execute()
-        self.assertTrue(receipt.is_success)
-
-        receipt = batch.execute()
-        self.assertTrue(receipt.is_success)
-
-        transferable_balance = \
-            get_account_balance(self.substrate, PARACHAIN_STAKING_POT, receipt.block_hash) - \
-            get_existential_deposit(self.substrate)
-
-        time.sleep(12 * 2)
-        next_block_hash = self.substrate.get_block_hash(receipt.block_number + 1)
-
-        for event in self.substrate.get_events(next_block_hash):
-            if event.value['module_id'] != 'ParachainStaking' or \
-               event.value['event_id'] != 'Rewarded':
-                continue
-            now_reward = event['event'][1][1][1]
-            self.assertEqual(now_reward, transferable_balance)
-
-        # TODO: dependency... If error occurs, it will not be reset.
-        # reset
-        receipt = set_max_currency_supply(self.substrate, max_currency_supply)
-        self.assertTrue(receipt.is_success, f'cannot setup the receipt: {receipt.error_message}')

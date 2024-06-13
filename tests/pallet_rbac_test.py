@@ -16,6 +16,7 @@ from peaq.rbac import rbac_rpc_fetch_role_permissions, rbac_rpc_fetch_user_permi
 from peaq.rbac import rbac_rpc_fetch_roles
 from peaq.rbac import rbac_rpc_fetch_permissions
 from peaq.rbac import rbac_rpc_fetch_groups
+from tools.utils import get_balance_reserve_value
 from tools.utils import KP_GLOBAL_SUDO
 import unittest
 
@@ -58,6 +59,62 @@ USER_ID3 = '{0}05ab6789cd012ef345ab6789cd012ef345ab6789'.format(RANDOM_PREFIX)
 USER_IDE = '{0}05bc6789de012fa345bc6789de012fa345bc6789'.format(RANDOM_PREFIX)
 
 
+def rbac_delete_role_payload(batch, role_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'delete_role',
+        {'role_id': role_id}
+    )
+
+
+def rbac_delete_group_payload(batch, group_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'delete_group',
+        {'group_id': group_id}
+    )
+
+
+def rbac_delete_permission_payload(batch, perm_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'delete_permission',
+        {'permission_id': perm_id}
+    )
+
+
+def rbac_unassign_permission2role_payload(batch, perm_id, role_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'unassign_permission_to_role',
+        {'permission_id': perm_id, 'role_id': role_id}
+    )
+
+
+def rbac_unassign_role2group_payload(batch, role_id, group_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'unassign_role_to_group',
+        {'role_id': role_id, 'group_id': group_id}
+    )
+
+
+def rbac_unassign_user2group_payload(batch, user_id, group_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'unassign_user_to_group',
+        {'user_id': user_id, 'group_id': group_id}
+    )
+
+
+def rbac_unassign_role2user_payload(batch, role_id, user_id):
+    batch.compose_call(
+        'PeaqRbac',
+        'unassign_role_to_user',
+        {'role_id': role_id, 'user_id': user_id}
+    )
+
+
 ##############################################################################
 # Converts a HEX-string without 0x into ASCII-string
 def show_success_msg(msg):
@@ -85,6 +142,7 @@ class TestPalletRBAC(unittest.TestCase):
         # g1|
         # g2|
 
+        # TODO Add reserved test
         batch = ExtrinsicBatch(self.substrate, kp_src)
         # Add some roles
         rbac_add_role_payload(batch, f'0x{ROLE_ID1}', ROLE_NM1)
@@ -384,6 +442,7 @@ class TestPalletRBAC(unittest.TestCase):
             # Success tests, default test setup
             kp_src = KP_TEST
             fund(self.substrate, KP_GLOBAL_SUDO, KP_TEST, 1000 * 10 ** 18)
+            reserved_before = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
             self.rbac_rpc_setup(kp_src)
 
             self.verify_rpc_fetch_role(kp_src)
@@ -404,6 +463,8 @@ class TestPalletRBAC(unittest.TestCase):
             # Failure tests
             self.verify_rpc_fail_wrong_id(kp_src)
             self.verify_rpc_fail_disabled_id(kp_src)
+            reserved_after = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+            self.assertGreater(reserved_after, reserved_before)
 
         except AssertionError:
             _, _, tb = sys.exc_info()
@@ -411,3 +472,84 @@ class TestPalletRBAC(unittest.TestCase):
             filename, line, func, text = tb_info[1]
             print(f'🔥 Test/{func}, Failed')
             raise
+
+    def test_delete_types(self):
+        ROLE_TEST = '{0}03456789abcdef0123456111abcdef0123456111'.format(RANDOM_PREFIX)
+        GROUP_TEST = '{0}0defabcdabcdefabc111abcdabcdefabcdefa111'.format(RANDOM_PREFIX)
+        PERM_TEST = '{0}0901234501234561110123450123456789012111'.format(RANDOM_PREFIX)
+
+        kp_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        fund(self.substrate, KP_GLOBAL_SUDO, kp_src, 1000 * 10 ** 18)
+
+        reserved_before = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+        batch = ExtrinsicBatch(self.substrate, kp_src)
+        rbac_add_role_payload(batch, f'0x{ROLE_TEST}', ROLE_NM1)
+        rbac_add_group_payload(batch, f'0x{GROUP_TEST}', GROUP_NM1)
+        rbac_add_permission_payload(batch, f'0x{PERM_TEST}', PERM_NM1)
+
+        rbac_delete_role_payload(batch, f'0x{ROLE_TEST}')
+        rbac_delete_group_payload(batch, f'0x{GROUP_TEST}')
+        rbac_delete_permission_payload(batch, f'0x{PERM_TEST}')
+
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
+        self.assertEqual(
+            rbac_rpc_fetch_role(self.substrate, kp_src.ss58_address, ROLE_TEST),
+            {'Err': {'typ': 'EntityDoesNotExist', 'param': ROLE_TEST}})
+        self.assertEqual(
+            rbac_rpc_fetch_group(self.substrate, kp_src.ss58_address, GROUP_TEST),
+            {'Err': {'typ': 'EntityDoesNotExist', 'param': GROUP_TEST}})
+        self.assertEqual(
+            rbac_rpc_fetch_permission(self.substrate, kp_src.ss58_address, PERM_TEST),
+            {'Err': {'typ': 'EntityDoesNotExist', 'param': PERM_TEST}})
+
+        reserved_after = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+        self.assertEqual(reserved_after, reserved_before)
+
+    def test_unassign_types(self):
+        kp_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        fund(self.substrate, KP_GLOBAL_SUDO, kp_src, 1000 * 10 ** 18)
+        batch = ExtrinsicBatch(self.substrate, kp_src)
+
+        ROLE_TEST = '{0}03456789abcdef0123456111abcdef0123456111'.format(RANDOM_PREFIX)
+        GROUP_TEST = '{0}0defabcdabcdefabc111abcdabcdefabcdefa111'.format(RANDOM_PREFIX)
+        PERM_TEST = '{0}0901234501234561110123450123456789012111'.format(RANDOM_PREFIX)
+        USER_TEST = '{0}05ef6789ab012cd111ef6789ab012cd345ef6111'.format(RANDOM_PREFIX)
+
+        rbac_add_role_payload(batch, f'0x{ROLE_TEST}', ROLE_NM1)
+        rbac_add_group_payload(batch, f'0x{GROUP_TEST}', GROUP_NM1)
+        rbac_add_permission_payload(batch, f'0x{PERM_TEST}', PERM_NM1)
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
+        reserved_after_add = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+
+        rbac_permission2role_payload(batch, f'0x{PERM_TEST}', f'0x{ROLE_TEST}')
+        rbac_role2group_payload(batch, f'0x{ROLE_TEST}', f'0x{GROUP_TEST}')
+        rbac_user2group_payload(batch, f'0x{USER_TEST}', f'0x{GROUP_TEST}')
+        rbac_role2user_payload(batch, f'0x{ROLE_TEST}', f'0x{USER_TEST}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
+        reserved_after_assign = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+        self.assertGreater(reserved_after_assign, reserved_after_add)
+
+        rbac_unassign_permission2role_payload(batch, f'0x{PERM_TEST}', f'0x{ROLE_TEST}')
+        rbac_unassign_role2group_payload(batch, f'0x{ROLE_TEST}', f'0x{GROUP_TEST}')
+        rbac_unassign_user2group_payload(batch, f'0x{USER_TEST}', f'0x{GROUP_TEST}')
+        rbac_unassign_role2user_payload(batch, f'0x{ROLE_TEST}', f'0x{USER_TEST}')
+        receipt = batch.execute_n_clear()
+        self.assertTrue(receipt.is_success, f'Extrinsic-call-stack failed: {receipt.error_message}')
+
+        self.assertEqual(
+            rbac_rpc_fetch_role_permissions(self.substrate, kp_src.ss58_address, ROLE_TEST),
+            {'Err': {'param': ROLE_TEST, 'typ': 'AssignmentDoesNotExist'}})
+        self.assertEqual(
+            rbac_rpc_fetch_group_roles(self.substrate, kp_src.ss58_address, GROUP_TEST),
+            {'Err': {'param': GROUP_TEST, 'typ': 'AssignmentDoesNotExist'}})
+        self.assertEqual(
+            rbac_rpc_fetch_user_groups(self.substrate, kp_src.ss58_address, USER_TEST),
+            {'Err': {'param': USER_TEST, 'typ': 'AssignmentDoesNotExist'}})
+        self.assertEqual(
+            rbac_rpc_fetch_user_roles(self.substrate, kp_src.ss58_address, USER_TEST),
+            {'Err': {'param': USER_TEST, 'typ': 'AssignmentDoesNotExist'}})
+        reserved_after_unassign = get_balance_reserve_value(self.substrate, kp_src.ss58_address, 'peaqrbac')
+        self.assertEqual(reserved_after_unassign, reserved_after_add)

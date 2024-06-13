@@ -1,10 +1,13 @@
 import unittest
 
-from substrateinterface import SubstrateInterface
-from tools.utils import WS_URL
+from substrateinterface import SubstrateInterface, Keypair
+from tools.utils import WS_URL, get_modified_chain_spec
 from peaq.utils import get_block_height, get_block_hash, get_chain
 from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
+from tools.utils import get_event, get_account_balance
+from tools.utils import KP_GLOBAL_SUDO
+from peaq.utils import ExtrinsicBatch
 
 
 import pprint
@@ -28,27 +31,7 @@ STATE_INFOS = [{
         'peaq-dev': {'length': 10},
         'agung-network': {'length': 600},
         'krest-network': {'length': 1200},
-        'peaq-network': {'length': 600},
-    }
-}, {
-    'module': 'BlockReward',
-    'storage_function': 'BlockIssueReward',
-    'almost': True,
-    'type': {
-        'peaq-dev': 1 * 10 ** 18,
-        'agung-network': 79098670000000008192,
-        'krest-network': 3.80517503805 * 10 ** 18,
-        'peaq-network': 79098670000000008192,
-    }
-}, {
-    'module': 'BlockReward',
-    'storage_function': 'MaxCurrencySupply',
-    'almost': True,
-    'type': {
-        'peaq-dev': 4200000000 * 10 ** 18,
-        'agung-network': 4200000000 * 10 ** 18,
-        'krest-network': 400000000 * 10 ** 18,
-        'peaq-network': 4200000000 * 10 ** 18,
+        'peaq-network': {'length': 1200},
     }
 }, {
     'module': 'BlockReward',
@@ -117,7 +100,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 25,
         'agung-network': 25,
         'krest-network': 25,
-        'peaq-network': 25,
+        'peaq-network': 32,
     }
 }, {
     'module': 'ParachainStaking',
@@ -126,7 +109,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 16,
         'agung-network': 16,
         'krest-network': 128,
-        'peaq-network': 16,
+        'peaq-network': 32,
     }
 }, {
     'module': 'ParachainStaking',
@@ -135,7 +118,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 32000,
         'agung-network': 32000,
         'krest-network': 50000 * 10 ** 18,
-        'peaq-network': 32000,
+        'peaq-network': 50000 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -144,7 +127,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 32000,
         'agung-network': 32000,
         'krest-network': 50000 * 10 ** 18,
-        'peaq-network': 32000,
+        'peaq-network': 50000 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -153,7 +136,7 @@ CONSTANT_INFOS = [{
         'peaq-dev': 20000,
         'agung-network': 20000,
         'krest-network': 100 * 10 ** 18,
-        'peaq-network': 20000,
+        'peaq-network': 100 * 10 ** 18,
     }
 }, {
     'module': 'ParachainStaking',
@@ -162,34 +145,25 @@ CONSTANT_INFOS = [{
         'peaq-dev': 20000,
         'agung-network': 20000,
         'krest-network': 100 * 10 ** 18,
-        'peaq-network': 20000,
+        'peaq-network': 100 * 10 ** 18,
     }
 }]
 
 
 class TokenEconomyTest(unittest.TestCase):
 
-    def get_modified_chain_spec(self):
-        if 'peaq-dev-fork' == self._chain_spec:
-            return 'peaq-dev'
-        if 'krest-network-fork' == self._chain_spec:
-            return 'krest-network'
-        if 'peaq-network-fork' == self._chain_spec:
-            return 'peaq-network'
-
     def get_info(self, test_type):
         if self._chain_spec not in test_type:
-            return test_type[self.get_modified_chain_spec()]
+            return test_type[get_modified_chain_spec(self._chain_spec)]
         else:
             return test_type[self._chain_spec]
 
     @classmethod
     def setUpClass(cls):
         restart_parachain_and_runtime_upgrade()
+        wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
 
     def setUp(self):
-        restart_parachain_and_runtime_upgrade()
-        wait_until_block_height(SubstrateInterface(url=WS_URL), 1)
         self._substrate = SubstrateInterface(url=WS_URL)
         current_height = get_block_height(self._substrate)
         self._block_hash = get_block_hash(self._substrate, current_height)
@@ -228,3 +202,76 @@ class TokenEconomyTest(unittest.TestCase):
 
             golden_data = self.get_info(test['type'])
             self.assertEqual(result.value, golden_data, f'{result.value} != {test}')
+
+    def test_block_reward(self):
+        block_reward = {
+            'peaq-dev-fork': int(3.805175038 * 10 ** 18),
+            'krest-network-fork': int(3.805175038 * 10 ** 18),
+            'peaq-network-fork': int(55.93607306 * 10 ** 18),
+        }
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        result = get_event(
+            self._substrate,
+            self._substrate.get_block_hash(),
+            'BlockReward', 'BlockRewardsDistributed')
+        self.assertIsNotNone(result, 'BlockReward event not found')
+        self.assertAlmostEqual(
+            result.value['attributes'] / block_reward[self._chain_spec],
+            1, 7,
+            msg=f'{result.value["attributes"]} != {block_reward[self._chain_spec]}')
+
+    def test_total_issuance(self):
+        golden_issuance_number = {
+            'peaq-dev-fork': int(400 * 10 ** 6 * 10 ** 18),
+            'krest-network-fork': int(400 * 10 ** 6 * 10 ** 18),
+            'peaq-network-fork': int(4200 * 10 ** 6 * 10 ** 18),
+        }
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        total_balance = self._substrate.query(
+            module='Balances',
+            storage_function='TotalIssuance',
+            params=[],
+        )
+        self.assertGreater(
+            total_balance.value,
+            golden_issuance_number[self._chain_spec],
+            f'{total_balance.value} <= {golden_issuance_number[self._chain_spec]}')
+
+        self.assertLess(
+            total_balance.value,
+            golden_issuance_number[self._chain_spec] * 1.01,
+            f'{total_balance.value} >= {golden_issuance_number[self._chain_spec] + 10 ** 18}')
+
+    # Will fail after this runtime upgrade
+    def test_inflation_mgr_transfer_all_pot(self):
+        if 'peaq-dev-fork' != self._chain_spec and \
+           'krest-network-fork' != self._chain_spec and \
+           'peaq-network-fork' != self._chain_spec:
+            print('Skipping block reward test')
+            return
+
+        kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+        batch = ExtrinsicBatch(self._substrate, KP_GLOBAL_SUDO)
+        batch.compose_sudo_call(
+            'InflationManager',
+            'transfer_all_pot',
+            {
+                'dest': kp_dst.ss58_address
+            }
+        )
+        receipt = batch.execute()
+        self.assertTrue(receipt.is_success, f'Failed to transfer all pot: {receipt}')
+
+        balance = get_account_balance(self._substrate, kp_dst.ss58_address)
+        self.assertGreater(balance, 0, f'Balance is zero: {balance}')
