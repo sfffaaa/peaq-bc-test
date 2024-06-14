@@ -151,6 +151,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
         return wait_for_account_asset_change_wrap(
             self.si_aca, addr, asset_id, prev_token, get_tokens_account_from_pallet_tokens)
 
+    @pytest.mark.xcm
     @pytest.mark.skipif(TestUtils.is_not_dev_chain() is True, reason='Note enable xcm_execute on non-dev chain')
     def test_xcm_execute(self):
         self._fund_eth_account()
@@ -180,6 +181,7 @@ class TestBridgeXCMUtils(unittest.TestCase):
         balance = get_account_balance(self.si_peaq, kp_dst.ss58_address)
         self.assertNotEqual(balance, 0, f'Error: {balance}')
 
+    @pytest.mark.xcm
     def test_xcm_send(self):
         self.si_peaq = SubstrateInterface(url=WS_URL)
         self.si_aca = SubstrateInterface(url=ACA_WS_URL)
@@ -214,11 +216,13 @@ class TestBridgeXCMUtils(unittest.TestCase):
         self.assertEqual(evm_receipt['status'], 1, f'Error: {evm_receipt}: {evm_receipt["status"]}')
         # Cannot test on remote side because Acala we used cannot resolve the origin (1, parachain, account)
 
+    @pytest.mark.xcm
     def test_get_units_per_second(self):
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
         data = contract.functions.getUnitsPerSecond([0, []]).call()
         self.assertNotEqual(data, 0)
 
+    @pytest.mark.xcm
     def test_weight_message(self):
         contract = get_contract(self.w3, XCMUTILS_ADDRESS, ABI_FILE)
         kp_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())

@@ -20,6 +20,7 @@ from tools.asset import ACA_ASSET_ID
 from tools.asset import RELAY_ASSET_LOCATION, RELAY_ASSET_ID, RELAY_METADATA
 from tools.zenlink import compose_zdex_create_lppair, compose_zdex_lppair_params, compose_zdex_add_liquidity
 from tools.zenlink import calc_deadline
+import pytest
 
 
 # Technical constants
@@ -562,6 +563,7 @@ class TestZenlinkDex(unittest.TestCase):
         self.si_peaq = SubstrateInterface(url=PARACHAIN_WS_URL)
         self.si_bifrost = SubstrateInterface(url=ACA_WS_URL)
 
+    @pytest.mark.xcm
     def test_create_pair_swap(self):
         show_title('Zenlink-DEX-Protocol create pair swap Test')
         try:
@@ -579,6 +581,7 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
+    @pytest.mark.xcm
     def test_booststrap(self):
         show_title('Zenlink-DEX-Protocol boostrap Test')
         try:
@@ -597,6 +600,7 @@ class TestZenlinkDex(unittest.TestCase):
             show_test(tb.stack[-1].name, False, tb.stack[-1].lineno)
             raise
 
+    @pytest.mark.xcm
     def test_empty_lp_swap(self):
         show_title('Zenlink-DEX-Protocol empty lp swap Test')
         try:
