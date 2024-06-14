@@ -7,6 +7,7 @@ from tools.utils import get_event, get_modified_chain_spec
 from tools.utils import KP_COLLATOR, KP_GLOBAL_SUDO, PARACHAIN_STAKING_POT
 from tools.utils import get_existential_deposit, wait_for_event
 from peaq.utils import ExtrinsicBatch
+from tests.utils_func import restart_parachain_and_runtime_upgrade
 import unittest
 import time
 
@@ -40,6 +41,10 @@ DIVISION_FACTOR = pow(10, 7)
 class TestRewardDistribution(unittest.TestCase):
     _kp_bob = Keypair.create_from_uri('//Bob')
     _kp_eve = Keypair.create_from_uri('//Eve')
+
+    @classmethod
+    def setUpClass(cls):
+        restart_parachain_and_runtime_upgrade()
 
     def setUp(self):
         self._substrate = SubstrateInterface(url=WS_URL)
