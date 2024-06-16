@@ -444,7 +444,7 @@ def bootstrap_pair_n_swap_test(si_bifrost, si_peaq):
 
     def ed_recal(val):
         # Use the 10 ** 18 for remote parachain's token because of the ED increase
-        return val * 10 ** 18
+        return int(val * 10 ** 18)
 
     # Transfer tokens from parachain to our chain
     amount = bifrost_amount_w_fees(ed_recal(TOK_LIQUIDITY)) // 2
