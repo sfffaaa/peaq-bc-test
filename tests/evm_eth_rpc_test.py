@@ -18,6 +18,7 @@ HEX_STR = '1111'
 GAS_LIMIT = 4294967
 TOKEN_NUM = 10000 * pow(10, 15)
 ABI_FILE = 'ETH/identity/abi'
+TOKEN_NUM_BASE = pow(10, 18)
 
 
 MNEMONIC = [
@@ -105,7 +106,7 @@ class TestEVMEthRPC(unittest.TestCase):
         block = w3.eth.get_block('latest')
         self.assertNotEqual(block['number'], 0)
 
-        token_num = 10000000
+        token_num = 10 * TOKEN_NUM_BASE
         dst_eth_before_balance = w3.eth.get_balance(kp_eth_dst.ss58_address)
 
         print(f'before, dst eth: {dst_eth_before_balance}')

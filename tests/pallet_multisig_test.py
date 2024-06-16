@@ -1,10 +1,12 @@
 import unittest
 from substrateinterface import SubstrateInterface, Keypair
-from tools.utils import TOKEN_NUM_BASE, WS_URL
+from tools.utils import WS_URL
 from tools.utils import show_account, send_approval, send_proposal, get_as_multi_extrinsic_id
 from peaq.extrinsic import transfer
 from peaq.utils import calculate_multi_sig
 import random
+
+TOKEN_NUM_BASE = 10 ** 18
 
 
 class PalletMultisig(unittest.TestCase):
@@ -21,7 +23,7 @@ class PalletMultisig(unittest.TestCase):
 
         num = random.randint(1, 10000)
         # Deposit to wallet addr
-        transfer(self.substrate, self.kp_src, multi_sig_addr, num)
+        transfer(self.substrate, self.kp_src, multi_sig_addr, num * TOKEN_NUM_BASE, 1)
 
         payload = self.substrate.compose_call(
             call_module='Balances',
