@@ -35,6 +35,7 @@ class TestPalletBlockReward(unittest.TestCase):
         )
         self.assertEqual(set_value, now_value)
 
+        # TODO: dependency... If error occurs, it will not be reset.
         # Reset
         recepit = set_block_reward_configuration(
             self.substrate,
