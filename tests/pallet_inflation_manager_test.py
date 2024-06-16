@@ -41,13 +41,26 @@ INFLATION_PARAMETERS = {
         'disinflation_rate': 1000000000,
     },
     'krest-network': {
-        'inflation_rate': 25000000,
-        'disinflation_rate': 1000000000,
+        # This is the default value
+        'inflation_rate': 35000000,
+        'disinflation_rate': 100000000,
     },
     'peaq-dev': {
         'inflation_rate': 25000000,
         'disinflation_rate': 1000000000,
     }
+}
+
+INFLATION_YEAR = {
+    'peaq-network': 1,
+    'krest-network': 0,
+    'peaq-dev': 1
+}
+
+INFLATION_RECALCULATION = {
+    'peaq-network': 2628000,
+    'krest-network': 2915990,
+    'peaq-dev': 2628000
 }
 
 # Expected recalculation target at genesis
@@ -86,6 +99,7 @@ class TestPalletInflationManager(unittest.TestCase):
         # Set the inflation configuration
         golden_inflation_config = INFLATION_CONFIG[self.chain_spec]
         golden_inflation_parameters = INFLATION_PARAMETERS[self.chain_spec]
+        golden_year = INFLATION_YEAR[self.chain_spec]
 
         onchain_inflation_config = self._fetch_pallet_storage(
             InflationState.InflationConfiguration.value,
@@ -102,6 +116,6 @@ class TestPalletInflationManager(unittest.TestCase):
 
         self.assertEqual(golden_inflation_config, onchain_inflation_config)
         self.assertEqual(golden_inflation_parameters, onchain_base_inflation_parameters)
-        self.assertEqual(onchain_year, 1)
+        self.assertEqual(onchain_year, golden_year)
         # If it's forked chain, it should be after 1 year + upgrade time
-        self.assertEqual(onchain_do_recalculation_at, RECALCULATION_AFTER)
+        self.assertEqual(onchain_do_recalculation_at, INFLATION_RECALCULATION[self.chain_spec])

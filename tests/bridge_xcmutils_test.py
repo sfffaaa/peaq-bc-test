@@ -1,6 +1,8 @@
 import unittest
 from tools.utils import WS_URL, ETH_URL, ACA_WS_URL
 from tools.utils import ACA_PD_CHAIN_ID
+from tools.utils import RELAYCHAIN_WS_URL, PARACHAIN_WS_URL
+from tools.runtime_upgrade import wait_until_block_height
 from tools.peaq_eth_utils import get_contract
 from tools.peaq_eth_utils import GAS_LIMIT, get_eth_info
 from tools.peaq_eth_utils import get_eth_chain_id
@@ -14,6 +16,7 @@ from tools.asset import setup_aca_asset_if_not_exist
 from tools.asset import PEAQ_ASSET_LOCATION, PEAQ_METADATA
 from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_tokens_account_from_pallet_tokens
+from tools.xcm_setup import setup_hrmp_channel
 import pytest
 
 
@@ -24,6 +27,8 @@ XCMUTILS_ADDRESS = '0x0000000000000000000000000000000000000804'
 class TestBridgeXCMUtils(unittest.TestCase):
     def setUp(self):
         self.si_peaq = SubstrateInterface(url=WS_URL)
+        wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
+        setup_hrmp_channel(RELAYCHAIN_WS_URL)
         self.w3 = Web3(Web3.HTTPProvider(ETH_URL))
         self.kp_eth = get_eth_info()
         self.eth_chain_id = get_eth_chain_id(self.si_peaq)

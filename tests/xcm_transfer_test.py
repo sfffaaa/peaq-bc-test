@@ -26,6 +26,8 @@ from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_balance_account_from_pallet_balance
 from tools.asset import get_tokens_account_from_pallet_assets
 from tools.asset import get_tokens_account_from_pallet_tokens
+
+from tools.xcm_setup import setup_hrmp_channel
 import pytest
 
 
@@ -254,6 +256,7 @@ class TestXCMTransfer(unittest.TestCase):
         restart_parachain_and_runtime_upgrade()
         wait_until_block_height(SubstrateInterface(url=PARACHAIN_WS_URL), 1)
         wait_until_block_height(SubstrateInterface(url=ACA_WS_URL), 1)
+        setup_hrmp_channel(RELAYCHAIN_WS_URL)
 
         self.si_peaq = SubstrateInterface(url=WS_URL,)
         self.si_relay = SubstrateInterface(url=RELAYCHAIN_WS_URL, type_registry_preset='rococo')
@@ -606,3 +609,32 @@ class TestXCMTransfer(unittest.TestCase):
         now_balance = self.wait_for_peaq_account_asset_change(
             kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'], prev_balance)
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
+
+    def test_sibling_parachain_delivery_fee(self):
+        # Setup
+        kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        kp_para_dst = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+        initial_balance = 1000 * 10 ** 18
+
+        # Fund source account
+        receipt = fund(self.si_peaq, KP_GLOBAL_SUDO, kp_para_src, initial_balance)
+        self.assertTrue(receipt.is_success, f'Failed to fund account, {receipt.error_message}')
+
+        # Get initial balance
+        initial_balance = get_account_balance(self.si_peaq, kp_para_src.ss58_address)
+
+        # Send tokens from one parachain to another
+        receipt = send_token_from_peaq_to_para(
+            self.si_peaq, kp_para_src, kp_para_dst,
+            ACA_PD_CHAIN_ID, PEAQ_ASSET_ID['peaq'], TEST_TOKEN_NUM)
+        self.assertTrue(receipt.is_success, f'Failed to send token from peaq to relay chain: {receipt.error_message}')
+
+        # Get final balance
+        final_balance = get_account_balance(self.si_peaq, kp_para_src.ss58_address)
+
+        # Calculate the delivery fee
+        delivery_fee = initial_balance - final_balance - TEST_TOKEN_NUM
+
+        # Assert that the delivery fee is within the expected range
+        self.assertGreaterEqual(delivery_fee, 0)
+        self.assertLessEqual(delivery_fee, 200000000000)
