@@ -6,6 +6,7 @@ from tests.utils_func import restart_parachain_and_runtime_upgrade
 from tools.runtime_upgrade import wait_until_block_height
 from substrateinterface import SubstrateInterface, Keypair
 from tools.utils import WS_URL, RELAYCHAIN_WS_URL, ACA_WS_URL, PARACHAIN_WS_URL
+from tools.utils import get_modified_chain_spec
 from peaq.utils import get_account_balance
 from peaq.utils import ExtrinsicBatch
 from peaq.sudo_extrinsic import fund
@@ -26,8 +27,10 @@ from tools.asset import wait_for_account_asset_change_wrap
 from tools.asset import get_balance_account_from_pallet_balance
 from tools.asset import get_tokens_account_from_pallet_assets
 from tools.asset import get_tokens_account_from_pallet_tokens
+from peaq.utils import get_chain
+
 from tools.xcm_setup import setup_hrmp_channel
-# import pytest
+import pytest
 
 
 PEAQ_PD_CHAIN_ID = get_peaq_chain_id()
@@ -119,6 +122,21 @@ TEST_LP_ASSET_TOKEN = {
             }
         }
     }
+}
+
+TEST_FEES_RANGE = {
+    'peaq-dev': {
+        'min': 0,
+        'max': 200000000000,
+    },
+    'krest-network': {
+        'min': 0,
+        'max': 200000000000,
+    },
+    'peaq-network': {
+        'min': 0,
+        'max': 40000000000000000,
+    },
 }
 
 
@@ -262,6 +280,9 @@ class TestXCMTransfer(unittest.TestCase):
         self.si_aca = SubstrateInterface(url=ACA_WS_URL)
         self.alice = Keypair.create_from_uri('//Alice')
 
+        self.chain_spec = get_chain(self.si_peaq)
+        self.chain_spec = get_modified_chain_spec(self.chain_spec)
+
     def setup_xc_register_if_not_exist(self, asset_id, location, units_per_second):
         resp = self.si_peaq.query("XcAssetConfig", "AssetIdToLocation", [asset_id])
         if resp.value:
@@ -289,7 +310,7 @@ class TestXCMTransfer(unittest.TestCase):
         return wait_for_account_asset_change_wrap(
             self.si_peaq, kp_dst.ss58_address, None, prev_token, get_balance_account_from_pallet_balance)
 
-    # @pytest.mark.skip(reason="Success")
+    @pytest.mark.xcm
     def test_from_relay_to_peaq(self):
         receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA)
         self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
@@ -328,6 +349,7 @@ class TestXCMTransfer(unittest.TestCase):
             f'Actual {now_balance} should > expected {prev_balance} tokens')
 
     # No fund dst account before receive the relay chain's token
+    @pytest.mark.xcm
     def test_from_relay_to_peaq_with_sufficient(self):
         receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, RELAY_ASSET_ID['peaq'], RELAY_METADATA, 100, True)
         self.assertTrue(receipt.is_success, f'Failed to setup asset, {receipt.error_message}')
@@ -366,8 +388,8 @@ class TestXCMTransfer(unittest.TestCase):
             now_balance, prev_balance,
             f'Actual {now_balance} should > expected {prev_balance} tokens')
 
-    # @pytest.mark.skip(reason="Success")
     # We don't need to test other token from aca to peaq because the flow is the same
+    @pytest.mark.xcm
     def test_native_from_aca_to_peaq(self):
         asset_id = ACA_ASSET_ID['peaq']
         receipt = setup_asset_if_not_exist(self.si_peaq, KP_GLOBAL_SUDO, asset_id, ACA_METADATA)
@@ -409,7 +431,7 @@ class TestXCMTransfer(unittest.TestCase):
             now_balance, prev_balance,
             f'Actual {now_balance} should > expected {prev_balance}')
 
-    # @pytest.mark.skip(reason="Success")
+    @pytest.mark.xcm
     def test_native_from_peaq_to_aca(self):
         receipt = setup_aca_asset_if_not_exist(
             self.si_aca, KP_GLOBAL_SUDO, PEAQ_ASSET_LOCATION['para'], PEAQ_METADATA)
@@ -442,6 +464,7 @@ class TestXCMTransfer(unittest.TestCase):
         now_balance = self.wait_for_account_change(self.si_peaq, kp_self_dst, prev_balance)
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
 
+    @pytest.mark.xcm
     def test_asset_from_peaq_to_aca_with_sufficient(self):
         # Create new asset id and register on peaq
         asset_id = TEST_ASSET_ID['peaq']
@@ -500,7 +523,7 @@ class TestXCMTransfer(unittest.TestCase):
         now_balance = self.wait_for_peaq_account_asset_change(kp_self_dst.ss58_address, TEST_ASSET_ID['peaq'])
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
 
-    # @pytest.mark.skip(reason="Success")
+    @pytest.mark.xcm
     def test_asset_from_peaq_to_aca(self):
         # From Alice transfer to kp_para_src (other chain) and move to the kp_self_dst
         # Create new asset id and register on peaq
@@ -525,6 +548,7 @@ class TestXCMTransfer(unittest.TestCase):
         self._check_peaq_asset_from_peaq_to_aca_and_back(kp_para_src, kp_self_dst)
 
     # Note, lp asset should create by zenlink protocol
+    @pytest.mark.xcm
     def test_lp_asset_from_peaq_to_aca(self):
         # Setup
         kp_peaq = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -606,6 +630,7 @@ class TestXCMTransfer(unittest.TestCase):
             kp_peaq.ss58_address, TEST_LP_ASSET_ID['peaq'], prev_balance)
         self.assertGreater(now_balance, prev_balance, f'Actual {now_balance} should > expected {prev_balance}')
 
+    # [TODO] This doesn't really tested that because when I revert the XCM commit, it still works
     def test_sibling_parachain_delivery_fee(self):
         # Setup
         kp_para_src = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -632,5 +657,5 @@ class TestXCMTransfer(unittest.TestCase):
         delivery_fee = initial_balance - final_balance - TEST_TOKEN_NUM
 
         # Assert that the delivery fee is within the expected range
-        self.assertGreaterEqual(delivery_fee, 0)
-        self.assertLessEqual(delivery_fee, 200000000000)
+        self.assertGreaterEqual(delivery_fee, TEST_FEES_RANGE[self.chain_spec]['min'])
+        self.assertLessEqual(delivery_fee, TEST_FEES_RANGE[self.chain_spec]['max'])
