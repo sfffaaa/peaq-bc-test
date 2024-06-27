@@ -1,6 +1,8 @@
 from substrateinterface import SubstrateInterface, Keypair
 from peaq.utils import get_chain
-from tools.utils import WS_URL, TOKEN_NUM_BASE
+
+from tools.payload import user_extrinsic_send
+from tools.utils import WS_URL, TOKEN_NUM_BASE, get_collators
 from peaq.extrinsic import transfer_with_tip, transfer
 from peaq.utils import get_account_balance
 from tools.utils import get_event, get_modified_chain_spec
@@ -36,6 +38,17 @@ FEE_CONFIG = {
 
 COLLATOR_DELEGATOR_POT = '5EYCAe5cKPAoFh2HnQQvpKqRYZGqBpaA87u4Zzw89qPE58is'
 DIVISION_FACTOR = pow(10, 7)
+
+
+@user_extrinsic_send
+def set_commission(substrate, candidate_address, commission_permill):
+    return substrate.compose_call(
+        call_module='ParachainStaking',
+        call_function='set_commission',
+        call_params={
+            'commission': commission_permill
+        }
+    )
 
 
 class TestRewardDistribution(unittest.TestCase):
@@ -83,7 +96,7 @@ class TestRewardDistribution(unittest.TestCase):
         amount = 0
         for event in self._substrate.get_events(block_hash):
             if event.value['module_id'] != 'TransactionPayment' or \
-               event.value['event_id'] != 'TransactionFeePaid':
+                    event.value['event_id'] != 'TransactionFeePaid':
                 continue
             if fee_type == 'fee':
                 amount += event['event'][1][1].value['actual_fee'] - event['event'][1][1].value['tip']
@@ -118,8 +131,8 @@ class TestRewardDistribution(unittest.TestCase):
         block_reward = self._get_block_issue_reward()
 
         expected_reward = int(int(transaction_fee * (1 + self._fee_percentage)) * self._collator_percentage) + \
-            int(transaction_tip * self._collator_percentage) + \
-            int(block_reward * block_len * self._collator_percentage)
+                          int(transaction_tip * self._collator_percentage) + \
+                          int(block_reward * block_len * self._collator_percentage)
         print(f'Expected reward: {expected_reward}')
         print(f'Pot transferable balance: {pot_transferable_balance}')
         self.assertAlmostEqual(
@@ -139,7 +152,7 @@ class TestRewardDistribution(unittest.TestCase):
             tx_reward, None,
             f'Cannot find the block event for transaction reward {tx_reward}')
         tx_fee_ori = self._get_transaction_fee_paid(block_hash, 'fee') + \
-            self._get_transaction_fee_paid(block_hash, 'tip')
+                     self._get_transaction_fee_paid(block_hash, 'tip')
         self.assertNotEqual(
             tx_fee_ori, None,
             f'Cannot find the block event for transaction reward {tx_fee_ori}')
@@ -152,7 +165,7 @@ class TestRewardDistribution(unittest.TestCase):
         events = []
         for event in self._substrate.get_events(block_hash):
             if event.value['module_id'] != 'Balances' or \
-               event.value['event_id'] != 'Deposit':
+                    event.value['event_id'] != 'Deposit':
                 continue
             if str(event['event'][1][1]['who']) == dest:
                 events.append(event['event'][1][1]['amount'].value)
@@ -237,3 +250,21 @@ class TestRewardDistribution(unittest.TestCase):
         self.assertNotEqual(fee, None, f'Cannot find the block event for transaction reward {fee}')
 
         self._check_tx_fee(fee)
+
+    def test_set_and_verify_commission(self):
+        # Convert commission percent to Permill representation
+        commission_permill = 10 * 10_000
+
+        # Set commission for the candidate
+        self.assertEqual(
+            get_collators(self._substrate, KP_COLLATOR)['commission'],
+            0,
+            'Commission not well initialised'
+        )
+        receipt = set_commission(self._substrate, KP_COLLATOR, commission_permill)
+        self.assertTrue(receipt.is_success, f'Failed to set commission: {receipt.error_message}')
+        self.assertEqual(
+            get_collators(self._substrate, KP_COLLATOR)['commission'],
+            commission_permill,
+            'Commission is not set'
+        )
